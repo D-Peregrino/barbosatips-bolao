@@ -1,6 +1,6 @@
 // components/analises/AnaliseCard.tsx
 import Link from "next/link";
-import type { AnaliseCardData, AnaliseStatus, AnaliseSport } from "@/lib/mocks/analises.mock";
+import type { AnaliseCardData, AnaliseStatus, AnaliseSport } from "@/lib/📁 lib/mocks/analises.mock";
 
 // ─── Mapas visuais ────────────────────────────────────────────────────────────
 
