@@ -1,0 +1,132 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
+import type { NavItem } from "@/components/layout/Navbar";
+
+const ROUTE_ICONS: Record<string, string> = {
+  "/":             "ti-home",
+  "/tips":         "ti-chart-line",
+  "/analises":     "ti-article",
+  "/estatisticas": "ti-chart-bar",
+  "/bolao":        "ti-trophy",
+};
+
+interface MobileMenuProps {
+  id:          string;
+  open:        boolean;
+  items:       NavItem[];
+  telegramUrl: string;
+  isActive:    (href: string) => boolean;
+  onClose:     () => void;
+}
+
+export function MobileMenu({ id, open, items, telegramUrl, isActive, onClose }: MobileMenuProps) {
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+
+  // Foca o primeiro item ao abrir
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => firstLinkRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className={cn(
+          "md:hidden fixed inset-0 z-40 bg-black/50 transition-opacity duration-200",
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        )}
+      />
+
+      {/* Drawer */}
+      <div
+        id={id}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navegação"
+        className={cn(
+          "md:hidden fixed top-[52px] left-0 right-0 z-40",
+          "bg-[#141A22] border-b border-[#1E2D3D]",
+          "transition-all duration-200 ease-out origin-top",
+          open
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 -translate-y-2 pointer-events-none",
+        )}
+      >
+        <div className="px-3 pt-3 pb-4 max-w-[1200px] mx-auto">
+
+          {/* Links */}
+          <nav aria-label="Menu mobile">
+            {items.map(({ href, label }, i) => {
+              const active = isActive(href);
+              const icon   = ROUTE_ICONS[href] ?? "ti-circle";
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  ref={i === 0 ? firstLinkRef : undefined}
+                  onClick={onClose}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-[11px] rounded-lg mb-0.5",
+                    "text-[14px] font-medium transition-colors duration-150",
+                    active
+                      ? "text-[#F0B429] bg-[rgba(240,180,41,0.10)]"
+                      : "text-[#7D8FA3] hover:text-white hover:bg-[#1C2430]",
+                  )}
+                >
+                  <i className={`ti ${icon} text-[17px]`} aria-hidden="true" />
+                  <span className="flex-1">{label}</span>
+                  {active && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[rgba(240,180,41,0.12)] border border-[rgba(240,180,41,0.22)] text-[#F0B429]">
+                      Ativo
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="my-3 h-px bg-[#1E2D3D]" aria-hidden="true" />
+
+          {/* CTAs */}
+          <div className="flex flex-col gap-2">
+            
+              href={telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 h-[42px] rounded-[9px] text-[13px] font-semibold text-[#29AADA] bg-[rgba(38,169,224,0.10)] border border-[rgba(38,169,224,0.20)] hover:bg-[rgba(38,169,224,0.18)] transition-colors duration-150"
+            >
+              <TelegramSVG />
+              Entrar no canal do Telegram
+            </a>
+
+            <Link
+              href="/entrar"
+              onClick={onClose}
+              className="flex items-center justify-center h-[42px] rounded-[9px] text-[13px] font-bold text-black bg-[#F0B429] hover:bg-[#F7D070] transition-colors duration-150"
+            >
+              Criar conta grátis
+            </Link>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}
+
+function TelegramSVG() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M21.944 2.506a1.5 1.5 0 0 0-1.538-.217L2.284 9.61a1.5 1.5 0 0 0 .09 2.783l4.149 1.38 1.62 5.187a1 1 0 0 0 1.707.393l2.43-2.615 4.763 3.498a1.5 1.5 0 0 0 2.35-1.02l2.54-15.19a1.5 1.5 0 0 0-.99-1.52ZM10.1 14.77l-.74 2.32-.87-3.01 8.12-6.77-7.51 7.46Z" />
+    </svg>
+  );
+}

@@ -1,0 +1,43 @@
+// components/layout/TelegramButton.tsx
+import { cn } from "@/lib/utils";
+
+interface TelegramButtonProps {
+  href: string;
+  compact?: boolean;
+  className?: string;
+}
+
+export function TelegramButton({ href, compact = false, className }: TelegramButtonProps) {
+  return (
+    
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={compact ? "Canal do Telegram" : "Entrar no canal do Telegram"}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-lg font-semibold transition-all duration-150 select-none",
+        "bg-[rgba(38,169,224,0.12)] border border-[rgba(38,169,224,0.22)] text-[#29AADA]",
+        "hover:bg-[rgba(38,169,224,0.22)] hover:border-[rgba(38,169,224,0.38)]",
+        compact ? "h-[34px] px-[10px] text-[11px]" : "h-[34px] px-3 text-[12px]",
+        className,
+      )}
+    >
+      <TelegramIcon size={compact ? 14 : 15} />
+      {compact ? "TG" : "Telegram"}
+    </a>
+  );
+}
+
+function TelegramIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M21.944 2.506a1.5 1.5 0 0 0-1.538-.217L2.284 9.61a1.5 1.5 0 0 0 .09 2.783l4.149 1.38 1.62 5.187a1 1 0 0 0 1.707.393l2.43-2.615 4.763 3.498a1.5 1.5 0 0 0 2.35-1.02l2.54-15.19a1.5 1.5 0 0 0-.99-1.52ZM10.1 14.77l-.74 2.32-.87-3.01 8.12-6.77-7.51 7.46Z" />
+    </svg>
+  );
+}

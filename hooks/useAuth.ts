@@ -1,0 +1,94 @@
+"use client";
+
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import type { User } from "@supabase/supabase-js";
+import type { User as UserProfile } from "@/types/database.types";
+
+interface AuthState {
+  user:               User | null;
+  profile:            UserProfile | null;
+  loading:            boolean;
+  isAdmin:            boolean;
+  isTipster:          boolean;
+  signOut:            () => Promise<void>;
+  signInWithGoogle:   () => Promise<void>;
+}
+
+export function useAuth(): AuthState {
+  const mock = useMemo(() => isSupabaseMock(), []);
+  const supabase = useMemo(
+    () => (mock ? null : createClient()),
+    [mock],
+  );
+
+  const [user, setUser]         = useState<User | null>(null);
+  const [profile, setProfile]   = useState<UserProfile | null>(null);
+  const [loading, setLoading]   = useState(!mock);
+
+  const fetchProfile = useCallback(
+    async (userId: string) => {
+      if (!supabase) return;
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .single();
+      setProfile(data as UserProfile | null);
+    },
+    [supabase],
+  );
+
+  useEffect(() => {
+    if (mock || !supabase) {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      },
+    );
+
+    return () => subscription.unsubscribe();
+  }, [mock, supabase, fetchProfile]);
+
+  const signOut = useCallback(async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+  }, [supabase]);
+
+  const signInWithGoogle = useCallback(async () => {
+    if (!supabase) return;
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options:  { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }, [supabase]);
+
+  return {
+    user,
+    profile,
+    loading,
+    isAdmin:   profile?.role === "admin",
+    isTipster: profile?.role === "tipster" || profile?.role === "admin",
+    signOut,
+    signInWithGoogle,
+  };
+}
