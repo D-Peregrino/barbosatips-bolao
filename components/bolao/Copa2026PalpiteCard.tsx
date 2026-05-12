@@ -45,6 +45,10 @@ function formatarData(dataISO: string): string {
   }
 }
 
+export type PontuacaoPalpiteCard =
+  | { modo: "aguardando_resultado" }
+  | { modo: "pontos"; valor: 0 | 1 | 3 };
+
 export interface Copa2026PalpiteCardProps {
   jogo: JogoCopa2026Resolvido;
   placarCasa: string;
@@ -53,14 +57,42 @@ export interface Copa2026PalpiteCardProps {
   onSalvarPalpite: (jogoId: string) => void;
   salvoFlash: boolean;
   bloquearEdicao?: boolean;
-  /** Desabilita só o botão Salvar (ex.: gravação no Supabase em andamento). */
   salvandoPalpite?: boolean;
-  /**
-   * Prazo de palpites (15 min antes do jogo). Quando ausente, usa o status ilustrativo do mock.
-   */
   prazoPalpites?: {
     encerrado: boolean;
     tempoRestante?: string | null;
+  };
+  /** Palpite já persistido no Supabase para este jogo (placar completo salvo). */
+  palpiteSalvoNoServidor: boolean;
+  pontuacaoBolao: PontuacaoPalpiteCard;
+}
+
+function faixaPontuacao(p: PontuacaoPalpiteCard) {
+  if (p.modo === "aguardando_resultado") {
+    return {
+      wrap: "border-zinc-700/80 bg-zinc-900/80 text-zinc-400",
+      titulo: "Aguardando resultado",
+      subtitulo: "Pontuação após o jogo",
+    };
+  }
+  if (p.valor === 3) {
+    return {
+      wrap: "border-emerald-600/50 bg-emerald-950/50 text-emerald-300",
+      titulo: "3 pontos",
+      subtitulo: "Placar exato",
+    };
+  }
+  if (p.valor === 1) {
+    return {
+      wrap: "border-yellow-600/45 bg-yellow-950/35 text-yellow-200",
+      titulo: "1 ponto",
+      subtitulo: "Acertou vencedor ou empate",
+    };
+  }
+  return {
+    wrap: "border-red-600/40 bg-red-950/40 text-red-200",
+    titulo: "0 ponto",
+    subtitulo: "Não pontuou",
   };
 }
 
@@ -74,6 +106,8 @@ export function Copa2026PalpiteCard({
   bloquearEdicao,
   salvandoPalpite,
   prazoPalpites,
+  palpiteSalvoNoServidor,
+  pontuacaoBolao,
 }: Copa2026PalpiteCardProps) {
   const {
     id,
@@ -85,6 +119,7 @@ export function Copa2026PalpiteCard({
     status,
     mandante,
     visitante,
+    resultadoOficial,
   } = jogo;
 
   const usaPrazoReal = Boolean(prazoPalpites);
@@ -93,6 +128,14 @@ export function Copa2026PalpiteCard({
     Boolean(bloquearEdicao) ||
     palpitesFechadosPorPrazo ||
     (!usaPrazoReal && status === "encerrado");
+
+  const faixa = faixaPontuacao(pontuacaoBolao);
+
+  const seloSalvo =
+    "inline-flex w-full items-center justify-center rounded-lg border-2 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] sm:text-[11px] lg:py-2.5 lg:text-xs";
+  const seloSalvoClass = palpiteSalvoNoServidor
+    ? `${seloSalvo} border-yellow-500/70 bg-gradient-to-r from-yellow-500/15 via-yellow-600/10 to-yellow-500/15 text-yellow-300 shadow-[0_0_24px_rgba(234,179,8,0.12)]`
+    : `${seloSalvo} border-zinc-700 bg-zinc-950/80 text-zinc-500`;
 
   return (
     <div className="border border-[#1f1f1f] bg-[#101010] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] lg:rounded-md">
@@ -124,6 +167,33 @@ export function Copa2026PalpiteCard({
             <span className={badgeStatus(status)}>{labelStatus(status)}</span>
           )}
         </div>
+      </div>
+
+      <div className="space-y-2 border-b border-[#1a1a1a] px-2.5 py-2 lg:px-5 lg:py-3">
+        <span className={seloSalvoClass}>
+          {palpiteSalvoNoServidor ? "Palpite enviado" : "Aguardando palpite"}
+        </span>
+
+        <div
+          className={`rounded-lg border px-3 py-2 lg:px-4 lg:py-2.5 ${faixa.wrap}`}
+          role="status"
+        >
+          <p className="text-[11px] font-black uppercase tracking-wide lg:text-xs">
+            {faixa.titulo}
+          </p>
+          <p className="mt-0.5 text-[9px] font-semibold leading-snug opacity-90 lg:text-[10px]">
+            {faixa.subtitulo}
+          </p>
+        </div>
+
+        {resultadoOficial ? (
+          <p className="text-center text-[10px] text-zinc-500 lg:text-[11px]">
+            Resultado oficial:{" "}
+            <span className="font-mono font-bold text-zinc-200">
+              {resultadoOficial.casa} × {resultadoOficial.fora}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div className="border-b border-[#1a1a1a] px-2.5 py-1 text-[9px] leading-tight text-zinc-500 lg:px-5 lg:py-1.5 lg:text-[11px] lg:leading-snug">

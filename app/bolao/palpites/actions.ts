@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type PostgrestError } from "@supabase/supabase-js";
 import {
   COPA2026_JOGOS,
   COPA2026_JOGO_IDS,
@@ -10,6 +10,8 @@ import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
 const MSG_EMAIL_NAO_INSCRITO = "E-mail não inscrito no bolão.";
 export const MSG_PALPITES_ENCERRADOS_JOGO = "Palpites encerrados para este jogo.";
+const MSG_PLACAR_INCOMPLETO =
+  "Informe o placar do mandante e do visitante antes de salvar.";
 
 export type VerificarPalpitesBolaoResult =
   | {
@@ -57,6 +59,85 @@ function assertPlacaresKeys(
   return null;
 }
 
+function mensagemErroPostgrest(err: PostgrestError): string {
+  const partes = [err.message, err.details, err.hint].filter(
+    (s): s is string => typeof s === "string" && s.trim().length > 0,
+  );
+  return partes.join(" — ") || "Erro no Supabase.";
+}
+
+async function salvarOuAtualizarPalpite(
+  admin: NonNullable<ReturnType<typeof createBolaoServiceClient>>,
+  inscricaoId: string,
+  jogoId: string,
+  placar_casa: number,
+  placar_fora: number,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: existente, error: errSel } = await admin
+    .from("palpites_bolao")
+    .select("id")
+    .eq("inscricao_id", inscricaoId)
+    .eq("jogo_id", jogoId)
+    .maybeSingle();
+
+  if (errSel) {
+    console.error(errSel);
+    return { ok: false, error: mensagemErroPostgrest(errSel) };
+  }
+
+  const idExistente = existente?.id as string | undefined;
+
+  if (idExistente) {
+    const { error: errUp } = await admin
+      .from("palpites_bolao")
+      .update({ placar_casa, placar_fora })
+      .eq("id", idExistente);
+    if (errUp) {
+      console.error(errUp);
+      return { ok: false, error: mensagemErroPostgrest(errUp) };
+    }
+    return { ok: true };
+  }
+
+  const { error: errIns } = await admin.from("palpites_bolao").insert({
+    inscricao_id: inscricaoId,
+    jogo_id: jogoId,
+    placar_casa,
+    placar_fora,
+  });
+
+  if (!errIns) return { ok: true };
+
+  console.error(errIns);
+
+  if (String(errIns.code) === "23505") {
+    const { data: row2, error: errSel2 } = await admin
+      .from("palpites_bolao")
+      .select("id")
+      .eq("inscricao_id", inscricaoId)
+      .eq("jogo_id", jogoId)
+      .maybeSingle();
+    if (errSel2) {
+      console.error(errSel2);
+      return { ok: false, error: mensagemErroPostgrest(errSel2) };
+    }
+    const id2 = row2?.id as string | undefined;
+    if (id2) {
+      const { error: errUp2 } = await admin
+        .from("palpites_bolao")
+        .update({ placar_casa, placar_fora })
+        .eq("id", id2);
+      if (errUp2) {
+        console.error(errUp2);
+        return { ok: false, error: mensagemErroPostgrest(errUp2) };
+      }
+      return { ok: true };
+    }
+  }
+
+  return { ok: false, error: mensagemErroPostgrest(errIns) };
+}
+
 async function buscarInscricaoPorEmail(
   admin: NonNullable<ReturnType<typeof createBolaoServiceClient>>,
   emailNorm: string,
@@ -74,7 +155,7 @@ async function buscarInscricaoPorEmail(
     console.error(errInsc);
     return {
       ok: false,
-      error: errInsc.message || "Erro ao consultar inscrição.",
+      error: mensagemErroPostgrest(errInsc),
     };
   }
   if (!insc?.id) {
@@ -121,7 +202,7 @@ export async function verificarECarregarPalpitesBolao(
 
     if (errPal) {
       console.error(errPal);
-      return { ok: false, error: errPal.message || "Erro ao carregar palpites." };
+      return { ok: false, error: mensagemErroPostgrest(errPal) };
     }
 
     const placares = placaresVazios();
@@ -214,35 +295,19 @@ export async function salvarPalpitesBolao(
           .eq("jogo_id", apenasJogoId);
         if (delErr) {
           console.error(delErr);
-          return { ok: false, error: delErr.message || "Erro ao limpar palpite." };
+          return { ok: false, error: mensagemErroPostgrest(delErr) };
         }
         return { ok: true };
       }
 
-      const { error: upErr } = await admin.from("palpites_bolao").upsert(
-        [
-          {
-            inscricao_id: inscricaoId,
-            jogo_id: apenasJogoId,
-            placar_casa: c,
-            placar_fora: f,
-          },
-        ],
-        { onConflict: "inscricao_id,jogo_id" },
-      );
-      if (upErr) {
-        console.error(upErr);
-        return { ok: false, error: upErr.message || "Erro ao salvar palpite." };
+      if (c === null || f === null) {
+        return { ok: false, error: MSG_PLACAR_INCOMPLETO };
       }
+
+      const r = await salvarOuAtualizarPalpite(admin, inscricaoId, apenasJogoId, c, f);
+      if (!r.ok) return r;
       return { ok: true };
     }
-
-    const upsertRows: {
-      inscricao_id: string;
-      jogo_id: string;
-      placar_casa: number | null;
-      placar_fora: number | null;
-    }[] = [];
 
     for (const jogo of COPA2026_JOGOS) {
       const aberto = copa2026PalpitesAbertosParaJogo(jogo.id);
@@ -265,27 +330,17 @@ export async function salvarPalpitesBolao(
           .eq("jogo_id", jogo.id);
         if (delErr) {
           console.error(delErr);
-          return { ok: false, error: delErr.message || "Erro ao limpar palpite." };
+          return { ok: false, error: mensagemErroPostgrest(delErr) };
         }
         continue;
       }
 
-      upsertRows.push({
-        inscricao_id: inscricaoId,
-        jogo_id: jogo.id,
-        placar_casa: c,
-        placar_fora: f,
-      });
-    }
-
-    if (upsertRows.length > 0) {
-      const { error: upErr } = await admin.from("palpites_bolao").upsert(upsertRows, {
-        onConflict: "inscricao_id,jogo_id",
-      });
-      if (upErr) {
-        console.error(upErr);
-        return { ok: false, error: upErr.message || "Erro ao salvar palpites." };
+      if (c === null || f === null) {
+        return { ok: false, error: MSG_PLACAR_INCOMPLETO };
       }
+
+      const r = await salvarOuAtualizarPalpite(admin, inscricaoId, jogo.id, c, f);
+      if (!r.ok) return r;
     }
 
     if (confirmar) {
@@ -295,7 +350,7 @@ export async function salvarPalpitesBolao(
         .eq("id", inscricaoId);
       if (confErr) {
         console.error(confErr);
-        return { ok: false, error: confErr.message || "Erro ao confirmar palpites." };
+        return { ok: false, error: mensagemErroPostgrest(confErr) };
       }
     }
 

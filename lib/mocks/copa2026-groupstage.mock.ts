@@ -28,6 +28,10 @@ export interface JogoCopa2026Mock {
   mandanteId: string;
   visitanteId: string;
   status: StatusPalpiteJogo;
+  /**
+   * Placar oficial após o jogo (null = ainda sem resultado para pontuação do bolão).
+   */
+  resultadoOficial: { casa: number; fora: number } | null;
 }
 
 export const COPA2026_SELECOES: SelecaoCopa2026Mock[] = [
@@ -74,6 +78,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "mex",
     visitanteId: "rsa",
     status: "aberto",
+    resultadoOficial: null,
   },
   {
     id: "wc-2026-002",
@@ -86,6 +91,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "can",
     visitanteId: "wal",
     status: "quase",
+    resultadoOficial: null,
   },
   {
     id: "wc-2026-003",
@@ -98,6 +104,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "usa",
     visitanteId: "par",
     status: "aberto",
+    resultadoOficial: null,
   },
   {
     id: "wc-2026-004",
@@ -110,6 +117,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "bra",
     visitanteId: "mar",
     status: "aberto",
+    resultadoOficial: null,
   },
   {
     id: "wc-2026-005",
@@ -122,6 +130,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "cuw",
     visitanteId: "ger",
     status: "quase",
+    resultadoOficial: null,
   },
   {
     id: "wc-2026-006",
@@ -134,6 +143,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "eng",
     visitanteId: "cro",
     status: "aberto",
+    resultadoOficial: null,
   },
   {
     id: "wc-2026-007",
@@ -146,6 +156,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     mandanteId: "tun",
     visitanteId: "jpn",
     status: "encerrado",
+    resultadoOficial: { casa: 1, fora: 2 },
   },
 ];
 
@@ -205,6 +216,33 @@ export function copa2026PalpitesTextoTempoRestante(
   const horas = h % 24;
   if (horas > 0) return `Faltam ${dias} dia${dias > 1 ? "s" : ""} e ${horas} h`;
   return `Faltam ${dias} dia${dias > 1 ? "s" : ""}`;
+}
+
+function outcomeMandante(h: number, a: number): "mandante" | "visitante" | "empate" {
+  if (h > a) return "mandante";
+  if (h < a) return "visitante";
+  return "empate";
+}
+
+/**
+ * Pontuação do bolão após resultado oficial.
+ * 3 = placar exato; 1 = vencedor ou empate correto; 0 = erro.
+ * `null` = ainda sem resultado oficial.
+ */
+export function copa2026PontuacaoPalpite(
+  jogoId: string,
+  palpiteCasa: number | null,
+  palpiteFora: number | null,
+): null | 0 | 1 | 3 {
+  const j = jogoPorId.get(jogoId);
+  const ro = j?.resultadoOficial;
+  if (!ro) return null;
+  const rh = ro.casa;
+  const ra = ro.fora;
+  if (palpiteCasa === null || palpiteFora === null) return 0;
+  if (palpiteCasa === rh && palpiteFora === ra) return 3;
+  if (outcomeMandante(palpiteCasa, palpiteFora) === outcomeMandante(rh, ra)) return 1;
+  return 0;
 }
 
 export interface JogoCopa2026Resolvido extends JogoCopa2026Mock {
