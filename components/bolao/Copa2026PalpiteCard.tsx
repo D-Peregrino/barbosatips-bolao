@@ -7,7 +7,7 @@ import type {
 
 function badgeStatus(status: StatusPalpiteJogo) {
   const base =
-    "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider";
+    "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider lg:px-2 lg:py-1 lg:text-[10px]";
   if (status === "aberto") {
     return `${base} bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30`;
   }
@@ -69,16 +69,16 @@ export function Copa2026PalpiteCard({
   const encerrado = status === "encerrado" || bloquearEdicao;
 
   return (
-    <div className="border border-[#1f1f1f] bg-[#101010] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="flex flex-col gap-1 border-b border-[#252525] bg-[#0a0a0a] px-2.5 py-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-2 sm:gap-y-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500">
+    <div className="border border-[#1f1f1f] bg-[#101010] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] lg:rounded-md">
+      <div className="flex flex-col gap-1 border-b border-[#252525] bg-[#0a0a0a] px-2.5 py-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-2 sm:gap-y-1 lg:px-5 lg:py-2.5 lg:gap-x-4">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 lg:gap-x-3 lg:text-xs">
           <span className="font-black uppercase tracking-wide text-yellow-500/90">
             Grupo {grupo}
           </span>
           <span className="text-zinc-600" aria-hidden="true">
             ·
           </span>
-          <span className="font-mono text-zinc-400">
+          <span className="font-mono text-zinc-400 lg:text-sm">
             {formatarData(dataISO)} · {horario}
           </span>
         </div>
@@ -87,7 +87,7 @@ export function Copa2026PalpiteCard({
         </div>
       </div>
 
-      <div className="border-b border-[#1a1a1a] px-2.5 py-1 text-[9px] leading-tight text-zinc-500">
+      <div className="border-b border-[#1a1a1a] px-2.5 py-1 text-[9px] leading-tight text-zinc-500 lg:px-5 lg:py-1.5 lg:text-[11px] lg:leading-snug">
         <span className="text-zinc-400">{estadio}</span>
         <span className="text-zinc-600" aria-hidden="true">
           {" "}
@@ -96,26 +96,30 @@ export function Copa2026PalpiteCard({
         <span className="text-zinc-500">{cidade}</span>
       </div>
 
-      <div className="px-2.5 py-2.5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[38%]">
-            <span className="text-xl leading-none sm:text-2xl" aria-hidden="true">
+      <div className="px-2.5 py-2.5 lg:px-5 lg:py-4">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2 lg:min-h-[5.5rem] lg:gap-6 xl:gap-10">
+          {/* Mandante: mobile compacto | desktop bandeira ~+40%, nome e ranking maiores */}
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[38%] lg:max-w-none lg:basis-[32%] lg:gap-4 xl:gap-5">
+            <span
+              className="shrink-0 select-none text-xl leading-none lg:text-[2.1rem] lg:leading-none xl:text-[2.35rem]"
+              aria-hidden="true"
+            >
               {mandante.bandeira}
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-bold leading-tight text-zinc-100 sm:text-[13px]">
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 lg:gap-1.5">
+              <p className="truncate text-[12px] font-bold leading-tight text-zinc-100 sm:text-[13px] lg:text-base lg:leading-snug xl:text-lg">
                 {mandante.nome}
               </p>
-              <p className="text-[9px] text-zinc-500">
-                Ranking FIFA{" "}
-                <span className="font-mono font-semibold text-yellow-500/90">
+              <p className="text-[9px] leading-snug text-zinc-500 lg:text-xs xl:text-sm">
+                <span className="text-zinc-500">Ranking FIFA</span>{" "}
+                <span className="font-mono font-bold tabular-nums text-yellow-400 lg:text-sm xl:text-base">
                   #{mandante.rankingFifa}
                 </span>
               </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center justify-center gap-1.5 sm:px-1">
+          <div className="flex shrink-0 items-center justify-center gap-1.5 sm:px-1 lg:gap-2.5 lg:px-2">
             <label className="sr-only" htmlFor={`placar-casa-${id}`}>
               Gols {mandante.nome}
             </label>
@@ -126,12 +130,12 @@ export function Copa2026PalpiteCard({
               disabled={encerrado}
               value={placarCasa}
               onChange={(e) => onPlacarChange(id, "casa", e.target.value)}
-              className="h-10 w-11 rounded border border-zinc-700 bg-black text-center font-mono text-lg font-bold text-yellow-400 outline-none ring-0 placeholder:text-zinc-700 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/40 disabled:opacity-40 sm:h-11 sm:w-12 sm:text-xl"
+              className="h-10 w-11 rounded-md border-2 border-zinc-700 bg-black text-center font-mono text-lg font-bold text-yellow-400 outline-none ring-0 placeholder:text-zinc-700 transition-colors focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30 disabled:opacity-40 lg:h-[3.25rem] lg:w-14 lg:text-2xl xl:h-14 xl:w-[3.75rem] xl:text-[1.75rem]"
               placeholder="—"
               maxLength={2}
               autoComplete="off"
             />
-            <span className="select-none px-0.5 font-mono text-sm font-bold text-zinc-600 sm:text-base">
+            <span className="select-none px-0.5 font-mono text-sm font-bold text-zinc-500 lg:px-1 lg:text-lg xl:text-xl">
               ×
             </span>
             <label className="sr-only" htmlFor={`placar-fora-${id}`}>
@@ -144,44 +148,47 @@ export function Copa2026PalpiteCard({
               disabled={encerrado}
               value={placarVisitante}
               onChange={(e) => onPlacarChange(id, "fora", e.target.value)}
-              className="h-10 w-11 rounded border border-zinc-700 bg-black text-center font-mono text-lg font-bold text-yellow-400 outline-none placeholder:text-zinc-700 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/40 disabled:opacity-40 sm:h-11 sm:w-12 sm:text-xl"
+              className="h-10 w-11 rounded-md border-2 border-zinc-700 bg-black text-center font-mono text-lg font-bold text-yellow-400 outline-none placeholder:text-zinc-700 transition-colors focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30 disabled:opacity-40 lg:h-[3.25rem] lg:w-14 lg:text-2xl xl:h-14 xl:w-[3.75rem] xl:text-[1.75rem]"
               placeholder="—"
               maxLength={2}
               autoComplete="off"
             />
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:max-w-[38%]">
-            <div className="min-w-0 text-right">
-              <p className="truncate text-[12px] font-bold leading-tight text-zinc-100 sm:text-[13px]">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:max-w-[38%] lg:max-w-none lg:basis-[32%] lg:gap-4 xl:gap-5">
+            <div className="flex min-w-0 flex-1 flex-col items-end justify-center gap-0.5 text-right lg:gap-1.5">
+              <p className="truncate text-[12px] font-bold leading-tight text-zinc-100 sm:text-[13px] lg:text-base lg:leading-snug xl:text-lg">
                 {visitante.nome}
               </p>
-              <p className="text-[9px] text-zinc-500">
-                Ranking FIFA{" "}
-                <span className="font-mono font-semibold text-yellow-500/90">
+              <p className="text-[9px] leading-snug text-zinc-500 lg:text-xs xl:text-sm">
+                <span className="text-zinc-500">Ranking FIFA</span>{" "}
+                <span className="font-mono font-bold tabular-nums text-yellow-400 lg:text-sm xl:text-base">
                   #{visitante.rankingFifa}
                 </span>
               </p>
             </div>
-            <span className="text-xl leading-none sm:text-2xl" aria-hidden="true">
+            <span
+              className="shrink-0 select-none text-xl leading-none lg:text-[2.1rem] lg:leading-none xl:text-[2.35rem]"
+              aria-hidden="true"
+            >
               {visitante.bandeira}
             </span>
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-dashed border-zinc-800/80 pt-2">
+        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-dashed border-zinc-800/80 pt-2 lg:mt-4 lg:pt-3">
           {salvoFlash ? (
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-400">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-400 lg:text-[11px]">
               Palpite salvo
             </span>
           ) : (
-            <span className="text-[9px] text-zinc-700"> </span>
+            <span className="text-[9px] text-zinc-700 lg:text-[11px]"> </span>
           )}
           <button
             type="button"
             disabled={encerrado}
             onClick={() => onSalvarPalpite(id)}
-            className="rounded bg-yellow-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black transition-opacity hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-35"
+            className="rounded-md bg-yellow-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black shadow-sm transition-opacity hover:bg-yellow-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 lg:px-5 lg:py-2 lg:text-xs xl:text-sm"
           >
             Salvar Palpite
           </button>

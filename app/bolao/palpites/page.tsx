@@ -154,8 +154,8 @@ export default function BolaoPalpitesPage() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
-      <div className="mx-auto max-w-5xl px-2 sm:px-3 lg:max-w-[1100px]">
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="mx-auto max-w-5xl px-2 sm:px-3 lg:max-w-[1280px] lg:px-8 xl:max-w-[1360px] xl:px-10">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,300px)] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-8">
           <div className="min-w-0">
             <div className="mb-1 flex items-start justify-between gap-2">
               <header className="min-w-0 border-b-2 border-yellow-500 pb-2 pr-2">
