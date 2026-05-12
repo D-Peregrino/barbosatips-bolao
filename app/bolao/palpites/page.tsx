@@ -14,6 +14,7 @@ import {
 import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
+const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
 
 const SESSION_EMAIL_KEY = "barbosatips:bolao:palpites:email";
 
@@ -51,6 +52,7 @@ export default function BolaoPalpitesPage() {
   const [confirmado, setConfirmado] = useState(false);
   const [hydrated, setHydrated] = useState(() => usarSupabase);
   const [msgConfirmados, setMsgConfirmados] = useState(false);
+  const [sucessoSalvos, setSucessoSalvos] = useState(false);
   const [salvoFlash, setSalvoFlash] = useState<Record<string, boolean>>({});
   const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -59,7 +61,7 @@ export default function BolaoPalpitesPage() {
   const [emailOk, setEmailOk] = useState(false);
   const [verificandoEmail, setVerificandoEmail] = useState(false);
   const [erroEmail, setErroEmail] = useState("");
-  const [erroApi, setErroApi] = useState("");
+  const [erro, setErro] = useState("");
 
   const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
   const [confirmandoTodos, setConfirmandoTodos] = useState(false);
@@ -111,6 +113,7 @@ export default function BolaoPalpitesPage() {
         }
       }
       setPlacares(base);
+      placaresRef.current = base;
       setConfirmado(Boolean(parsed.confirmado));
     } catch {
       /* ignore */
@@ -137,13 +140,17 @@ export default function BolaoPalpitesPage() {
     (jogoId: string, campo: "casa" | "fora", valor: string) => {
       if (confirmado) return;
       const limpo = sanitizarPlacar(valor);
-      setPlacares((prev) => ({
-        ...prev,
-        [jogoId]: {
-          casa: campo === "casa" ? limpo : prev[jogoId]?.casa ?? "",
-          fora: campo === "fora" ? limpo : prev[jogoId]?.fora ?? "",
-        },
-      }));
+      setPlacares((prev) => {
+        const next = {
+          ...prev,
+          [jogoId]: {
+            casa: campo === "casa" ? limpo : prev[jogoId]?.casa ?? "",
+            fora: campo === "fora" ? limpo : prev[jogoId]?.fora ?? "",
+          },
+        };
+        placaresRef.current = next;
+        return next;
+      });
     },
     [confirmado],
   );
@@ -158,6 +165,11 @@ export default function BolaoPalpitesPage() {
     }, 1800);
   }, []);
 
+  const dispararSucessoSalvos = useCallback(() => {
+    setSucessoSalvos(true);
+    window.setTimeout(() => setSucessoSalvos(false), 5000);
+  }, []);
+
   useEffect(() => {
     return () => {
       Object.values(flashTimers.current).forEach(clearTimeout);
@@ -167,37 +179,50 @@ export default function BolaoPalpitesPage() {
   async function handleVerificarEmail() {
     if (!usarSupabase) return;
     setErroEmail("");
-    setErroApi("");
+    setErro("");
     const norm = normalizarEmailInput(emailInput);
     if (!norm || !norm.includes("@")) {
       setErroEmail("Informe o e-mail cadastrado no bolão.");
       return;
     }
     setVerificandoEmail(true);
-    const res = await verificarECarregarPalpitesBolao(norm);
-    setVerificandoEmail(false);
-    if (!res.ok) {
-      setErroEmail(res.error);
-      setEmailOk(false);
-      return;
-    }
     try {
-      sessionStorage.setItem(SESSION_EMAIL_KEY, norm);
-    } catch {
-      /* ignore */
+      const res = await verificarECarregarPalpitesBolao(norm);
+      if (!res.ok) {
+        const error = new Error(res.error);
+        console.error(error);
+        setErro(error.message);
+        setEmailOk(false);
+        return;
+      }
+      try {
+        sessionStorage.setItem(SESSION_EMAIL_KEY, norm);
+      } catch {
+        /* ignore */
+      }
+      setEmailBolao(norm);
+      setEmailOk(true);
+      setPlacares(res.placares);
+      placaresRef.current = res.placares;
+      setConfirmado(res.confirmado);
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      console.error(error);
+      setErro(error.message);
+      setEmailOk(false);
+    } finally {
+      setVerificandoEmail(false);
     }
-    setEmailBolao(norm);
-    setEmailOk(true);
-    setPlacares(res.placares);
-    setConfirmado(res.confirmado);
   }
 
   function handleTrocarEmail() {
     setEmailOk(false);
     setEmailBolao("");
     setErroEmail("");
-    setErroApi("");
-    setPlacares(placaresIniciais());
+    setErro("");
+    const fresh = placaresIniciais();
+    setPlacares(fresh);
+    placaresRef.current = fresh;
     setConfirmado(false);
     try {
       sessionStorage.removeItem(SESSION_EMAIL_KEY);
@@ -211,17 +236,29 @@ export default function BolaoPalpitesPage() {
       if (confirmado) return;
       if (usarSupabase) {
         if (!emailBolao) return;
-        setErroApi("");
+        setErro("");
+        setSucessoSalvos(false);
         setSalvandoJogoId(jogoId);
-        const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
-          confirmar: false,
-        });
-        setSalvandoJogoId(null);
-        if (!res.ok) {
-          setErroApi(res.error);
-          return;
+        try {
+          const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
+            confirmar: false,
+            apenasJogoId: jogoId,
+          });
+          if (!res.ok) {
+            const error = new Error(res.error);
+            console.error(error);
+            setErro(error.message);
+            return;
+          }
+          dispararSucessoSalvos();
+          dispararFlashSalvo(jogoId);
+        } catch (e) {
+          const error = e instanceof Error ? e : new Error(String(e));
+          console.error(error);
+          setErro(error.message);
+        } finally {
+          setSalvandoJogoId(null);
         }
-        dispararFlashSalvo(jogoId);
         return;
       }
       setPlacares((prev) => {
@@ -233,6 +270,7 @@ export default function BolaoPalpitesPage() {
     [
       confirmado,
       dispararFlashSalvo,
+      dispararSucessoSalvos,
       emailBolao,
       persistirLocal,
       usarSupabase,
@@ -247,19 +285,28 @@ export default function BolaoPalpitesPage() {
     }
     if (usarSupabase) {
       if (!emailBolao) return;
-      setErroApi("");
+      setErro("");
+      setSucessoSalvos(false);
       setConfirmandoTodos(true);
-      const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
-        confirmar: true,
-      });
-      setConfirmandoTodos(false);
-      if (!res.ok) {
-        setErroApi(res.error);
-        return;
+      try {
+        const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
+          confirmar: true,
+        });
+        if (!res.ok) {
+          const error = new Error(res.error);
+          console.error(error);
+          setErro(error.message);
+          return;
+        }
+        setConfirmado(true);
+        dispararSucessoSalvos();
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        console.error(error);
+        setErro(error.message);
+      } finally {
+        setConfirmandoTodos(false);
       }
-      setConfirmado(true);
-      setMsgConfirmados(true);
-      window.setTimeout(() => setMsgConfirmados(false), 5000);
       return;
     }
     setPlacares((prev) => {
@@ -269,7 +316,7 @@ export default function BolaoPalpitesPage() {
     setConfirmado(true);
     setMsgConfirmados(true);
     window.setTimeout(() => setMsgConfirmados(false), 5000);
-  }, [confirmado, emailBolao, persistirLocal, usarSupabase]);
+  }, [confirmado, emailBolao, dispararSucessoSalvos, persistirLocal, usarSupabase]);
 
   const podeVerJogos = !usarSupabase || emailOk;
   const bloquearCards = confirmado;
@@ -355,6 +402,12 @@ export default function BolaoPalpitesPage() {
               </div>
             ) : null}
 
+            {erro ? (
+              <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
+                {erro}
+              </p>
+            ) : null}
+
             {confirmado && (
               <p className="mb-2 text-[9px] uppercase tracking-wider text-zinc-600">
                 {usarSupabase
@@ -363,20 +416,30 @@ export default function BolaoPalpitesPage() {
               </p>
             )}
 
-            {erroApi ? (
-              <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
-                {erroApi}
-              </p>
-            ) : null}
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-3 overflow-hidden transition-all duration-300 ${
+                usarSupabase && sucessoSalvos ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              {usarSupabase && sucessoSalvos && (
+                <div className="rounded border border-emerald-500/40 bg-emerald-950/35 px-2 py-2 text-center">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-emerald-400">
+                    {MSG_SALVOS_SUPABASE}
+                  </p>
+                </div>
+              )}
+            </div>
 
             <div
               role="status"
               aria-live="polite"
               className={`mb-3 overflow-hidden transition-all duration-300 ${
-                msgConfirmados ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
+                !usarSupabase && msgConfirmados ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              {msgConfirmados && (
+              {!usarSupabase && msgConfirmados && (
                 <div className="rounded border border-yellow-600/40 bg-yellow-500/10 px-2 py-2 text-center">
                   <p className="text-[11px] font-black uppercase tracking-wide text-yellow-400">
                     {MSG_CONFIRMADOS}

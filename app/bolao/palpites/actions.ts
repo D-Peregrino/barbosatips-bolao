@@ -1,11 +1,13 @@
 "use server";
 
+import { createClient } from "@supabase/supabase-js";
 import {
   COPA2026_JOGOS,
   COPA2026_JOGO_IDS,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import { isSupabaseMock } from "@/lib/supabase/is-mock";
-import { createAdminClient } from "@/lib/supabase/server";
+
+const MSG_EMAIL_NAO_INSCRITO = "E-mail não inscrito no bolão.";
 
 export type VerificarPalpitesBolaoResult =
   | {
@@ -19,6 +21,15 @@ export type SalvarPalpitesBolaoResult = { ok: true } | { ok: false; error: strin
 
 function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function createBolaoServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 function placaresVazios(): Record<string, { casa: string; fora: string }> {
@@ -44,6 +55,37 @@ function assertPlacaresKeys(
   return null;
 }
 
+async function buscarInscricaoPorEmail(
+  admin: NonNullable<ReturnType<typeof createBolaoServiceClient>>,
+  emailNorm: string,
+): Promise<
+  | { ok: true; id: string; palpites_confirmados_at: string | null }
+  | { ok: false; error: string }
+> {
+  const { data: insc, error: errInsc } = await admin
+    .from("inscricoes_bolao")
+    .select("id, palpites_confirmados_at")
+    .eq("email", emailNorm)
+    .maybeSingle();
+
+  if (errInsc) {
+    console.error(errInsc);
+    return {
+      ok: false,
+      error: errInsc.message || "Erro ao consultar inscrição.",
+    };
+  }
+  if (!insc?.id) {
+    return { ok: false, error: MSG_EMAIL_NAO_INSCRITO };
+  }
+  return {
+    ok: true,
+    id: insc.id as string,
+    palpites_confirmados_at: (insc as { palpites_confirmados_at?: string | null })
+      .palpites_confirmados_at ?? null,
+  };
+}
+
 export async function verificarECarregarPalpitesBolao(
   email: string,
 ): Promise<VerificarPalpitesBolaoResult> {
@@ -59,31 +101,24 @@ export async function verificarECarregarPalpitesBolao(
     return { ok: false, error: "Informe um e-mail válido." };
   }
 
+  const admin = createBolaoServiceClient();
+  if (!admin) {
+    return { ok: false, error: "Servidor sem credenciais Supabase (URL ou service role)." };
+  }
+
   try {
-    const admin = createAdminClient();
-
-    const { data: insc, error: errInsc } = await admin
-      .from("inscricoes_bolao")
-      .select("id, palpites_confirmados_at")
-      .eq("email", emailNorm)
-      .maybeSingle();
-
-    if (errInsc) {
-      return { ok: false, error: errInsc.message || "Erro ao consultar inscrição." };
-    }
-    if (!insc?.id) {
-      return {
-        ok: false,
-        error: "Este e-mail não está cadastrado no bolão. Use o mesmo e-mail da inscrição.",
-      };
+    const inscRes = await buscarInscricaoPorEmail(admin, emailNorm);
+    if (!inscRes.ok) {
+      return { ok: false, error: inscRes.error };
     }
 
     const { data: rows, error: errPal } = await admin
       .from("palpites_bolao")
       .select("jogo_id, placar_casa, placar_fora")
-      .eq("inscricao_id", insc.id);
+      .eq("inscricao_id", inscRes.id);
 
     if (errPal) {
+      console.error(errPal);
       return { ok: false, error: errPal.message || "Erro ao carregar palpites." };
     }
 
@@ -102,9 +137,10 @@ export async function verificarECarregarPalpitesBolao(
     return {
       ok: true,
       placares,
-      confirmado: Boolean(insc.palpites_confirmados_at),
+      confirmado: Boolean(inscRes.palpites_confirmados_at),
     };
   } catch (e) {
+    console.error(e);
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg || "Falha ao conectar ao banco." };
   }
@@ -113,7 +149,7 @@ export async function verificarECarregarPalpitesBolao(
 export async function salvarPalpitesBolao(
   email: string,
   placares: Record<string, { casa: string; fora: string }>,
-  options?: { confirmar?: boolean },
+  options?: { confirmar?: boolean; apenasJogoId?: string },
 ): Promise<SalvarPalpitesBolaoResult> {
   if (isSupabaseMock()) {
     return { ok: false, error: "Supabase em modo demonstração." };
@@ -127,35 +163,73 @@ export async function salvarPalpitesBolao(
     return { ok: false, error: "Informe um e-mail válido." };
   }
 
-  const keyErr = assertPlacaresKeys(placares);
-  if (keyErr) return { ok: false, error: keyErr };
-
   const confirmar = Boolean(options?.confirmar);
+  const apenasJogoId = options?.apenasJogoId?.trim();
+
+  if (!confirmar && apenasJogoId) {
+    if (!COPA2026_JOGO_IDS.has(apenasJogoId)) {
+      return { ok: false, error: `Identificador de jogo inválido: ${apenasJogoId}` };
+    }
+  } else {
+    const keyErr = assertPlacaresKeys(placares);
+    if (keyErr) return { ok: false, error: keyErr };
+  }
+
+  const admin = createBolaoServiceClient();
+  if (!admin) {
+    return { ok: false, error: "Servidor sem credenciais Supabase (URL ou service role)." };
+  }
 
   try {
-    const admin = createAdminClient();
-
-    const { data: insc, error: errInsc } = await admin
-      .from("inscricoes_bolao")
-      .select("id, palpites_confirmados_at")
-      .eq("email", emailNorm)
-      .maybeSingle();
-
-    if (errInsc) {
-      return { ok: false, error: errInsc.message || "Erro ao consultar inscrição." };
+    const inscRes = await buscarInscricaoPorEmail(admin, emailNorm);
+    if (!inscRes.ok) {
+      return { ok: false, error: inscRes.error };
     }
-    if (!insc?.id) {
+
+    if (inscRes.palpites_confirmados_at) {
       return {
         ok: false,
-        error: "Este e-mail não está cadastrado no bolão.",
+        error: "Os palpites já foram confirmados e não podem mais ser alterados.",
       };
     }
 
-    if (insc.palpites_confirmados_at) {
-      return { ok: false, error: "Os palpites já foram confirmados e não podem mais ser alterados." };
-    }
+    const inscricaoId = inscRes.id;
 
-    const inscricaoId = insc.id as string;
+    if (!confirmar && apenasJogoId) {
+      const p = placares[apenasJogoId] ?? { casa: "", fora: "" };
+      const c = parsePlacarInt(p.casa ?? "");
+      const f = parsePlacarInt(p.fora ?? "");
+
+      if (c === null && f === null) {
+        const { error: delErr } = await admin
+          .from("palpites_bolao")
+          .delete()
+          .eq("inscricao_id", inscricaoId)
+          .eq("jogo_id", apenasJogoId);
+        if (delErr) {
+          console.error(delErr);
+          return { ok: false, error: delErr.message || "Erro ao limpar palpite." };
+        }
+        return { ok: true };
+      }
+
+      const { error: upErr } = await admin.from("palpites_bolao").upsert(
+        [
+          {
+            inscricao_id: inscricaoId,
+            jogo_id: apenasJogoId,
+            placar_casa: c,
+            placar_fora: f,
+          },
+        ],
+        { onConflict: "inscricao_id,jogo_id" },
+      );
+      if (upErr) {
+        console.error(upErr);
+        return { ok: false, error: upErr.message || "Erro ao salvar palpite." };
+      }
+      return { ok: true };
+    }
 
     const upsertRows: {
       inscricao_id: string;
@@ -176,6 +250,7 @@ export async function salvarPalpitesBolao(
           .eq("inscricao_id", inscricaoId)
           .eq("jogo_id", jogo.id);
         if (delErr) {
+          console.error(delErr);
           return { ok: false, error: delErr.message || "Erro ao limpar palpite." };
         }
         continue;
@@ -194,6 +269,7 @@ export async function salvarPalpitesBolao(
         onConflict: "inscricao_id,jogo_id",
       });
       if (upErr) {
+        console.error(upErr);
         return { ok: false, error: upErr.message || "Erro ao salvar palpites." };
       }
     }
@@ -204,12 +280,14 @@ export async function salvarPalpitesBolao(
         .update({ palpites_confirmados_at: new Date().toISOString() })
         .eq("id", inscricaoId);
       if (confErr) {
+        console.error(confErr);
         return { ok: false, error: confErr.message || "Erro ao confirmar palpites." };
       }
     }
 
     return { ok: true };
   } catch (e) {
+    console.error(e);
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg || "Falha ao salvar." };
   }
