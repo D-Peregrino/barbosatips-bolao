@@ -312,6 +312,7 @@ export default function BolaoPalpitesPage() {
 
   const onSalvarPalpite = useCallback(
     async (jogoId: string) => {
+      console.log("SALVANDO PALPITE", jogoId);
       if (confirmado) return;
       if (!participante) return;
 

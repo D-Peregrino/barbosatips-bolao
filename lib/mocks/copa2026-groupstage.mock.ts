@@ -185,7 +185,8 @@ export function copa2026PalpitesAbertosParaJogo(
   agoraMs: number = Date.now(),
 ): boolean {
   const lim = copa2026InstanteFechamentoPalpitesMs(jogoId);
-  if (lim === null) return false;
+  // Sem ISO válido não podemos fechar por prazo: manter aberto (evita disabled=true em todo o grid).
+  if (lim === null) return true;
   return agoraMs < lim;
 }
 
