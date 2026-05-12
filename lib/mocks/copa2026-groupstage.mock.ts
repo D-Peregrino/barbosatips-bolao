@@ -18,6 +18,11 @@ export interface JogoCopa2026Mock {
   /** Data local do jogo (AAAA-MM-DD). */
   dataISO: string;
   horario: string;
+  /**
+   * Início oficial da partida em ISO 8601 (instante absoluto, com offset ou Z).
+   * Usado para fechar palpites 15 minutos antes.
+   */
+  inicioPartidaISO: string;
   estadio: string;
   cidade: string;
   mandanteId: string;
@@ -63,6 +68,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "A",
     dataISO: "2026-06-11",
     horario: "13:00",
+    inicioPartidaISO: "2026-06-11T13:00:00-06:00",
     estadio: "Mexico City Stadium",
     cidade: "Cidade do México",
     mandanteId: "mex",
@@ -74,6 +80,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "B",
     dataISO: "2026-06-12",
     horario: "15:00",
+    inicioPartidaISO: "2026-06-12T15:00:00-04:00",
     estadio: "Toronto Stadium",
     cidade: "Toronto",
     mandanteId: "can",
@@ -85,6 +92,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "C",
     dataISO: "2026-06-12",
     horario: "18:00",
+    inicioPartidaISO: "2026-06-12T18:00:00-07:00",
     estadio: "Los Angeles Stadium",
     cidade: "Los Angeles",
     mandanteId: "usa",
@@ -96,6 +104,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "D",
     dataISO: "2026-06-13",
     horario: "18:00",
+    inicioPartidaISO: "2026-06-13T18:00:00-04:00",
     estadio: "New York New Jersey Stadium",
     cidade: "East Rutherford",
     mandanteId: "bra",
@@ -107,6 +116,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "E",
     dataISO: "2026-06-14",
     horario: "12:00",
+    inicioPartidaISO: "2026-06-14T12:00:00-05:00",
     estadio: "Houston Stadium",
     cidade: "Houston",
     mandanteId: "cuw",
@@ -118,6 +128,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "L",
     dataISO: "2026-06-17",
     horario: "15:00",
+    inicioPartidaISO: "2026-06-17T15:00:00-05:00",
     estadio: "Dallas Stadium",
     cidade: "Arlington",
     mandanteId: "eng",
@@ -129,6 +140,7 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
     grupo: "F",
     dataISO: "2026-06-20",
     horario: "22:00",
+    inicioPartidaISO: "2026-06-20T22:00:00-06:00",
     estadio: "Estádio BBVA",
     cidade: "Monterrey",
     mandanteId: "tun",
@@ -141,6 +153,59 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
 export const COPA2026_JOGO_IDS: ReadonlySet<string> = new Set(
   COPA2026_JOGOS.map((j) => j.id),
 );
+
+/** Antecedência para fechamento dos palpites em relação ao apito inicial (15 min). */
+export const COPA2026_ANTECEDENCIA_PALPITES_MS = 15 * 60 * 1000;
+
+const jogoPorId = new Map(COPA2026_JOGOS.map((j) => [j.id, j]));
+
+/** Instantâneo (epoch ms) em que os palpites fecham para o jogo (início − 15 min). */
+export function copa2026InstanteFechamentoPalpitesMs(jogoId: string): number | null {
+  const j = jogoPorId.get(jogoId);
+  if (!j?.inicioPartidaISO) return null;
+  const kick = Date.parse(j.inicioPartidaISO);
+  if (!Number.isFinite(kick)) return null;
+  return kick - COPA2026_ANTECEDENCIA_PALPITES_MS;
+}
+
+/** true se ainda dá para enviar/editar palpite neste jogo (antes do fechamento). */
+export function copa2026PalpitesAbertosParaJogo(
+  jogoId: string,
+  agoraMs: number = Date.now(),
+): boolean {
+  const lim = copa2026InstanteFechamentoPalpitesMs(jogoId);
+  if (lim === null) return false;
+  return agoraMs < lim;
+}
+
+/**
+ * Texto curto do tempo até fechar palpites (jogo ainda aberto).
+ * Retorna null se já fechou ou se o jogo não existe.
+ */
+export function copa2026PalpitesTextoTempoRestante(
+  jogoId: string,
+  agoraMs: number = Date.now(),
+): string | null {
+  const lim = copa2026InstanteFechamentoPalpitesMs(jogoId);
+  if (lim === null) return null;
+  const diff = lim - agoraMs;
+  if (diff <= 0) return null;
+
+  const minTotal = Math.floor(diff / 60000);
+  if (minTotal < 1) return "Fecha em menos de 1 minuto";
+  if (minTotal < 60) return `Faltam ${minTotal} min`;
+
+  const h = Math.floor(minTotal / 60);
+  const m = minTotal % 60;
+  if (h < 24) {
+    return m > 0 ? `Faltam ${h} h ${m} min` : `Faltam ${h} h`;
+  }
+
+  const dias = Math.floor(h / 24);
+  const horas = h % 24;
+  if (horas > 0) return `Faltam ${dias} dia${dias > 1 ? "s" : ""} e ${horas} h`;
+  return `Faltam ${dias} dia${dias > 1 ? "s" : ""}`;
+}
 
 export interface JogoCopa2026Resolvido extends JogoCopa2026Mock {
   mandante: SelecaoCopa2026Mock;

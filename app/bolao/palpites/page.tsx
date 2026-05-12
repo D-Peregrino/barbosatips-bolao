@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { salvarPalpitesBolao, verificarECarregarPalpitesBolao } from "@/app/bolao/palpites/actions";
+import {
+  MSG_PALPITES_ENCERRADOS_JOGO,
+  salvarPalpitesBolao,
+  verificarECarregarPalpitesBolao,
+} from "@/app/bolao/palpites/actions";
 import { Copa2026PalpiteCard } from "@/components/bolao/Copa2026PalpiteCard";
 import { Copa2026PalpitesSidebar } from "@/components/bolao/Copa2026PalpitesSidebar";
 import {
@@ -11,6 +15,8 @@ import {
   COPA2026_PALPITES_STORAGE_KEY,
   type Copa2026PalpitesPersistidos,
   copa2026JogosPorGrupo,
+  copa2026PalpitesAbertosParaJogo,
+  copa2026PalpitesTextoTempoRestante,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
@@ -83,7 +89,14 @@ export default function BolaoPalpitesPage() {
   const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
   const [confirmandoTodos, setConfirmandoTodos] = useState(false);
 
+  const [relogio, setRelogio] = useState(() => Date.now());
+
   const grupos = useMemo(() => copa2026JogosPorGrupo(), []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setRelogio(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     for (const k of LS_LEGACY_KEYS) {
@@ -197,6 +210,7 @@ export default function BolaoPalpitesPage() {
   const onPlacarChange = useCallback(
     (jogoId: string, campo: "casa" | "fora", valor: string) => {
       if (confirmado) return;
+      if (!copa2026PalpitesAbertosParaJogo(jogoId)) return;
       const limpo = sanitizarPlacar(valor);
       setPlacares((prev) => {
         const next = {
@@ -249,6 +263,12 @@ export default function BolaoPalpitesPage() {
       if (!participante) return;
 
       if (usarSupabase) {
+        if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
+          const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
+          console.error(err);
+          setErro(MSG_PALPITES_ENCERRADOS_JOGO);
+          return;
+        }
         setErro("");
         setSucessoSalvos(false);
         setSalvandoJogoId(jogoId);
@@ -272,6 +292,12 @@ export default function BolaoPalpitesPage() {
         } finally {
           setSalvandoJogoId(null);
         }
+        return;
+      }
+      if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
+        const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
+        console.error(err);
+        setErro(MSG_PALPITES_ENCERRADOS_JOGO);
         return;
       }
       setPlacares((prev) => {
@@ -299,6 +325,18 @@ export default function BolaoPalpitesPage() {
     if (!participante) return;
 
     if (usarSupabase) {
+      for (const j of COPA2026_JOGOS) {
+        const p = placaresRef.current[j.id] ?? { casa: "", fora: "" };
+        const tem =
+          sanitizarPlacar(String(p.casa ?? "")).length > 0 ||
+          sanitizarPlacar(String(p.fora ?? "")).length > 0;
+        if (tem && !copa2026PalpitesAbertosParaJogo(j.id)) {
+          const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
+          console.error(err);
+          setErro(MSG_PALPITES_ENCERRADOS_JOGO);
+          return;
+        }
+      }
       setErro("");
       setSucessoSalvos(false);
       setConfirmandoTodos(true);
@@ -322,6 +360,18 @@ export default function BolaoPalpitesPage() {
         setConfirmandoTodos(false);
       }
       return;
+    }
+    for (const j of COPA2026_JOGOS) {
+      const p = placaresRef.current[j.id] ?? { casa: "", fora: "" };
+      const tem =
+        sanitizarPlacar(String(p.casa ?? "")).length > 0 ||
+        sanitizarPlacar(String(p.fora ?? "")).length > 0;
+      if (tem && !copa2026PalpitesAbertosParaJogo(j.id)) {
+        const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
+        console.error(err);
+        setErro(MSG_PALPITES_ENCERRADOS_JOGO);
+        return;
+      }
     }
     setPlacares((prev) => {
       persistirLocal(prev, true);
@@ -448,19 +498,28 @@ export default function BolaoPalpitesPage() {
                       <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
                     </div>
                     <div className="flex flex-col gap-2">
-                      {jogos.map((jogo) => (
-                        <Copa2026PalpiteCard
-                          key={jogo.id}
-                          jogo={jogo}
-                          placarCasa={placares[jogo.id]?.casa ?? ""}
-                          placarVisitante={placares[jogo.id]?.fora ?? ""}
-                          onPlacarChange={onPlacarChange}
-                          onSalvarPalpite={(id) => void onSalvarPalpite(id)}
-                          salvoFlash={Boolean(salvoFlash[jogo.id])}
-                          bloquearEdicao={bloquearCards}
-                          salvandoPalpite={salvandoJogoId === jogo.id}
-                        />
-                      ))}
+                      {jogos.map((jogo) => {
+                        const aberto = copa2026PalpitesAbertosParaJogo(jogo.id, relogio);
+                        return (
+                          <Copa2026PalpiteCard
+                            key={jogo.id}
+                            jogo={jogo}
+                            placarCasa={placares[jogo.id]?.casa ?? ""}
+                            placarVisitante={placares[jogo.id]?.fora ?? ""}
+                            onPlacarChange={onPlacarChange}
+                            onSalvarPalpite={(id) => void onSalvarPalpite(id)}
+                            salvoFlash={Boolean(salvoFlash[jogo.id])}
+                            bloquearEdicao={bloquearCards}
+                            salvandoPalpite={salvandoJogoId === jogo.id}
+                            prazoPalpites={{
+                              encerrado: !aberto,
+                              tempoRestante: aberto
+                                ? copa2026PalpitesTextoTempoRestante(jogo.id, relogio)
+                                : null,
+                            }}
+                          />
+                        );
+                      })}
                     </div>
                   </section>
                 ))}

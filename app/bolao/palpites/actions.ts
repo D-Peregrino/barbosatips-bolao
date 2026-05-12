@@ -4,10 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 import {
   COPA2026_JOGOS,
   COPA2026_JOGO_IDS,
+  copa2026PalpitesAbertosParaJogo,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
 const MSG_EMAIL_NAO_INSCRITO = "E-mail não inscrito no bolão.";
+export const MSG_PALPITES_ENCERRADOS_JOGO = "Palpites encerrados para este jogo.";
 
 export type VerificarPalpitesBolaoResult =
   | {
@@ -196,6 +198,10 @@ export async function salvarPalpitesBolao(
     const inscricaoId = inscRes.id;
 
     if (!confirmar && apenasJogoId) {
+      if (!copa2026PalpitesAbertosParaJogo(apenasJogoId)) {
+        return { ok: false, error: MSG_PALPITES_ENCERRADOS_JOGO };
+      }
+
       const p = placares[apenasJogoId] ?? { casa: "", fora: "" };
       const c = parsePlacarInt(p.casa ?? "");
       const f = parsePlacarInt(p.fora ?? "");
@@ -239,9 +245,17 @@ export async function salvarPalpitesBolao(
     }[] = [];
 
     for (const jogo of COPA2026_JOGOS) {
+      const aberto = copa2026PalpitesAbertosParaJogo(jogo.id);
       const p = placares[jogo.id] ?? { casa: "", fora: "" };
       const c = parsePlacarInt(p.casa ?? "");
       const f = parsePlacarInt(p.fora ?? "");
+
+      if (!aberto) {
+        if (c !== null || f !== null) {
+          return { ok: false, error: MSG_PALPITES_ENCERRADOS_JOGO };
+        }
+        continue;
+      }
 
       if (c === null && f === null) {
         const { error: delErr } = await admin

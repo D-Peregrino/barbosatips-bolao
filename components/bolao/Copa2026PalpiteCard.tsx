@@ -23,6 +23,15 @@ function labelStatus(status: StatusPalpiteJogo) {
   return "Encerrado";
 }
 
+function badgePalpitesPrazo(encerrado: boolean) {
+  const base =
+    "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider lg:px-2 lg:py-1 lg:text-[10px]";
+  if (encerrado) {
+    return `${base} bg-zinc-700/40 text-zinc-400 ring-1 ring-zinc-600/50`;
+  }
+  return `${base} bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30`;
+}
+
 function formatarData(dataISO: string): string {
   try {
     return new Date(`${dataISO}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -46,6 +55,13 @@ export interface Copa2026PalpiteCardProps {
   bloquearEdicao?: boolean;
   /** Desabilita só o botão Salvar (ex.: gravação no Supabase em andamento). */
   salvandoPalpite?: boolean;
+  /**
+   * Prazo de palpites (15 min antes do jogo). Quando ausente, usa o status ilustrativo do mock.
+   */
+  prazoPalpites?: {
+    encerrado: boolean;
+    tempoRestante?: string | null;
+  };
 }
 
 export function Copa2026PalpiteCard({
@@ -57,6 +73,7 @@ export function Copa2026PalpiteCard({
   salvoFlash,
   bloquearEdicao,
   salvandoPalpite,
+  prazoPalpites,
 }: Copa2026PalpiteCardProps) {
   const {
     id,
@@ -69,7 +86,13 @@ export function Copa2026PalpiteCard({
     mandante,
     visitante,
   } = jogo;
-  const encerrado = status === "encerrado" || bloquearEdicao;
+
+  const usaPrazoReal = Boolean(prazoPalpites);
+  const palpitesFechadosPorPrazo = usaPrazoReal && prazoPalpites!.encerrado;
+  const encerrado =
+    Boolean(bloquearEdicao) ||
+    palpitesFechadosPorPrazo ||
+    (!usaPrazoReal && status === "encerrado");
 
   return (
     <div className="border border-[#1f1f1f] bg-[#101010] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] lg:rounded-md">
@@ -85,8 +108,21 @@ export function Copa2026PalpiteCard({
             {formatarData(dataISO)} · {horario}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={badgeStatus(status)}>{labelStatus(status)}</span>
+        <div className="flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          {usaPrazoReal ? (
+            <>
+              <span className={badgePalpitesPrazo(prazoPalpites!.encerrado)}>
+                {prazoPalpites!.encerrado ? "Palpites encerrados" : "Aberto"}
+              </span>
+              {!prazoPalpites!.encerrado && prazoPalpites!.tempoRestante ? (
+                <span className="max-w-[220px] text-right text-[9px] font-semibold leading-tight text-yellow-600/90 lg:max-w-none lg:text-[10px]">
+                  {prazoPalpites!.tempoRestante}
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className={badgeStatus(status)}>{labelStatus(status)}</span>
+          )}
         </div>
       </div>
 
@@ -101,7 +137,6 @@ export function Copa2026PalpiteCard({
 
       <div className="px-2.5 py-2.5 lg:px-5 lg:py-4">
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2 lg:min-h-[5.5rem] lg:gap-6 xl:gap-10">
-          {/* Mandante: mobile compacto | desktop bandeira ~+40%, nome e ranking maiores */}
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[38%] lg:max-w-none lg:basis-[32%] lg:gap-4 xl:gap-5">
             <span
               className="shrink-0 select-none text-xl leading-none lg:text-[2.1rem] lg:leading-none xl:text-[2.35rem]"
