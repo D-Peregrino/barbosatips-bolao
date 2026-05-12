@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const SUPABASE_URL = "https://blrlplzjlnofhivtydxt.supabase.co";
@@ -10,9 +11,7 @@ const PRECO_INSCRICAO = 50;
 const MSG_EMAIL_DUPLICADO = "Este e-mail já está inscrito no bolão.";
 
 const MSG_POS_INSCRICAO =
-  "Inscrição recebida. Em breve você receberá o link de pagamento Mercado Pago.";
-
-const STATUS_AGUARDANDO = "Status: aguardando pagamento";
+  "Inscrição registrada com sucesso. Faça login com seu e-mail para acessar a área de palpites quando quiser.";
 
 function moedaBRL(valor: number) {
   return valor.toLocaleString("pt-BR", {
@@ -62,6 +61,7 @@ export default function BolaoPage() {
   const [fluxoConcluido, setFluxoConcluido] = useState(false);
   const [emailInscrito, setEmailInscrito] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [mostrarCtaLoginDuplicado, setMostrarCtaLoginDuplicado] = useState(false);
 
   async function carregarEstatisticas() {
     setStatsCarregando(true);
@@ -108,6 +108,7 @@ export default function BolaoPage() {
 
   async function entrarNoBolao() {
     setErro("");
+    setMostrarCtaLoginDuplicado(false);
 
     const nomeLimpo = nome.trim();
     const emailLimpo = email.trim().toLowerCase();
@@ -121,6 +122,7 @@ export default function BolaoPage() {
     try {
       if (await emailJaCadastrado(emailLimpo)) {
         setErro(MSG_EMAIL_DUPLICADO);
+        setMostrarCtaLoginDuplicado(true);
         return;
       }
 
@@ -145,6 +147,7 @@ export default function BolaoPage() {
       if (!resposta.ok) {
         if (ehErroChaveDuplicada(texto, resposta.status)) {
           setErro(MSG_EMAIL_DUPLICADO);
+          setMostrarCtaLoginDuplicado(true);
         } else {
           setErro(texto);
         }
@@ -155,6 +158,7 @@ export default function BolaoPage() {
       setNome("");
       setEmail("");
       setFluxoConcluido(true);
+      setMostrarCtaLoginDuplicado(false);
       void carregarEstatisticas();
     } catch (e: unknown) {
       const msg =
@@ -169,6 +173,7 @@ export default function BolaoPage() {
     setFluxoConcluido(false);
     setEmailInscrito("");
     setErro("");
+    setMostrarCtaLoginDuplicado(false);
   }
 
   const arrecadadoEstimado =
@@ -200,7 +205,8 @@ export default function BolaoPage() {
           </span>
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-          Inscrição oficial. Visual premium preto e dourado — rápido no celular.
+          Inscrição oficial. Depois, entre com seu e-mail na página de login para lançar e editar
+          palpites durante os dias do bolão.
         </p>
 
         <section
@@ -254,28 +260,14 @@ export default function BolaoPage() {
               </h2>
               <p className="text-xs text-zinc-500 sm:text-sm">
                 {fluxoConcluido
-                  ? "Próximo passo: aguardar o link de pagamento (sem integração automática ainda)."
-                  : "Nome e e-mail são salvos no Supabase na tabela de inscrições."}
+                  ? "Seus dados estão na tabela de inscrições. Use o login para acessar os palpites."
+                  : "Nome e e-mail são salvos no Supabase na tabela inscricoes_bolao."}
               </p>
             </div>
           </div>
 
           {fluxoConcluido ? (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className="inline-flex items-center gap-2 rounded-full border border-[#C9A227]/45 bg-[#1a140c] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#F0D78C]"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <span
-                    className="h-2 w-2 animate-pulse rounded-full bg-[#F0B429]"
-                    aria-hidden
-                  />
-                  {STATUS_AGUARDANDO}
-                </span>
-              </div>
-
               <div className="rounded-xl border border-emerald-500/35 bg-emerald-950/25 px-4 py-4 text-sm leading-relaxed text-emerald-200">
                 {MSG_POS_INSCRICAO}
               </div>
@@ -286,6 +278,13 @@ export default function BolaoPage() {
                   <span className="text-zinc-300">{emailInscrito}</span>
                 </p>
               ) : null}
+
+              <Link
+                href="/bolao/login"
+                className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#e8c96b] via-[#d4af37] to-[#b8922b] py-3.5 text-center text-sm font-bold uppercase tracking-[0.08em] text-black shadow-[0_12px_40px_-12px_rgba(212,175,55,.55)] transition hover:brightness-105"
+              >
+                Ir para login
+              </Link>
 
               <button
                 type="button"
@@ -309,7 +308,10 @@ export default function BolaoPage() {
                   className="w-full rounded-xl border border-zinc-700/90 bg-black/60 px-4 py-3 text-sm text-white outline-none ring-0 transition placeholder:text-zinc-600 focus:border-[#C9A227]/70 focus:shadow-[0_0_0_3px_rgba(201,162,39,.12)] disabled:opacity-50"
                   placeholder="Seu nome"
                   value={nome}
-                  onChange={(e) => setNome(e.target.value)}
+                  onChange={(e) => {
+                    setNome(e.target.value);
+                    setMostrarCtaLoginDuplicado(false);
+                  }}
                   disabled={enviando}
                   autoComplete="name"
                 />
@@ -328,7 +330,10 @@ export default function BolaoPage() {
                   className="w-full rounded-xl border border-zinc-700/90 bg-black/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-[#C9A227]/70 focus:shadow-[0_0_0_3px_rgba(201,162,39,.12)] disabled:opacity-50"
                   placeholder="seu@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setMostrarCtaLoginDuplicado(false);
+                  }}
                   disabled={enviando}
                   autoComplete="email"
                 />
@@ -342,6 +347,15 @@ export default function BolaoPage() {
               >
                 {enviando ? "Enviando…" : "Entrar no Bolão"}
               </button>
+
+              {mostrarCtaLoginDuplicado ? (
+                <Link
+                  href="/bolao/login"
+                  className="flex w-full items-center justify-center rounded-xl border border-[#C9A227]/50 bg-[#1a140c] py-3 text-center text-sm font-bold uppercase tracking-[0.06em] text-[#F0D78C] transition hover:border-[#C9A227] hover:bg-[#221a10]"
+                >
+                  Entrar para fazer meus palpites
+                </Link>
+              ) : null}
 
               {erro ? (
                 <div className="rounded-xl border border-red-500/35 bg-red-950/40 px-4 py-3 text-sm text-red-300">

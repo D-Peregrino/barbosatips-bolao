@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { salvarPalpitesBolao, verificarECarregarPalpitesBolao } from "@/app/bolao/palpites/actions";
 import { Copa2026PalpiteCard } from "@/components/bolao/Copa2026PalpiteCard";
@@ -16,13 +17,20 @@ import { isSupabaseMock } from "@/lib/supabase/is-mock";
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
 const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
 
-const SESSION_EMAIL_KEY = "barbosatips:bolao:palpites:email";
+/** Sessão do participante após login em /bolao/login (mesma chave em login/page.tsx). */
+const BOLAO_PARTICIPANTE_LS = "barbosatips:bolao:participante";
 
 /** Chaves legadas de mocks de clubes/ligas — removidas para não poluir o cliente. */
 const LS_LEGACY_KEYS = [
   "barbosatips:bolao:palpites:v1",
   "barbosatips:copa2026:palpites:v2",
+  "barbosatips:bolao:palpites:email",
 ] as const;
+
+type BolaoParticipanteLocal = {
+  nome: string;
+  email: string;
+};
 
 function sanitizarPlacar(valor: string): string {
   return valor.replace(/\D/g, "").slice(0, 2);
@@ -34,12 +42,26 @@ function placaresIniciais(): Record<string, { casa: string; fora: string }> {
   );
 }
 
-function normalizarEmailInput(email: string): string {
-  return email.trim().toLowerCase();
+function lerParticipanteLocal(): BolaoParticipanteLocal | null {
+  try {
+    const bruto = localStorage.getItem(BOLAO_PARTICIPANTE_LS);
+    if (!bruto) return null;
+    const p = JSON.parse(bruto) as { nome?: unknown; email?: unknown };
+    const nome = String(p.nome ?? "").trim();
+    const email = String(p.email ?? "").trim().toLowerCase();
+    if (!nome || !email || !email.includes("@")) return null;
+    return { nome, email };
+  } catch {
+    return null;
+  }
 }
 
 export default function BolaoPalpitesPage() {
+  const router = useRouter();
   const usarSupabase = useMemo(() => !isSupabaseMock(), []);
+
+  const [authGate, setAuthGate] = useState<"checking" | "ok" | "redirect">("checking");
+  const [participante, setParticipante] = useState<BolaoParticipanteLocal | null>(null);
 
   const [placares, setPlacares] = useState<Record<string, { casa: string; fora: string }>>(
     () => placaresIniciais(),
@@ -50,17 +72,12 @@ export default function BolaoPalpitesPage() {
   }, [placares]);
 
   const [confirmado, setConfirmado] = useState(false);
-  const [hydrated, setHydrated] = useState(() => usarSupabase);
+  const [hydrated, setHydrated] = useState(false);
   const [msgConfirmados, setMsgConfirmados] = useState(false);
   const [sucessoSalvos, setSucessoSalvos] = useState(false);
   const [salvoFlash, setSalvoFlash] = useState<Record<string, boolean>>({});
   const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const [emailInput, setEmailInput] = useState("");
-  const [emailBolao, setEmailBolao] = useState("");
-  const [emailOk, setEmailOk] = useState(false);
-  const [verificandoEmail, setVerificandoEmail] = useState(false);
-  const [erroEmail, setErroEmail] = useState("");
   const [erro, setErro] = useState("");
 
   const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
@@ -72,6 +89,7 @@ export default function BolaoPalpitesPage() {
     for (const k of LS_LEGACY_KEYS) {
       try {
         localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
       } catch {
         /* ignore */
       }
@@ -79,47 +97,87 @@ export default function BolaoPalpitesPage() {
   }, []);
 
   useEffect(() => {
-    if (!usarSupabase) return;
-    try {
-      const salvo = sessionStorage.getItem(SESSION_EMAIL_KEY);
-      if (salvo) setEmailInput(salvo);
-    } catch {
-      /* ignore */
-    }
-  }, [usarSupabase]);
-
-  useEffect(() => {
-    if (usarSupabase) {
-      setHydrated(true);
+    const p = lerParticipanteLocal();
+    if (!p) {
+      setAuthGate("redirect");
+      router.replace("/bolao/login");
       return;
     }
-    try {
-      const bruto = localStorage.getItem(COPA2026_PALPITES_STORAGE_KEY);
-      if (!bruto) {
+    setParticipante(p);
+    setAuthGate("ok");
+  }, [router]);
+
+  useEffect(() => {
+    if (authGate !== "ok" || !participante) return;
+
+    const emailBolao = participante.email;
+
+    let cancelado = false;
+
+    async function carregar() {
+      setErro("");
+      setHydrated(false);
+
+      if (usarSupabase) {
+        const res = await verificarECarregarPalpitesBolao(emailBolao);
+        if (cancelado) return;
+        if (!res.ok) {
+          const error = new Error(res.error);
+          console.error(error);
+          setErro(error.message);
+          setPlacares(placaresIniciais());
+          placaresRef.current = placaresIniciais();
+          setConfirmado(false);
+          setHydrated(true);
+          return;
+        }
+        setPlacares(res.placares);
+        placaresRef.current = res.placares;
+        setConfirmado(res.confirmado);
         setHydrated(true);
         return;
       }
-      const parsed = JSON.parse(bruto) as Copa2026PalpitesPersistidos;
-      const base = placaresIniciais();
-      if (parsed.placares && typeof parsed.placares === "object") {
-        for (const j of COPA2026_JOGOS) {
-          const p = parsed.placares[j.id];
-          if (p && typeof p === "object") {
-            base[j.id] = {
-              casa: sanitizarPlacar(String(p.casa ?? "")),
-              fora: sanitizarPlacar(String(p.fora ?? "")),
-            };
+
+      try {
+        const bruto = localStorage.getItem(COPA2026_PALPITES_STORAGE_KEY);
+        if (!bruto) {
+          const base = placaresIniciais();
+          setPlacares(base);
+          placaresRef.current = base;
+          setConfirmado(false);
+          setHydrated(true);
+          return;
+        }
+        const parsed = JSON.parse(bruto) as Copa2026PalpitesPersistidos;
+        const base = placaresIniciais();
+        if (parsed.placares && typeof parsed.placares === "object") {
+          for (const j of COPA2026_JOGOS) {
+            const p = parsed.placares[j.id];
+            if (p && typeof p === "object") {
+              base[j.id] = {
+                casa: sanitizarPlacar(String(p.casa ?? "")),
+                fora: sanitizarPlacar(String(p.fora ?? "")),
+              };
+            }
           }
         }
+        setPlacares(base);
+        placaresRef.current = base;
+        setConfirmado(Boolean(parsed.confirmado));
+      } catch {
+        const base = placaresIniciais();
+        setPlacares(base);
+        placaresRef.current = base;
+        setConfirmado(false);
       }
-      setPlacares(base);
-      placaresRef.current = base;
-      setConfirmado(Boolean(parsed.confirmado));
-    } catch {
-      /* ignore */
+      setHydrated(true);
     }
-    setHydrated(true);
-  }, [usarSupabase]);
+
+    void carregar();
+    return () => {
+      cancelado = true;
+    };
+  }, [authGate, participante, usarSupabase]);
 
   const persistirLocal = useCallback(
     (nextPlacares: Record<string, { casa: string; fora: string }>, nextConfirmado: boolean) => {
@@ -176,71 +234,26 @@ export default function BolaoPalpitesPage() {
     };
   }, []);
 
-  async function handleVerificarEmail() {
-    if (!usarSupabase) return;
-    setErroEmail("");
-    setErro("");
-    const norm = normalizarEmailInput(emailInput);
-    if (!norm || !norm.includes("@")) {
-      setErroEmail("Informe o e-mail cadastrado no bolão.");
-      return;
-    }
-    setVerificandoEmail(true);
+  function handleSair() {
     try {
-      const res = await verificarECarregarPalpitesBolao(norm);
-      if (!res.ok) {
-        const error = new Error(res.error);
-        console.error(error);
-        setErro(error.message);
-        setEmailOk(false);
-        return;
-      }
-      try {
-        sessionStorage.setItem(SESSION_EMAIL_KEY, norm);
-      } catch {
-        /* ignore */
-      }
-      setEmailBolao(norm);
-      setEmailOk(true);
-      setPlacares(res.placares);
-      placaresRef.current = res.placares;
-      setConfirmado(res.confirmado);
-    } catch (e) {
-      const error = e instanceof Error ? e : new Error(String(e));
-      console.error(error);
-      setErro(error.message);
-      setEmailOk(false);
-    } finally {
-      setVerificandoEmail(false);
-    }
-  }
-
-  function handleTrocarEmail() {
-    setEmailOk(false);
-    setEmailBolao("");
-    setErroEmail("");
-    setErro("");
-    const fresh = placaresIniciais();
-    setPlacares(fresh);
-    placaresRef.current = fresh;
-    setConfirmado(false);
-    try {
-      sessionStorage.removeItem(SESSION_EMAIL_KEY);
+      localStorage.removeItem(BOLAO_PARTICIPANTE_LS);
     } catch {
       /* ignore */
     }
+    router.replace("/bolao/login");
   }
 
   const onSalvarPalpite = useCallback(
     async (jogoId: string) => {
       if (confirmado) return;
+      if (!participante) return;
+
       if (usarSupabase) {
-        if (!emailBolao) return;
         setErro("");
         setSucessoSalvos(false);
         setSalvandoJogoId(jogoId);
         try {
-          const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
+          const res = await salvarPalpitesBolao(participante.email, placaresRef.current, {
             confirmar: false,
             apenasJogoId: jogoId,
           });
@@ -271,7 +284,7 @@ export default function BolaoPalpitesPage() {
       confirmado,
       dispararFlashSalvo,
       dispararSucessoSalvos,
-      emailBolao,
+      participante,
       persistirLocal,
       usarSupabase,
     ],
@@ -283,13 +296,14 @@ export default function BolaoPalpitesPage() {
       window.setTimeout(() => setMsgConfirmados(false), 4000);
       return;
     }
+    if (!participante) return;
+
     if (usarSupabase) {
-      if (!emailBolao) return;
       setErro("");
       setSucessoSalvos(false);
       setConfirmandoTodos(true);
       try {
-        const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
+        const res = await salvarPalpitesBolao(participante.email, placaresRef.current, {
           confirmar: true,
         });
         if (!res.ok) {
@@ -316,10 +330,19 @@ export default function BolaoPalpitesPage() {
     setConfirmado(true);
     setMsgConfirmados(true);
     window.setTimeout(() => setMsgConfirmados(false), 5000);
-  }, [confirmado, emailBolao, dispararSucessoSalvos, persistirLocal, usarSupabase]);
+  }, [confirmado, participante, dispararSucessoSalvos, persistirLocal, usarSupabase]);
 
-  const podeVerJogos = !usarSupabase || emailOk;
   const bloquearCards = confirmado;
+
+  if (authGate === "checking" || authGate === "redirect") {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
+        <div className="mx-auto max-w-5xl px-4 py-16 text-center text-sm text-zinc-500">
+          Carregando…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
@@ -346,66 +369,23 @@ export default function BolaoPalpitesPage() {
               </Link>
             </div>
 
-            {usarSupabase && !emailOk ? (
+            {participante ? (
               <div className="mb-4 rounded border border-zinc-800 bg-[#111] p-3 sm:p-4">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-yellow-500/90">
-                  Acesso aos palpites
+                <p className="text-sm font-bold text-yellow-400/95 sm:text-base">
+                  Olá, {participante.nome}
                 </p>
-                <p className="mb-3 text-[11px] leading-relaxed text-zinc-400">
-                  Digite o mesmo e-mail usado na inscrição do bolão. Só assim é possível salvar e
-                  confirmar os placares no servidor.
-                </p>
-                <label htmlFor="bolao-email-palpites" className="sr-only">
-                  E-mail da inscrição
-                </label>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                  <input
-                    id="bolao-email-palpites"
-                    type="email"
-                    autoComplete="email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    disabled={verificandoEmail}
-                    placeholder="seu@email.com"
-                    className="min-h-[40px] flex-1 rounded border border-zinc-700 bg-black px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-yellow-600/60 disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    disabled={verificandoEmail}
-                    onClick={() => void handleVerificarEmail()}
-                    className="shrink-0 rounded bg-yellow-500 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-black transition hover:bg-yellow-400 disabled:opacity-40"
-                  >
-                    {verificandoEmail ? "Verificando…" : "Continuar"}
-                  </button>
-                </div>
-                {erroEmail ? (
-                  <p className="mt-2 text-xs text-red-400" role="alert">
-                    {erroEmail}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {usarSupabase && emailOk ? (
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-500">
-                <p>
+                <p className="mt-1 text-[11px] text-zinc-500">
                   <span className="font-semibold text-zinc-400">E-mail:</span>{" "}
-                  <span className="font-mono text-zinc-300">{emailBolao}</span>
+                  <span className="font-mono text-zinc-300">{participante.email}</span>
                 </p>
                 <button
                   type="button"
-                  onClick={handleTrocarEmail}
-                  className="rounded border border-zinc-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/40 hover:text-yellow-500"
+                  onClick={handleSair}
+                  className="mt-3 rounded border border-zinc-700 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400 hover:border-red-500/40 hover:text-red-300"
                 >
-                  Trocar e-mail
+                  Sair
                 </button>
               </div>
-            ) : null}
-
-            {erro ? (
-              <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
-                {erro}
-              </p>
             ) : null}
 
             {confirmado && (
@@ -415,6 +395,12 @@ export default function BolaoPalpitesPage() {
                   : "Rodada confirmada neste dispositivo."}
               </p>
             )}
+
+            {erro ? (
+              <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
+                {erro}
+              </p>
+            ) : null}
 
             <div
               role="status"
@@ -449,11 +435,7 @@ export default function BolaoPalpitesPage() {
             </div>
 
             {!hydrated ? (
-              <p className="py-8 text-center text-[11px] text-zinc-600">Carregando…</p>
-            ) : !podeVerJogos ? (
-              <p className="py-6 text-center text-[11px] text-zinc-600">
-                Confirme o e-mail acima para ver os jogos e lançar palpites.
-              </p>
+              <p className="py-8 text-center text-[11px] text-zinc-600">Carregando palpites…</p>
             ) : (
               <>
                 {grupos.map(({ grupo, jogos }) => (
