@@ -1,371 +1,759 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  salvarPalpitesBolao,
+  verificarECarregarPalpitesBolao,
+} from "@/app/bolao/palpites/actions";
+import {
+  Copa2026PalpiteCard,
+  type PontuacaoPalpiteCard,
+} from "@/components/bolao/Copa2026PalpiteCard";
+import { Copa2026PalpitesSidebar } from "@/components/bolao/Copa2026PalpitesSidebar";
+import {
+  COPA2026_JOGOS,
+  COPA2026_PALPITES_STORAGE_KEY,
+  type Copa2026PalpitesPersistidos,
+  copa2026JogosPorGrupo,
+  copa2026PalpitesTextoTempoRestante,
+  copa2026PontuacaoPalpite,
+} from "@/lib/mocks/copa2026-groupstage.mock";
+import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
-const SUPABASE_URL = "https://blrlplzjlnofhivtydxt.supabase.co";
-const SUPABASE_KEY = "sb_publishable_mSK2fm2fX3YBbyJvsjEbEg_hF3RXYLb";
+const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
+const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
+const MSG_PLACAR_INCOMPLETO =
+  "Informe o placar do mandante e do visitante antes de salvar.";
 
-const PRECO_INSCRICAO = 50;
+const BOLAO_PARTICIPANTE_LS = "barbosatips:bolao:participante";
 
-const MSG_EMAIL_DUPLICADO = "Este e-mail já está inscrito no bolão.";
+const LS_LEGACY_KEYS = [
+  "barbosatips:bolao:palpites:v1",
+  "barbosatips:copa2026:palpites:v2",
+  "barbosatips:bolao:palpites:email",
+] as const;
 
-const MSG_POS_INSCRICAO =
-  "Inscrição registrada com sucesso. Faça login com seu e-mail para acessar a área de palpites quando quiser.";
+type BolaoParticipanteLocal = {
+  nome: string;
+  email: string;
+};
 
-function moedaBRL(valor: number) {
-  return valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+function sanitizarPlacar(valor: string): string {
+  return valor.replace(/\D/g, "").slice(0, 2);
 }
 
-/** Resposta REST do PostgREST / Supabase indica violação de unicidade (e-mail duplicado). */
-function ehErroChaveDuplicada(textoCorpo: string, statusHttp: number): boolean {
-  if (statusHttp === 409) return true;
-  const s = textoCorpo.toLowerCase();
-  if (
-    s.includes("duplicate key") ||
-    s.includes("unique constraint") ||
-    s.includes("23505")
-  ) {
-    return true;
+function placarFormularioCompleto(p: { casa: string; fora: string }): boolean {
+  const c = sanitizarPlacar(String(p.casa ?? ""));
+  const f = sanitizarPlacar(String(p.fora ?? ""));
+
+  if (!c || !f) return false;
+
+  const nc = parseInt(c, 10);
+  const nf = parseInt(f, 10);
+
+  return Number.isFinite(nc) && Number.isFinite(nf) && nc >= 0 && nf >= 0;
+}
+
+function placaresIniciais(): Record<string, { casa: string; fora: string }> {
+  return Object.fromEntries(
+    COPA2026_JOGOS.map((j) => [j.id, { casa: "", fora: "" }]),
+  );
+}
+
+function mapPalpiteSalvoServidor(
+  placares: Record<string, { casa: string; fora: string }>,
+): Record<string, boolean> {
+  const m: Record<string, boolean> = {};
+
+  for (const j of COPA2026_JOGOS) {
+    m[j.id] = placarFormularioCompleto(
+      placares[j.id] ?? { casa: "", fora: "" },
+    );
   }
+
+  return m;
+}
+
+function placarParaPontuacao(p: { casa: string; fora: string }): {
+  c: number | null;
+  f: number | null;
+} {
+  const cs = sanitizarPlacar(String(p.casa ?? ""));
+  const fs = sanitizarPlacar(String(p.fora ?? ""));
+
+  if (!cs || !fs) return { c: null, f: null };
+
+  const c = parseInt(cs, 10);
+  const f = parseInt(fs, 10);
+
+  if (!Number.isFinite(c) || !Number.isFinite(f)) {
+    return { c: null, f: null };
+  }
+
+  return { c, f };
+}
+
+function montarPontuacaoCard(
+  jogoId: string,
+  placar: { casa: string; fora: string },
+): PontuacaoPalpiteCard {
+  const { c, f } = placarParaPontuacao(placar);
+  const pts = copa2026PontuacaoPalpite(jogoId, c, f);
+
+  if (pts === null) return { modo: "aguardando_resultado" };
+
+  return { modo: "pontos", valor: pts };
+}
+
+function lerParticipanteLocal(): BolaoParticipanteLocal | null {
   try {
-    const j = JSON.parse(textoCorpo) as {
-      code?: string | number;
-      message?: string;
-    };
-    const codigo = String(j?.code ?? "");
-    if (codigo === "23505") return true;
-    const msg = String(j?.message ?? "").toLowerCase();
-    if (
-      msg.includes("duplicate key") ||
-      msg.includes("unique constraint") ||
-      msg.includes("already exists")
-    ) {
-      return true;
-    }
+    const bruto = localStorage.getItem(BOLAO_PARTICIPANTE_LS);
+
+    if (!bruto) return null;
+
+    const p = JSON.parse(bruto) as { nome?: unknown; email?: unknown };
+    const nome = String(p.nome ?? "").trim();
+    const email = String(p.email ?? "").trim().toLowerCase();
+
+    if (!nome || !email || !email.includes("@")) return null;
+
+    return { nome, email };
   } catch {
-    /* texto não é JSON */
+    return null;
   }
-  return false;
 }
 
-export default function BolaoPage() {
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [erro, setErro] = useState("");
-  const [inscritos, setInscritos] = useState<number | null>(null);
-  const [statsCarregando, setStatsCarregando] = useState(true);
-  const [fluxoConcluido, setFluxoConcluido] = useState(false);
-  const [emailInscrito, setEmailInscrito] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [mostrarCtaLoginDuplicado, setMostrarCtaLoginDuplicado] = useState(false);
+export default function BolaoPalpitesPage() {
+  const router = useRouter();
+  const usarSupabase = useMemo(() => !isSupabaseMock(), []);
 
-  async function carregarEstatisticas() {
-    setStatsCarregando(true);
-    try {
-      const resposta = await fetch(
-        `${SUPABASE_URL}/rest/v1/inscricoes_bolao?select=id`,
-        {
-          method: "HEAD",
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            Prefer: "count=exact",
-          },
-        },
-      );
-      const faixa = resposta.headers.get("content-range");
-      const correspondencia = faixa?.match(/\/(\d+)\s*$/);
-      const total = correspondencia ? parseInt(correspondencia[1], 10) : 0;
-      setInscritos(Number.isFinite(total) ? total : 0);
-    } catch {
-      setInscritos(null);
-    } finally {
-      setStatsCarregando(false);
-    }
-  }
+  const [authGate, setAuthGate] = useState<"checking" | "ok" | "redirect">(
+    "checking",
+  );
+
+  const [participante, setParticipante] =
+    useState<BolaoParticipanteLocal | null>(null);
+
+  const [placares, setPlacares] = useState<
+    Record<string, { casa: string; fora: string }>
+  >(() => placaresIniciais());
+
+  const placaresRef = useRef(placares);
 
   useEffect(() => {
-    void carregarEstatisticas();
+    placaresRef.current = placares;
+  }, [placares]);
+
+  const [palpiteSalvoServidor, setPalpiteSalvoServidor] = useState<
+    Record<string, boolean>
+  >({});
+
+  const [confirmado, setConfirmado] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [msgConfirmados, setMsgConfirmados] = useState(false);
+  const [sucessoSalvos, setSucessoSalvos] = useState(false);
+  const [salvoFlash, setSalvoFlash] = useState<Record<string, boolean>>({});
+
+  const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const [erro, setErro] = useState("");
+
+  const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
+  const [confirmandoTodos, setConfirmandoTodos] = useState(false);
+
+  const [relogio, setRelogio] = useState(() => Date.now());
+
+  const grupos = useMemo(() => copa2026JogosPorGrupo(), []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setRelogio(Date.now()), 15_000);
+    return () => clearInterval(id);
   }, []);
 
-  /** Consulta rápida se o e-mail já existe (único no Supabase). */
-  async function emailJaCadastrado(emailLower: string): Promise<boolean> {
-    const url = `${SUPABASE_URL}/rest/v1/inscricoes_bolao?select=id&email=eq.${encodeURIComponent(emailLower)}&limit=1`;
-    const resposta = await fetch(url, {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-      },
-    });
-    if (!resposta.ok) return false;
-    const lista = (await resposta.json()) as unknown;
-    return Array.isArray(lista) && lista.length > 0;
-  }
+  useEffect(() => {
+    for (const k of LS_LEGACY_KEYS) {
+      try {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      } catch {}
+    }
+  }, []);
 
-  async function entrarNoBolao() {
-    setErro("");
-    setMostrarCtaLoginDuplicado(false);
+  useEffect(() => {
+    const p = lerParticipanteLocal();
 
-    const nomeLimpo = nome.trim();
-    const emailLimpo = email.trim().toLowerCase();
-
-    if (!nomeLimpo || !emailLimpo) {
-      setErro("Preencha nome e e-mail.");
+    if (!p) {
+      setAuthGate("redirect");
+      router.replace("/bolao/login");
       return;
     }
 
-    setEnviando(true);
-    try {
-      if (await emailJaCadastrado(emailLimpo)) {
-        setErro(MSG_EMAIL_DUPLICADO);
-        setMostrarCtaLoginDuplicado(true);
+    setParticipante(p);
+    setAuthGate("ok");
+  }, [router]);
+
+  useEffect(() => {
+    if (authGate !== "ok" || !participante) return;
+
+    const emailBolao = participante.email;
+    let cancelado = false;
+
+    async function carregar() {
+      setErro("");
+      setHydrated(false);
+
+      if (usarSupabase) {
+        const res = await verificarECarregarPalpitesBolao(emailBolao);
+
+        console.log("CARREGAR PALPITES:", res);
+
+        if (cancelado) return;
+
+        if (!res.ok) {
+          const error = new Error(res.error);
+          console.error("ERRO AO CARREGAR PALPITES:", error);
+          setErro(error.message);
+          setPlacares(placaresIniciais());
+          placaresRef.current = placaresIniciais();
+          setPalpiteSalvoServidor({});
+          setConfirmado(false);
+          setHydrated(true);
+          return;
+        }
+
+        setPlacares(res.placares);
+        placaresRef.current = res.placares;
+        setPalpiteSalvoServidor(mapPalpiteSalvoServidor(res.placares));
+        setConfirmado(res.confirmado);
+        setHydrated(true);
         return;
       }
 
-      const resposta = await fetch(`${SUPABASE_URL}/rest/v1/inscricoes_bolao`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          nome: nomeLimpo,
-          email: emailLimpo,
-          status_pagamento: "aguardando_pagamento",
-          valor_pago: 50,
-        }),
+      try {
+        const bruto = localStorage.getItem(COPA2026_PALPITES_STORAGE_KEY);
+
+        if (!bruto) {
+          const base = placaresIniciais();
+          setPlacares(base);
+          placaresRef.current = base;
+          setPalpiteSalvoServidor(mapPalpiteSalvoServidor(base));
+          setConfirmado(false);
+          setHydrated(true);
+          return;
+        }
+
+        const parsed = JSON.parse(bruto) as Copa2026PalpitesPersistidos;
+        const base = placaresIniciais();
+
+        if (parsed.placares && typeof parsed.placares === "object") {
+          for (const j of COPA2026_JOGOS) {
+            const p = parsed.placares[j.id];
+
+            if (p && typeof p === "object") {
+              base[j.id] = {
+                casa: sanitizarPlacar(String(p.casa ?? "")),
+                fora: sanitizarPlacar(String(p.fora ?? "")),
+              };
+            }
+          }
+        }
+
+        setPlacares(base);
+        placaresRef.current = base;
+        setPalpiteSalvoServidor(mapPalpiteSalvoServidor(base));
+        setConfirmado(Boolean(parsed.confirmado));
+      } catch {
+        const base = placaresIniciais();
+        setPlacares(base);
+        placaresRef.current = base;
+        setPalpiteSalvoServidor(mapPalpiteSalvoServidor(base));
+        setConfirmado(false);
+      }
+
+      setHydrated(true);
+    }
+
+    void carregar();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [authGate, participante, usarSupabase]);
+
+  const persistirLocal = useCallback(
+    (
+      nextPlacares: Record<string, { casa: string; fora: string }>,
+      nextConfirmado: boolean,
+    ) => {
+      const payload: Copa2026PalpitesPersistidos = {
+        placares: nextPlacares,
+        confirmado: nextConfirmado,
+      };
+
+      try {
+        localStorage.setItem(
+          COPA2026_PALPITES_STORAGE_KEY,
+          JSON.stringify(payload),
+        );
+      } catch {}
+    },
+    [],
+  );
+
+  const onPlacarChange = useCallback(
+    (jogoId: string, campo: "casa" | "fora", valor: string) => {
+      if (confirmado) return;
+
+      const limpo = sanitizarPlacar(valor);
+
+      setPlacares((prev) => {
+        const next = {
+          ...prev,
+          [jogoId]: {
+            casa: campo === "casa" ? limpo : prev[jogoId]?.casa ?? "",
+            fora: campo === "fora" ? limpo : prev[jogoId]?.fora ?? "",
+          },
+        };
+
+        placaresRef.current = next;
+
+        return next;
+      });
+    },
+    [confirmado],
+  );
+
+  const dispararFlashSalvo = useCallback((jogoId: string) => {
+    const prev = flashTimers.current[jogoId];
+
+    if (prev) clearTimeout(prev);
+
+    setSalvoFlash((s) => ({ ...s, [jogoId]: true }));
+
+    flashTimers.current[jogoId] = setTimeout(() => {
+      setSalvoFlash((s) => ({ ...s, [jogoId]: false }));
+      delete flashTimers.current[jogoId];
+    }, 1800);
+  }, []);
+
+  const dispararSucessoSalvos = useCallback(() => {
+    setSucessoSalvos(true);
+    window.setTimeout(() => setSucessoSalvos(false), 5000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      Object.values(flashTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  function handleSair() {
+    try {
+      localStorage.removeItem(BOLAO_PARTICIPANTE_LS);
+    } catch {}
+
+    router.replace("/bolao/login");
+  }
+
+  const onSalvarPalpite = useCallback(
+    async (jogoId: string) => {
+      console.log("CLICOU EM SALVAR PALPITE:", jogoId);
+      console.log("USAR SUPABASE:", usarSupabase);
+      console.log("PARTICIPANTE:", participante);
+      console.log("PLACARES ATUAIS:", placaresRef.current);
+
+      if (confirmado) {
+        console.warn("BLOQUEADO: palpites já confirmados.");
+        setErro("Palpites já confirmados.");
+        return;
+      }
+
+      if (!participante) {
+        console.error("BLOQUEADO: participante não encontrado.");
+        setErro("Participante não encontrado. Faça login novamente.");
+        alert("Participante não encontrado. Faça login novamente.");
+        return;
+      }
+
+      const atual = placaresRef.current[jogoId] ?? { casa: "", fora: "" };
+
+      const vazio =
+        sanitizarPlacar(atual.casa).length === 0 &&
+        sanitizarPlacar(atual.fora).length === 0;
+
+      if (!vazio && !placarFormularioCompleto(atual)) {
+        const err = new Error(MSG_PLACAR_INCOMPLETO);
+        console.error(err);
+        setErro(MSG_PLACAR_INCOMPLETO);
+        alert(MSG_PLACAR_INCOMPLETO);
+        return;
+      }
+
+      if (usarSupabase) {
+        setErro("");
+        setSucessoSalvos(false);
+        setSalvandoJogoId(jogoId);
+
+        try {
+          console.log("CHAMANDO SERVER ACTION salvarPalpitesBolao...");
+
+          const res = await salvarPalpitesBolao(
+            participante.email,
+            placaresRef.current,
+            {
+              confirmar: false,
+              apenasJogoId: jogoId,
+            },
+          );
+
+          console.log("RESPOSTA ACTION:", res);
+
+          if (!res.ok) {
+            const error = new Error(res.error);
+            console.error("ERRO RETORNADO PELA ACTION:", error);
+            setErro(error.message);
+            alert("Erro ao salvar palpite: " + error.message);
+            return;
+          }
+
+          if (vazio) {
+            setPlacares((prev) => {
+              const next = { ...prev, [jogoId]: { casa: "", fora: "" } };
+              placaresRef.current = next;
+              return next;
+            });
+          }
+
+          setPalpiteSalvoServidor((prev) => ({
+            ...prev,
+            [jogoId]:
+              !vazio &&
+              placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
+          }));
+
+          dispararSucessoSalvos();
+          dispararFlashSalvo(jogoId);
+
+          alert("Palpite salvo com sucesso!");
+        } catch (e) {
+          const error = e instanceof Error ? e : new Error(String(e));
+          console.error("ERRO GERAL AO SALVAR PALPITE:", error);
+          setErro(error.message);
+          alert("Erro geral ao salvar palpite: " + error.message);
+        } finally {
+          setSalvandoJogoId(null);
+        }
+
+        return;
+      }
+
+      setPlacares((prev) => {
+        persistirLocal(prev, confirmado);
+        return prev;
       });
 
-      const texto = await resposta.text();
+      setPalpiteSalvoServidor((prev) => ({
+        ...prev,
+        [jogoId]:
+          !vazio &&
+          placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
+      }));
 
-      if (!resposta.ok) {
-        if (ehErroChaveDuplicada(texto, resposta.status)) {
-          setErro(MSG_EMAIL_DUPLICADO);
-          setMostrarCtaLoginDuplicado(true);
-        } else {
-          setErro(texto);
-        }
+      dispararFlashSalvo(jogoId);
+
+      alert("Palpite salvo localmente.");
+    },
+    [
+      confirmado,
+      dispararFlashSalvo,
+      dispararSucessoSalvos,
+      participante,
+      persistirLocal,
+      usarSupabase,
+    ],
+  );
+
+  const confirmarTodos = useCallback(async () => {
+    if (confirmado) {
+      setMsgConfirmados(true);
+      window.setTimeout(() => setMsgConfirmados(false), 4000);
+      return;
+    }
+
+    if (!participante) {
+      setErro("Participante não encontrado.");
+      return;
+    }
+
+    for (const j of COPA2026_JOGOS) {
+      const p = placaresRef.current[j.id] ?? { casa: "", fora: "" };
+
+      const tem =
+        sanitizarPlacar(String(p.casa ?? "")).length > 0 ||
+        sanitizarPlacar(String(p.fora ?? "")).length > 0;
+
+      if (tem && !placarFormularioCompleto(p)) {
+        const err = new Error(MSG_PLACAR_INCOMPLETO);
+        console.error(err);
+        setErro(MSG_PLACAR_INCOMPLETO);
         return;
       }
-
-      setEmailInscrito(emailLimpo);
-      setNome("");
-      setEmail("");
-      setFluxoConcluido(true);
-      setMostrarCtaLoginDuplicado(false);
-      void carregarEstatisticas();
-    } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
-      setErro(`Falha de conexão: ${msg}`);
-    } finally {
-      setEnviando(false);
     }
-  }
 
-  function novaInscricao() {
-    setFluxoConcluido(false);
-    setEmailInscrito("");
-    setErro("");
-    setMostrarCtaLoginDuplicado(false);
-  }
+    if (usarSupabase) {
+      setErro("");
+      setSucessoSalvos(false);
+      setConfirmandoTodos(true);
 
-  const arrecadadoEstimado =
-    inscritos === null ? null : inscritos * PRECO_INSCRICAO;
+      try {
+        console.log("CONFIRMANDO TODOS OS PALPITES...");
+
+        const res = await salvarPalpitesBolao(
+          participante.email,
+          placaresRef.current,
+          {
+            confirmar: true,
+          },
+        );
+
+        console.log("RESPOSTA CONFIRMAR TODOS:", res);
+
+        if (!res.ok) {
+          const error = new Error(res.error);
+          console.error(error);
+          setErro(error.message);
+          alert("Erro ao confirmar todos: " + error.message);
+          return;
+        }
+
+        setConfirmado(true);
+        setPalpiteSalvoServidor(mapPalpiteSalvoServidor(placaresRef.current));
+        dispararSucessoSalvos();
+        alert("Todos os palpites foram confirmados.");
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        console.error(error);
+        setErro(error.message);
+        alert("Erro geral ao confirmar todos: " + error.message);
+      } finally {
+        setConfirmandoTodos(false);
+      }
+
+      return;
+    }
+
+    setPlacares((prev) => {
+      persistirLocal(prev, true);
+      return prev;
+    });
+
+    setPalpiteSalvoServidor(mapPalpiteSalvoServidor(placaresRef.current));
+    setConfirmado(true);
+    setMsgConfirmados(true);
+    window.setTimeout(() => setMsgConfirmados(false), 5000);
+  }, [
+    confirmado,
+    participante,
+    dispararSucessoSalvos,
+    persistirLocal,
+    usarSupabase,
+  ]);
+
+  const bloquearCards = confirmado;
+
+  if (authGate === "checking" || authGate === "redirect") {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
+        <div className="mx-auto max-w-5xl px-4 py-16 text-center text-sm text-zinc-500">
+          Carregando…
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#050608] text-white">
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212,175,55,.25), transparent 55%)",
-        }}
-      />
-
-      <main className="relative mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12 lg:max-w-5xl">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#C9A227]/35 bg-[#C9A227]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#E8D48B]">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-[#F0D78C]"
-            aria-hidden
-          />
-          BarbosaTips · Bolão
-        </div>
-
-        <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-          Bolão Copa do Mundo{" "}
-          <span className="bg-gradient-to-r from-[#F7E7B5] via-[#D4AF37] to-[#B8860B] bg-clip-text text-transparent">
-            2026
-          </span>
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-          Inscrição oficial. Depois, entre com seu e-mail na página de login para lançar e editar
-          palpites durante os dias do bolão.
-        </p>
-
-        <section
-          className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
-          aria-label="Resumo do bolão"
-        >
-          {[
-            {
-              titulo: "Inscritos",
-              valor:
-                statsCarregando || inscritos === null
-                  ? "…"
-                  : String(inscritos),
-              subtitulo: "total na base",
-            },
-            {
-              titulo: "Valor por inscrição",
-              valor: moedaBRL(PRECO_INSCRICAO),
-              subtitulo: "R$ 50 fixos nesta etapa",
-            },
-            {
-              titulo: "Arrecadado estimado",
-              valor:
-                statsCarregando || arrecadadoEstimado === null
-                  ? "…"
-                  : moedaBRL(arrecadadoEstimado),
-              subtitulo: "inscritos × R$ 50",
-            },
-          ].map((card) => (
-            <article
-              key={card.titulo}
-              className="rounded-2xl border border-[#3d3420]/80 bg-gradient-to-b from-[#14110c]/95 to-[#0a0908]/95 p-4 shadow-[0_0_0_1px_rgba(212,175,55,.06)_inset] sm:p-5"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a806f]">
-                {card.titulo}
-              </p>
-              <p className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#F0D78C] tabular-nums sm:text-3xl">
-                {card.valor}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">{card.subtitulo}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className="mt-10 rounded-2xl border border-[#3d3420]/90 bg-[#0c0b09]/90 p-5 shadow-[0_24px_80px_-32px_rgba(212,175,55,.35)] backdrop-blur-sm sm:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <span className="h-9 w-1 rounded-full bg-gradient-to-b from-[#F7E7B5] to-[#9a7628]" />
-            <div>
-              <h2 className="font-serif text-xl font-bold text-white sm:text-2xl">
-                {fluxoConcluido ? "Inscrição registrada" : "Entrar no bolão"}
-              </h2>
-              <p className="text-xs text-zinc-500 sm:text-sm">
-                {fluxoConcluido
-                  ? "Seus dados estão na tabela de inscrições. Use o login para acessar os palpites."
-                  : "Nome e e-mail são salvos no Supabase na tabela inscricoes_bolao."}
-              </p>
-            </div>
-          </div>
-
-          {fluxoConcluido ? (
-            <div className="space-y-5">
-              <div className="rounded-xl border border-emerald-500/35 bg-emerald-950/25 px-4 py-4 text-sm leading-relaxed text-emerald-200">
-                {MSG_POS_INSCRICAO}
-              </div>
-
-              {emailInscrito ? (
-                <p className="text-xs text-zinc-500">
-                  E-mail cadastrado:{" "}
-                  <span className="text-zinc-300">{emailInscrito}</span>
+    <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
+      <div className="mx-auto max-w-5xl px-2 sm:px-3 lg:max-w-[1280px] lg:px-8 xl:max-w-[1360px] xl:px-10">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,300px)] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-8">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-start justify-between gap-2">
+              <header className="min-w-0 border-b-2 border-yellow-500 pb-2 pr-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.28em] text-yellow-500">
+                  BarbosaTips
                 </p>
-              ) : null}
+                <h1 className="font-display text-base font-black uppercase leading-tight tracking-tight text-yellow-400 sm:text-lg">
+                  Bolão Copa do Mundo 2026
+                </h1>
+                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Fase de grupos · Palpites
+                </p>
+              </header>
 
               <Link
-                href="/bolao/login"
-                className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#e8c96b] via-[#d4af37] to-[#b8922b] py-3.5 text-center text-sm font-bold uppercase tracking-[0.08em] text-black shadow-[0_12px_40px_-12px_rgba(212,175,55,.55)] transition hover:brightness-105"
+                href="/bolao"
+                className="shrink-0 rounded border border-zinc-800 bg-[#111] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/50 hover:text-yellow-500"
               >
-                Ir para login
+                Voltar
               </Link>
-
-              <button
-                type="button"
-                onClick={novaInscricao}
-                className="text-xs font-semibold text-[#C9A227] underline-offset-4 hover:underline"
-              >
-                Fazer outra inscrição
-              </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="bolao-nome"
-                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500"
+
+            {participante ? (
+              <div className="mb-4 rounded border border-zinc-800 bg-[#111] p-3 sm:p-4">
+                <p className="text-sm font-bold text-yellow-400/95 sm:text-base">
+                  Olá, {participante.nome}
+                </p>
+
+                <p className="mt-1 text-[11px] text-zinc-500">
+                  <span className="font-semibold text-zinc-400">E-mail:</span>{" "}
+                  <span className="font-mono text-zinc-300">
+                    {participante.email}
+                  </span>
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleSair}
+                  className="mt-3 rounded border border-zinc-700 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400 hover:border-red-500/40 hover:text-red-300"
                 >
-                  Nome
-                </label>
-                <input
-                  id="bolao-nome"
-                  className="w-full rounded-xl border border-zinc-700/90 bg-black/60 px-4 py-3 text-sm text-white outline-none ring-0 transition placeholder:text-zinc-600 focus:border-[#C9A227]/70 focus:shadow-[0_0_0_3px_rgba(201,162,39,.12)] disabled:opacity-50"
-                  placeholder="Seu nome"
-                  value={nome}
-                  onChange={(e) => {
-                    setNome(e.target.value);
-                    setMostrarCtaLoginDuplicado(false);
-                  }}
-                  disabled={enviando}
-                  autoComplete="name"
-                />
+                  Sair
+                </button>
               </div>
+            ) : null}
 
-              <div>
-                <label
-                  htmlFor="bolao-email"
-                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500"
-                >
-                  E-mail
-                </label>
-                <input
-                  id="bolao-email"
-                  type="email"
-                  className="w-full rounded-xl border border-zinc-700/90 bg-black/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-[#C9A227]/70 focus:shadow-[0_0_0_3px_rgba(201,162,39,.12)] disabled:opacity-50"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setMostrarCtaLoginDuplicado(false);
-                  }}
-                  disabled={enviando}
-                  autoComplete="email"
-                />
-              </div>
+            {confirmado && (
+              <p className="mb-2 text-[9px] uppercase tracking-wider text-zinc-600">
+                {usarSupabase
+                  ? "Rodada confirmada no bolão."
+                  : "Rodada confirmada neste dispositivo."}
+              </p>
+            )}
 
-              <button
-                type="button"
-                onClick={() => void entrarNoBolao()}
-                disabled={enviando}
-                className="mt-2 w-full rounded-xl bg-gradient-to-r from-[#e8c96b] via-[#d4af37] to-[#b8922b] py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-black shadow-[0_12px_40px_-12px_rgba(212,175,55,.55)] transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
-              >
-                {enviando ? "Enviando…" : "Entrar no Bolão"}
-              </button>
+            {erro ? (
+              <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
+                {erro}
+              </p>
+            ) : null}
 
-              {mostrarCtaLoginDuplicado ? (
-                <Link
-                  href="/bolao/login"
-                  className="flex w-full items-center justify-center rounded-xl border border-[#C9A227]/50 bg-[#1a140c] py-3 text-center text-sm font-bold uppercase tracking-[0.06em] text-[#F0D78C] transition hover:border-[#C9A227] hover:bg-[#221a10]"
-                >
-                  Entrar para fazer meus palpites
-                </Link>
-              ) : null}
-
-              {erro ? (
-                <div className="rounded-xl border border-red-500/35 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-                  <pre className="whitespace-pre-wrap font-sans">{erro}</pre>
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-3 overflow-hidden transition-all duration-300 ${
+                usarSupabase && sucessoSalvos
+                  ? "max-h-16 opacity-100"
+                  : "max-h-0 opacity-0"
+              }`}
+            >
+              {usarSupabase && sucessoSalvos && (
+                <div className="rounded border border-emerald-500/40 bg-emerald-950/35 px-2 py-2 text-center">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-emerald-400">
+                    {MSG_SALVOS_SUPABASE}
+                  </p>
                 </div>
-              ) : null}
+              )}
             </div>
-          )}
-        </section>
-      </main>
+
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-3 overflow-hidden transition-all duration-300 ${
+                !usarSupabase && msgConfirmados
+                  ? "max-h-16 opacity-100"
+                  : "max-h-0 opacity-0"
+              }`}
+            >
+              {!usarSupabase && msgConfirmados && (
+                <div className="rounded border border-yellow-600/40 bg-yellow-500/10 px-2 py-2 text-center">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-yellow-400">
+                    {MSG_CONFIRMADOS}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {!hydrated ? (
+              <p className="py-8 text-center text-[11px] text-zinc-600">
+                Carregando palpites…
+              </p>
+            ) : (
+              <>
+                {grupos.map(({ grupo, jogos }) => (
+                  <section key={grupo} className="mb-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
+
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-400">
+                        Grupo {grupo}
+                      </span>
+
+                      <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {jogos.map((jogo) => {
+                        const aberto = true;
+
+                        const placar = placares[jogo.id] ?? {
+                          casa: "",
+                          fora: "",
+                        };
+
+                        return (
+                          <Copa2026PalpiteCard
+                            key={jogo.id}
+                            jogo={jogo}
+                            placarCasa={placar.casa}
+                            placarVisitante={placar.fora}
+                            onPlacarChange={onPlacarChange}
+                            onSalvarPalpite={(id) => void onSalvarPalpite(id)}
+                            salvoFlash={Boolean(salvoFlash[jogo.id])}
+                            bloquearEdicao={bloquearCards}
+                            salvandoPalpite={salvandoJogoId === jogo.id}
+                            prazoPalpites={{
+                              encerrado: false,
+                              tempoRestante: aberto
+                                ? copa2026PalpitesTextoTempoRestante(
+                                    jogo.id,
+                                    relogio,
+                                  )
+                                : null,
+                            }}
+                            palpiteSalvoNoServidor={Boolean(
+                              palpiteSalvoServidor[jogo.id],
+                            )}
+                            pontuacaoBolao={montarPontuacaoCard(
+                              jogo.id,
+                              placar,
+                            )}
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+
+                <div className="mt-4 border-t-2 border-yellow-500/40 pt-3">
+                  <button
+                    type="button"
+                    disabled={!hydrated || confirmandoTodos}
+                    onClick={() => void confirmarTodos()}
+                    className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
+                  >
+                    {confirmandoTodos
+                      ? "Confirmando…"
+                      : "Confirmar todos os palpites"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="mt-5 lg:sticky lg:top-20 lg:mt-0">
+            <Copa2026PalpitesSidebar />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

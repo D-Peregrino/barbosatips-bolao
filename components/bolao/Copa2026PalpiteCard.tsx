@@ -124,10 +124,16 @@ export function Copa2026PalpiteCard({
 
   const usaPrazoReal = Boolean(prazoPalpites);
   const palpitesFechadosPorPrazo = usaPrazoReal && prazoPalpites!.encerrado;
-  const encerrado =
+  /** Campos de placar: bloqueia por confirmação (outras páginas), prazo ou status legado. */
+  const encerradoCampos =
     Boolean(bloquearEdicao) ||
     palpitesFechadosPorPrazo ||
     (!usaPrazoReal && status === "encerrado");
+  /** Botão salvar: só prazo real, status legado sem prazo, ou salvando — nunca só por confirmado. */
+  const salvarDesabilitado =
+    palpitesFechadosPorPrazo ||
+    (!usaPrazoReal && status === "encerrado") ||
+    Boolean(salvandoPalpite);
 
   const faixa = faixaPontuacao(pontuacaoBolao);
 
@@ -235,7 +241,7 @@ export function Copa2026PalpiteCard({
               id={`placar-casa-${id}`}
               type="text"
               inputMode="numeric"
-              disabled={encerrado}
+              disabled={encerradoCampos}
               value={placarCasa}
               onChange={(e) => onPlacarChange(id, "casa", e.target.value)}
               className="h-10 w-11 rounded-md border-2 border-zinc-700 bg-black text-center font-mono text-lg font-bold text-yellow-400 outline-none ring-0 placeholder:text-zinc-700 transition-colors focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30 disabled:opacity-40 lg:h-[3.25rem] lg:w-14 lg:text-2xl xl:h-14 xl:w-[3.75rem] xl:text-[1.75rem]"
@@ -253,7 +259,7 @@ export function Copa2026PalpiteCard({
               id={`placar-fora-${id}`}
               type="text"
               inputMode="numeric"
-              disabled={encerrado}
+              disabled={encerradoCampos}
               value={placarVisitante}
               onChange={(e) => onPlacarChange(id, "fora", e.target.value)}
               className="h-10 w-11 rounded-md border-2 border-zinc-700 bg-black text-center font-mono text-lg font-bold text-yellow-400 outline-none placeholder:text-zinc-700 transition-colors focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30 disabled:opacity-40 lg:h-[3.25rem] lg:w-14 lg:text-2xl xl:h-14 xl:w-[3.75rem] xl:text-[1.75rem]"
@@ -294,7 +300,7 @@ export function Copa2026PalpiteCard({
           )}
           <button
             type="button"
-            disabled={encerrado || salvandoPalpite}
+            disabled={salvarDesabilitado}
             onClick={() => onSalvarPalpite(id)}
             className="rounded-md bg-yellow-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black shadow-sm transition-opacity hover:bg-yellow-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 lg:px-5 lg:py-2 lg:text-xs xl:text-sm"
           >

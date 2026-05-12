@@ -7,21 +7,15 @@ import {
   copa2026PalpitesAbertosParaJogo,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import {
+  MSG_PALPITES_ENCERRADOS_JOGO,
+  type SalvarPalpitesBolaoResult,
+  type VerificarPalpitesBolaoResult,
+} from "@/app/bolao/palpites/utils";
 
 const MSG_EMAIL_NAO_INSCRITO = "E-mail não inscrito no bolão.";
-export const MSG_PALPITES_ENCERRADOS_JOGO = "Palpites encerrados para este jogo.";
 const MSG_PLACAR_INCOMPLETO =
   "Informe o placar do mandante e do visitante antes de salvar.";
-
-export type VerificarPalpitesBolaoResult =
-  | {
-      ok: true;
-      placares: Record<string, { casa: string; fora: string }>;
-      confirmado: boolean;
-    }
-  | { ok: false; error: string };
-
-export type SalvarPalpitesBolaoResult = { ok: true } | { ok: false; error: string };
 
 function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();

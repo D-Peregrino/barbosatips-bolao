@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  MSG_PALPITES_ENCERRADOS_JOGO,
   salvarPalpitesBolao,
   verificarECarregarPalpitesBolao,
 } from "@/app/bolao/palpites/actions";
+import { MSG_PALPITES_ENCERRADOS_JOGO } from "@/app/bolao/palpites/utils";
 import {
   Copa2026PalpiteCard,
   type PontuacaoPalpiteCard,
@@ -17,6 +17,7 @@ import {
   COPA2026_JOGOS,
   COPA2026_PALPITES_STORAGE_KEY,
   type Copa2026PalpitesPersistidos,
+  type JogoCopa2026Resolvido,
   copa2026JogosPorGrupo,
   copa2026PalpitesAbertosParaJogo,
   copa2026PalpitesTextoTempoRestante,
@@ -26,13 +27,12 @@ import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
 const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
+const MSG_PALPITE_SALVO_DB = "Palpite salvo no banco de dados.";
 const MSG_PLACAR_INCOMPLETO =
   "Informe o placar do mandante e do visitante antes de salvar.";
 
-/** Sessão do participante após login em /bolao/login (mesma chave em login/page.tsx). */
 const BOLAO_PARTICIPANTE_LS = "barbosatips:bolao:participante";
 
-/** Chaves legadas de mocks de clubes/ligas — removidas para não poluir o cliente. */
 const LS_LEGACY_KEYS = [
   "barbosatips:bolao:palpites:v1",
   "barbosatips:copa2026:palpites:v2",
@@ -51,9 +51,12 @@ function sanitizarPlacar(valor: string): string {
 function placarFormularioCompleto(p: { casa: string; fora: string }): boolean {
   const c = sanitizarPlacar(String(p.casa ?? ""));
   const f = sanitizarPlacar(String(p.fora ?? ""));
+
   if (!c || !f) return false;
+
   const nc = parseInt(c, 10);
   const nf = parseInt(f, 10);
+
   return Number.isFinite(nc) && Number.isFinite(nf) && nc >= 0 && nf >= 0;
 }
 
@@ -67,9 +70,13 @@ function mapPalpiteSalvoServidor(
   placares: Record<string, { casa: string; fora: string }>,
 ): Record<string, boolean> {
   const m: Record<string, boolean> = {};
+
   for (const j of COPA2026_JOGOS) {
-    m[j.id] = placarFormularioCompleto(placares[j.id] ?? { casa: "", fora: "" });
+    m[j.id] = placarFormularioCompleto(
+      placares[j.id] ?? { casa: "", fora: "" },
+    );
   }
+
   return m;
 }
 
@@ -79,28 +86,43 @@ function placarParaPontuacao(p: { casa: string; fora: string }): {
 } {
   const cs = sanitizarPlacar(String(p.casa ?? ""));
   const fs = sanitizarPlacar(String(p.fora ?? ""));
+
   if (!cs || !fs) return { c: null, f: null };
+
   const c = parseInt(cs, 10);
   const f = parseInt(fs, 10);
-  if (!Number.isFinite(c) || !Number.isFinite(f)) return { c: null, f: null };
+
+  if (!Number.isFinite(c) || !Number.isFinite(f)) {
+    return { c: null, f: null };
+  }
+
   return { c, f };
 }
 
-function montarPontuacaoCard(jogoId: string, placar: { casa: string; fora: string }): PontuacaoPalpiteCard {
+function montarPontuacaoCard(
+  jogoId: string,
+  placar: { casa: string; fora: string },
+): PontuacaoPalpiteCard {
   const { c, f } = placarParaPontuacao(placar);
   const pts = copa2026PontuacaoPalpite(jogoId, c, f);
+
   if (pts === null) return { modo: "aguardando_resultado" };
+
   return { modo: "pontos", valor: pts };
 }
 
 function lerParticipanteLocal(): BolaoParticipanteLocal | null {
   try {
     const bruto = localStorage.getItem(BOLAO_PARTICIPANTE_LS);
+
     if (!bruto) return null;
+
     const p = JSON.parse(bruto) as { nome?: unknown; email?: unknown };
     const nome = String(p.nome ?? "").trim();
     const email = String(p.email ?? "").trim().toLowerCase();
+
     if (!nome || !email || !email.includes("@")) return null;
+
     return { nome, email };
   } catch {
     return null;
@@ -111,25 +133,34 @@ export default function BolaoPalpitesPage() {
   const router = useRouter();
   const usarSupabase = useMemo(() => !isSupabaseMock(), []);
 
-  const [authGate, setAuthGate] = useState<"checking" | "ok" | "redirect">("checking");
-  const [participante, setParticipante] = useState<BolaoParticipanteLocal | null>(null);
-
-  const [placares, setPlacares] = useState<Record<string, { casa: string; fora: string }>>(
-    () => placaresIniciais(),
+  const [authGate, setAuthGate] = useState<"checking" | "ok" | "redirect">(
+    "checking",
   );
+
+  const [participante, setParticipante] =
+    useState<BolaoParticipanteLocal | null>(null);
+
+  const [placares, setPlacares] = useState<
+    Record<string, { casa: string; fora: string }>
+  >(() => placaresIniciais());
+
   const placaresRef = useRef(placares);
+
   useEffect(() => {
     placaresRef.current = placares;
   }, [placares]);
 
-  /** Palpite completo já persistido no Supabase (sincronizado após load e após salvar). */
-  const [palpiteSalvoServidor, setPalpiteSalvoServidor] = useState<Record<string, boolean>>({});
+  const [palpiteSalvoServidor, setPalpiteSalvoServidor] = useState<
+    Record<string, boolean>
+  >({});
 
   const [confirmado, setConfirmado] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [msgConfirmados, setMsgConfirmados] = useState(false);
   const [sucessoSalvos, setSucessoSalvos] = useState(false);
+  const [palpiteSalvoDbMsg, setPalpiteSalvoDbMsg] = useState("");
   const [salvoFlash, setSalvoFlash] = useState<Record<string, boolean>>({});
+
   const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const [erro, setErro] = useState("");
@@ -152,18 +183,20 @@ export default function BolaoPalpitesPage() {
         localStorage.removeItem(k);
         sessionStorage.removeItem(k);
       } catch {
-        /* ignore */
+        // ignore
       }
     }
   }, []);
 
   useEffect(() => {
     const p = lerParticipanteLocal();
+
     if (!p) {
       setAuthGate("redirect");
       router.replace("/bolao/login");
       return;
     }
+
     setParticipante(p);
     setAuthGate("ok");
   }, [router]);
@@ -172,7 +205,6 @@ export default function BolaoPalpitesPage() {
     if (authGate !== "ok" || !participante) return;
 
     const emailBolao = participante.email;
-
     let cancelado = false;
 
     async function carregar() {
@@ -181,10 +213,14 @@ export default function BolaoPalpitesPage() {
 
       if (usarSupabase) {
         const res = await verificarECarregarPalpitesBolao(emailBolao);
+
+        console.log("CARREGAR PALPITES:", res);
+
         if (cancelado) return;
+
         if (!res.ok) {
           const error = new Error(res.error);
-          console.error(error);
+          console.error("ERRO AO CARREGAR PALPITES:", error);
           setErro(error.message);
           setPlacares(placaresIniciais());
           placaresRef.current = placaresIniciais();
@@ -193,6 +229,7 @@ export default function BolaoPalpitesPage() {
           setHydrated(true);
           return;
         }
+
         setPlacares(res.placares);
         placaresRef.current = res.placares;
         setPalpiteSalvoServidor(mapPalpiteSalvoServidor(res.placares));
@@ -203,6 +240,7 @@ export default function BolaoPalpitesPage() {
 
       try {
         const bruto = localStorage.getItem(COPA2026_PALPITES_STORAGE_KEY);
+
         if (!bruto) {
           const base = placaresIniciais();
           setPlacares(base);
@@ -212,11 +250,14 @@ export default function BolaoPalpitesPage() {
           setHydrated(true);
           return;
         }
+
         const parsed = JSON.parse(bruto) as Copa2026PalpitesPersistidos;
         const base = placaresIniciais();
+
         if (parsed.placares && typeof parsed.placares === "object") {
           for (const j of COPA2026_JOGOS) {
             const p = parsed.placares[j.id];
+
             if (p && typeof p === "object") {
               base[j.id] = {
                 casa: sanitizarPlacar(String(p.casa ?? "")),
@@ -225,6 +266,7 @@ export default function BolaoPalpitesPage() {
             }
           }
         }
+
         setPlacares(base);
         placaresRef.current = base;
         setPalpiteSalvoServidor(mapPalpiteSalvoServidor(base));
@@ -236,25 +278,34 @@ export default function BolaoPalpitesPage() {
         setPalpiteSalvoServidor(mapPalpiteSalvoServidor(base));
         setConfirmado(false);
       }
+
       setHydrated(true);
     }
 
     void carregar();
+
     return () => {
       cancelado = true;
     };
   }, [authGate, participante, usarSupabase]);
 
   const persistirLocal = useCallback(
-    (nextPlacares: Record<string, { casa: string; fora: string }>, nextConfirmado: boolean) => {
+    (
+      nextPlacares: Record<string, { casa: string; fora: string }>,
+      nextConfirmado: boolean,
+    ) => {
       const payload: Copa2026PalpitesPersistidos = {
         placares: nextPlacares,
         confirmado: nextConfirmado,
       };
+
       try {
-        localStorage.setItem(COPA2026_PALPITES_STORAGE_KEY, JSON.stringify(payload));
+        localStorage.setItem(
+          COPA2026_PALPITES_STORAGE_KEY,
+          JSON.stringify(payload),
+        );
       } catch {
-        /* ignore */
+        // ignore
       }
     },
     [],
@@ -262,9 +313,10 @@ export default function BolaoPalpitesPage() {
 
   const onPlacarChange = useCallback(
     (jogoId: string, campo: "casa" | "fora", valor: string) => {
-      if (confirmado) return;
       if (!copa2026PalpitesAbertosParaJogo(jogoId)) return;
+
       const limpo = sanitizarPlacar(valor);
+
       setPlacares((prev) => {
         const next = {
           ...prev,
@@ -273,17 +325,22 @@ export default function BolaoPalpitesPage() {
             fora: campo === "fora" ? limpo : prev[jogoId]?.fora ?? "",
           },
         };
+
         placaresRef.current = next;
+
         return next;
       });
     },
-    [confirmado],
+    [],
   );
 
   const dispararFlashSalvo = useCallback((jogoId: string) => {
     const prev = flashTimers.current[jogoId];
+
     if (prev) clearTimeout(prev);
+
     setSalvoFlash((s) => ({ ...s, [jogoId]: true }));
+
     flashTimers.current[jogoId] = setTimeout(() => {
       setSalvoFlash((s) => ({ ...s, [jogoId]: false }));
       delete flashTimers.current[jogoId];
@@ -293,6 +350,11 @@ export default function BolaoPalpitesPage() {
   const dispararSucessoSalvos = useCallback(() => {
     setSucessoSalvos(true);
     window.setTimeout(() => setSucessoSalvos(false), 5000);
+  }, []);
+
+  const dispararPalpiteSalvoDbMsg = useCallback(() => {
+    setPalpiteSalvoDbMsg(MSG_PALPITE_SALVO_DB);
+    window.setTimeout(() => setPalpiteSalvoDbMsg(""), 5000);
   }, []);
 
   useEffect(() => {
@@ -305,48 +367,67 @@ export default function BolaoPalpitesPage() {
     try {
       localStorage.removeItem(BOLAO_PARTICIPANTE_LS);
     } catch {
-      /* ignore */
+      // ignore
     }
+
     router.replace("/bolao/login");
   }
 
-  const onSalvarPalpite = useCallback(
-    async (jogoId: string) => {
-      console.log("SALVANDO PALPITE", jogoId);
-      if (confirmado) return;
-      if (!participante) return;
+  const salvarPalpite = useCallback(
+    async (jogo: JogoCopa2026Resolvido) => {
+      console.log("CLICOU SALVAR PALPITE", jogo.id);
+
+      if (!participante) {
+        setErro("Participante não encontrado. Faça login novamente.");
+        return;
+      }
+
+      const jogoId = jogo.id;
+      const atual = placaresRef.current[jogoId] ?? { casa: "", fora: "" };
+
+      const vazio =
+        sanitizarPlacar(atual.casa).length === 0 &&
+        sanitizarPlacar(atual.fora).length === 0;
+
+      if (!vazio && !placarFormularioCompleto(atual)) {
+        setErro(MSG_PLACAR_INCOMPLETO);
+        return;
+      }
+
+      if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
+        setErro(MSG_PALPITES_ENCERRADOS_JOGO);
+        return;
+      }
 
       if (usarSupabase) {
-        if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
-          const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
-          console.error(err);
-          setErro(MSG_PALPITES_ENCERRADOS_JOGO);
-          return;
-        }
-        const atual = placaresRef.current[jogoId] ?? { casa: "", fora: "" };
-        const vazio =
-          sanitizarPlacar(atual.casa).length === 0 && sanitizarPlacar(atual.fora).length === 0;
-        if (!vazio && !placarFormularioCompleto(atual)) {
-          const err = new Error(MSG_PLACAR_INCOMPLETO);
-          console.error(err);
-          setErro(MSG_PLACAR_INCOMPLETO);
-          return;
-        }
-
         setErro("");
         setSucessoSalvos(false);
+        setPalpiteSalvoDbMsg("");
         setSalvandoJogoId(jogoId);
+
         try {
-          const res = await salvarPalpitesBolao(participante.email, placaresRef.current, {
-            confirmar: false,
-            apenasJogoId: jogoId,
+          const res = await fetch("/api/bolao/palpites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: participante.email,
+              jogoId,
+              placares: placaresRef.current,
+            }),
           });
-          if (!res.ok) {
-            const error = new Error(res.error);
-            console.error(error);
-            setErro(error.message);
+
+          let data: { ok?: boolean; error?: string } = {};
+          try {
+            data = (await res.json()) as { ok?: boolean; error?: string };
+          } catch {
+            data = {};
+          }
+
+          if (!res.ok || !data.ok) {
+            setErro(data.error ?? "Falha ao salvar o palpite.");
             return;
           }
+
           if (vazio) {
             setPlacares((prev) => {
               const next = { ...prev, [jogoId]: { casa: "", fora: "" } };
@@ -354,50 +435,45 @@ export default function BolaoPalpitesPage() {
               return next;
             });
           }
+
           setPalpiteSalvoServidor((prev) => ({
             ...prev,
-            [jogoId]: !vazio && placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
+            [jogoId]:
+              !vazio &&
+              placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
           }));
-          dispararSucessoSalvos();
+
+          dispararPalpiteSalvoDbMsg();
           dispararFlashSalvo(jogoId);
         } catch (e) {
-          const error = e instanceof Error ? e : new Error(String(e));
-          console.error(error);
-          setErro(error.message);
+          const msg = e instanceof Error ? e.message : String(e);
+          setErro(msg || "Falha de rede ao salvar.");
         } finally {
           setSalvandoJogoId(null);
         }
+
         return;
       }
-      if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
-        const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
-        console.error(err);
-        setErro(MSG_PALPITES_ENCERRADOS_JOGO);
-        return;
-      }
-      const atual = placaresRef.current[jogoId] ?? { casa: "", fora: "" };
-      const vazio =
-        sanitizarPlacar(atual.casa).length === 0 && sanitizarPlacar(atual.fora).length === 0;
-      if (!vazio && !placarFormularioCompleto(atual)) {
-        const err = new Error(MSG_PLACAR_INCOMPLETO);
-        console.error(err);
-        setErro(MSG_PLACAR_INCOMPLETO);
-        return;
-      }
+
+      setErro("");
       setPlacares((prev) => {
         persistirLocal(prev, confirmado);
         return prev;
       });
+
       setPalpiteSalvoServidor((prev) => ({
         ...prev,
-        [jogoId]: !vazio && placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
+        [jogoId]:
+          !vazio &&
+          placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
       }));
+
       dispararFlashSalvo(jogoId);
     },
     [
       confirmado,
       dispararFlashSalvo,
-      dispararSucessoSalvos,
+      dispararPalpiteSalvoDbMsg,
       participante,
       persistirLocal,
       usarSupabase,
@@ -410,63 +486,26 @@ export default function BolaoPalpitesPage() {
       window.setTimeout(() => setMsgConfirmados(false), 4000);
       return;
     }
-    if (!participante) return;
 
-    if (usarSupabase) {
-      for (const j of COPA2026_JOGOS) {
-        const p = placaresRef.current[j.id] ?? { casa: "", fora: "" };
-        const tem =
-          sanitizarPlacar(String(p.casa ?? "")).length > 0 ||
-          sanitizarPlacar(String(p.fora ?? "")).length > 0;
-        if (tem && !copa2026PalpitesAbertosParaJogo(j.id)) {
-          const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
-          console.error(err);
-          setErro(MSG_PALPITES_ENCERRADOS_JOGO);
-          return;
-        }
-        if (tem && !placarFormularioCompleto(p)) {
-          const err = new Error(MSG_PLACAR_INCOMPLETO);
-          console.error(err);
-          setErro(MSG_PLACAR_INCOMPLETO);
-          return;
-        }
-      }
-      setErro("");
-      setSucessoSalvos(false);
-      setConfirmandoTodos(true);
-      try {
-        const res = await salvarPalpitesBolao(participante.email, placaresRef.current, {
-          confirmar: true,
-        });
-        if (!res.ok) {
-          const error = new Error(res.error);
-          console.error(error);
-          setErro(error.message);
-          return;
-        }
-        setConfirmado(true);
-        setPalpiteSalvoServidor(mapPalpiteSalvoServidor(placaresRef.current));
-        dispararSucessoSalvos();
-      } catch (e) {
-        const error = e instanceof Error ? e : new Error(String(e));
-        console.error(error);
-        setErro(error.message);
-      } finally {
-        setConfirmandoTodos(false);
-      }
+    if (!participante) {
+      setErro("Participante não encontrado.");
       return;
     }
+
     for (const j of COPA2026_JOGOS) {
       const p = placaresRef.current[j.id] ?? { casa: "", fora: "" };
+
       const tem =
         sanitizarPlacar(String(p.casa ?? "")).length > 0 ||
         sanitizarPlacar(String(p.fora ?? "")).length > 0;
+
       if (tem && !copa2026PalpitesAbertosParaJogo(j.id)) {
         const err = new Error(MSG_PALPITES_ENCERRADOS_JOGO);
         console.error(err);
         setErro(MSG_PALPITES_ENCERRADOS_JOGO);
         return;
       }
+
       if (tem && !placarFormularioCompleto(p)) {
         const err = new Error(MSG_PLACAR_INCOMPLETO);
         console.error(err);
@@ -474,17 +513,65 @@ export default function BolaoPalpitesPage() {
         return;
       }
     }
+
+    if (usarSupabase) {
+      setErro("");
+      setSucessoSalvos(false);
+      setConfirmandoTodos(true);
+
+      try {
+        console.log("CONFIRMANDO TODOS OS PALPITES...");
+
+        const res = await salvarPalpitesBolao(
+          participante.email,
+          placaresRef.current,
+          {
+            confirmar: true,
+          },
+        );
+
+        console.log("RESPOSTA CONFIRMAR TODOS:", res);
+
+        if (!res.ok) {
+          const error = new Error(res.error);
+          console.error(error);
+          setErro(error.message);
+          alert("Erro ao confirmar todos: " + error.message);
+          return;
+        }
+
+        setConfirmado(true);
+        setPalpiteSalvoServidor(mapPalpiteSalvoServidor(placaresRef.current));
+        dispararSucessoSalvos();
+        alert("Todos os palpites foram confirmados.");
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        console.error(error);
+        setErro(error.message);
+        alert("Erro geral ao confirmar todos: " + error.message);
+      } finally {
+        setConfirmandoTodos(false);
+      }
+
+      return;
+    }
+
     setPlacares((prev) => {
       persistirLocal(prev, true);
       return prev;
     });
+
     setPalpiteSalvoServidor(mapPalpiteSalvoServidor(placaresRef.current));
     setConfirmado(true);
     setMsgConfirmados(true);
     window.setTimeout(() => setMsgConfirmados(false), 5000);
-  }, [confirmado, participante, dispararSucessoSalvos, persistirLocal, usarSupabase]);
-
-  const bloquearCards = confirmado;
+  }, [
+    confirmado,
+    participante,
+    dispararSucessoSalvos,
+    persistirLocal,
+    usarSupabase,
+  ]);
 
   if (authGate === "checking" || authGate === "redirect") {
     return (
@@ -513,6 +600,7 @@ export default function BolaoPalpitesPage() {
                   Fase de grupos · Palpites
                 </p>
               </header>
+
               <Link
                 href="/bolao"
                 className="shrink-0 rounded border border-zinc-800 bg-[#111] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/50 hover:text-yellow-500"
@@ -526,10 +614,14 @@ export default function BolaoPalpitesPage() {
                 <p className="text-sm font-bold text-yellow-400/95 sm:text-base">
                   Olá, {participante.nome}
                 </p>
+
                 <p className="mt-1 text-[11px] text-zinc-500">
                   <span className="font-semibold text-zinc-400">E-mail:</span>{" "}
-                  <span className="font-mono text-zinc-300">{participante.email}</span>
+                  <span className="font-mono text-zinc-300">
+                    {participante.email}
+                  </span>
                 </p>
+
                 <button
                   type="button"
                   onClick={handleSair}
@@ -539,14 +631,6 @@ export default function BolaoPalpitesPage() {
                 </button>
               </div>
             ) : null}
-
-            {confirmado && (
-              <p className="mb-2 text-[9px] uppercase tracking-wider text-zinc-600">
-                {usarSupabase
-                  ? "Rodada confirmada no bolão."
-                  : "Rodada confirmada neste dispositivo."}
-              </p>
-            )}
 
             {erro ? (
               <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
@@ -558,7 +642,27 @@ export default function BolaoPalpitesPage() {
               role="status"
               aria-live="polite"
               className={`mb-3 overflow-hidden transition-all duration-300 ${
-                usarSupabase && sucessoSalvos ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
+                usarSupabase && palpiteSalvoDbMsg
+                  ? "max-h-16 opacity-100"
+                  : "max-h-0 opacity-0"
+              }`}
+            >
+              {usarSupabase && palpiteSalvoDbMsg ? (
+                <div className="rounded border border-emerald-500/40 bg-emerald-950/35 px-2 py-2 text-center">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-emerald-400">
+                    {palpiteSalvoDbMsg}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-3 overflow-hidden transition-all duration-300 ${
+                usarSupabase && sucessoSalvos
+                  ? "max-h-16 opacity-100"
+                  : "max-h-0 opacity-0"
               }`}
             >
               {usarSupabase && sucessoSalvos && (
@@ -574,7 +678,9 @@ export default function BolaoPalpitesPage() {
               role="status"
               aria-live="polite"
               className={`mb-3 overflow-hidden transition-all duration-300 ${
-                !usarSupabase && msgConfirmados ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
+                !usarSupabase && msgConfirmados
+                  ? "max-h-16 opacity-100"
+                  : "max-h-0 opacity-0"
               }`}
             >
               {!usarSupabase && msgConfirmados && (
@@ -587,22 +693,35 @@ export default function BolaoPalpitesPage() {
             </div>
 
             {!hydrated ? (
-              <p className="py-8 text-center text-[11px] text-zinc-600">Carregando palpites…</p>
+              <p className="py-8 text-center text-[11px] text-zinc-600">
+                Carregando palpites…
+              </p>
             ) : (
               <>
                 {grupos.map(({ grupo, jogos }) => (
                   <section key={grupo} className="mb-4">
                     <div className="mb-2 flex items-center gap-2">
                       <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
+
                       <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-400">
                         Grupo {grupo}
                       </span>
+
                       <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
                     </div>
+
                     <div className="flex flex-col gap-2">
                       {jogos.map((jogo) => {
-                        const aberto = copa2026PalpitesAbertosParaJogo(jogo.id, relogio);
-                        const placar = placares[jogo.id] ?? { casa: "", fora: "" };
+                        const aberto = copa2026PalpitesAbertosParaJogo(
+                          jogo.id,
+                          relogio,
+                        );
+
+                        const placar = placares[jogo.id] ?? {
+                          casa: "",
+                          fora: "",
+                        };
+
                         return (
                           <Copa2026PalpiteCard
                             key={jogo.id}
@@ -610,18 +729,26 @@ export default function BolaoPalpitesPage() {
                             placarCasa={placar.casa}
                             placarVisitante={placar.fora}
                             onPlacarChange={onPlacarChange}
-                            onSalvarPalpite={(id) => void onSalvarPalpite(id)}
+                            onSalvarPalpite={(_jogoId) => void salvarPalpite(jogo)}
                             salvoFlash={Boolean(salvoFlash[jogo.id])}
-                            bloquearEdicao={bloquearCards}
+                            bloquearEdicao={false}
                             salvandoPalpite={salvandoJogoId === jogo.id}
                             prazoPalpites={{
                               encerrado: !aberto,
                               tempoRestante: aberto
-                                ? copa2026PalpitesTextoTempoRestante(jogo.id, relogio)
+                                ? copa2026PalpitesTextoTempoRestante(
+                                    jogo.id,
+                                    relogio,
+                                  )
                                 : null,
                             }}
-                            palpiteSalvoNoServidor={Boolean(palpiteSalvoServidor[jogo.id])}
-                            pontuacaoBolao={montarPontuacaoCard(jogo.id, placar)}
+                            palpiteSalvoNoServidor={Boolean(
+                              palpiteSalvoServidor[jogo.id],
+                            )}
+                            pontuacaoBolao={montarPontuacaoCard(
+                              jogo.id,
+                              placar,
+                            )}
                           />
                         );
                       })}
@@ -636,7 +763,9 @@ export default function BolaoPalpitesPage() {
                     onClick={() => void confirmarTodos()}
                     className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
                   >
-                    {confirmandoTodos ? "Confirmando…" : "Confirmar todos os palpites"}
+                    {confirmandoTodos
+                      ? "Confirmando…"
+                      : "Confirmar todos os palpites"}
                   </button>
                 </div>
               </>
