@@ -1,65 +1,102 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { PalpiteJogoCard } from "@/components/bolao/PalpiteJogoCard";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Copa2026PalpiteCard } from "@/components/bolao/Copa2026PalpiteCard";
+import { Copa2026PalpitesSidebar } from "@/components/bolao/Copa2026PalpitesSidebar";
 import {
-  BOLAO_JOGOS_PALPITES_MOCK,
-  BOLAO_PALPITES_STORAGE_KEY,
-  type PalpitesSalvosMap,
-} from "@/lib/mocks/bolao-palpites.mock";
+  COPA2026_JOGOS,
+  COPA2026_PALPITES_STORAGE_KEY,
+  type Copa2026PalpitesPersistidos,
+  copa2026JogosPorGrupo,
+} from "@/lib/mocks/copa2026-groupstage.mock";
 
-const MSG_SUCESSO = "Palpites salvos com sucesso";
+const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
+
+/** Chaves legadas de mocks de clubes/ligas — removidas para não poluir o cliente. */
+const LS_LEGACY_KEYS = [
+  "barbosatips:bolao:palpites:v1",
+  "barbosatips:copa2026:palpites:v2",
+] as const;
 
 function sanitizarPlacar(valor: string): string {
-  const soDigitos = valor.replace(/\D/g, "");
-  return soDigitos.slice(0, 2);
+  return valor.replace(/\D/g, "").slice(0, 2);
 }
 
-function mapaInicialVazio(): PalpitesSalvosMap {
+function placaresIniciais(): Record<string, { casa: string; fora: string }> {
   return Object.fromEntries(
-    BOLAO_JOGOS_PALPITES_MOCK.map((j) => [j.id, { casa: "", fora: "" }]),
+    COPA2026_JOGOS.map((j) => [j.id, { casa: "", fora: "" }]),
   );
 }
 
 export default function BolaoPalpitesPage() {
-  const [placares, setPlacares] = useState<PalpitesSalvosMap>(() =>
-    mapaInicialVazio(),
+  const [placares, setPlacares] = useState<Record<string, { casa: string; fora: string }>>(
+    () => placaresIniciais(),
   );
+  const [confirmado, setConfirmado] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [msgSucesso, setMsgSucesso] = useState(false);
+  const [msgConfirmados, setMsgConfirmados] = useState(false);
+  const [salvoFlash, setSalvoFlash] = useState<Record<string, boolean>>({});
+  const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const grupos = useMemo(() => copa2026JogosPorGrupo(), []);
+
+  useEffect(() => {
+    for (const k of LS_LEGACY_KEYS) {
+      try {
+        localStorage.removeItem(k);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   useEffect(() => {
     try {
-      const bruto = localStorage.getItem(BOLAO_PALPITES_STORAGE_KEY);
+      const bruto = localStorage.getItem(COPA2026_PALPITES_STORAGE_KEY);
       if (!bruto) {
         setHydrated(true);
         return;
       }
-      const parsed = JSON.parse(bruto) as unknown;
-      if (!parsed || typeof parsed !== "object") {
-        setHydrated(true);
-        return;
-      }
-      const base = mapaInicialVazio();
-      for (const j of BOLAO_JOGOS_PALPITES_MOCK) {
-        const p = (parsed as PalpitesSalvosMap)[j.id];
-        if (p && typeof p === "object") {
-          base[j.id] = {
-            casa: sanitizarPlacar(String(p.casa ?? "")),
-            fora: sanitizarPlacar(String(p.fora ?? "")),
-          };
+      const parsed = JSON.parse(bruto) as Copa2026PalpitesPersistidos;
+      const base = placaresIniciais();
+      if (parsed.placares && typeof parsed.placares === "object") {
+        for (const j of COPA2026_JOGOS) {
+          const p = parsed.placares[j.id];
+          if (p && typeof p === "object") {
+            base[j.id] = {
+              casa: sanitizarPlacar(String(p.casa ?? "")),
+              fora: sanitizarPlacar(String(p.fora ?? "")),
+            };
+          }
         }
       }
       setPlacares(base);
+      setConfirmado(Boolean(parsed.confirmado));
     } catch {
       /* ignore */
     }
     setHydrated(true);
   }, []);
 
+  const persistir = useCallback(
+    (nextPlacares: Record<string, { casa: string; fora: string }>, nextConfirmado: boolean) => {
+      const payload: Copa2026PalpitesPersistidos = {
+        placares: nextPlacares,
+        confirmado: nextConfirmado,
+      };
+      try {
+        localStorage.setItem(COPA2026_PALPITES_STORAGE_KEY, JSON.stringify(payload));
+      } catch {
+        /* ignore */
+      }
+    },
+    [],
+  );
+
   const onPlacarChange = useCallback(
     (jogoId: string, campo: "casa" | "fora", valor: string) => {
+      if (confirmado) return;
       const limpo = sanitizarPlacar(valor);
       setPlacares((prev) => ({
         ...prev,
@@ -69,90 +106,146 @@ export default function BolaoPalpitesPage() {
         },
       }));
     },
-    [],
+    [confirmado],
   );
 
-  const salvar = useCallback(() => {
-    try {
-      localStorage.setItem(BOLAO_PALPITES_STORAGE_KEY, JSON.stringify(placares));
-      setMsgSucesso(true);
-      window.setTimeout(() => setMsgSucesso(false), 4500);
-    } catch {
-      /* quota ou privado */
-    }
-  }, [placares]);
+  const dispararFlashSalvo = useCallback((jogoId: string) => {
+    const prev = flashTimers.current[jogoId];
+    if (prev) clearTimeout(prev);
+    setSalvoFlash((s) => ({ ...s, [jogoId]: true }));
+    flashTimers.current[jogoId] = setTimeout(() => {
+      setSalvoFlash((s) => ({ ...s, [jogoId]: false }));
+      delete flashTimers.current[jogoId];
+    }, 1800);
+  }, []);
 
-  const lista = useMemo(() => BOLAO_JOGOS_PALPITES_MOCK, []);
+  const onSalvarPalpite = useCallback(
+    (jogoId: string) => {
+      if (confirmado) return;
+      setPlacares((prev) => {
+        persistir(prev, confirmado);
+        return prev;
+      });
+      dispararFlashSalvo(jogoId);
+    },
+    [confirmado, dispararFlashSalvo, persistir],
+  );
+
+  useEffect(() => {
+    return () => {
+      Object.values(flashTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  const confirmarTodos = useCallback(() => {
+    if (confirmado) {
+      setMsgConfirmados(true);
+      window.setTimeout(() => setMsgConfirmados(false), 4000);
+      return;
+    }
+    setPlacares((prev) => {
+      persistir(prev, true);
+      return prev;
+    });
+    setConfirmado(true);
+    setMsgConfirmados(true);
+    window.setTimeout(() => setMsgConfirmados(false), 5000);
+  }, [confirmado, persistir]);
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-pitch-950 pb-16 pt-6 sm:pt-10">
-      <div className="container-site px-4">
-        {/* Cabeçalho */}
-        <div className="mb-8 flex flex-col gap-4 border-b border-pitch-700 pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
-              Bolão BarbosaTips
-            </p>
-            <h1 className="font-display text-2xl font-bold text-gold sm:text-3xl md:text-4xl">
-              Palpites
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-neutral-400">
-              Preencha o placar de cada jogo e salve. Seus palpites ficam neste
-              aparelho até integrarmos ao servidor.
-            </p>
+    <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
+      <div className="mx-auto max-w-5xl px-2 sm:px-3 lg:max-w-[1100px]">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-start justify-between gap-2">
+              <header className="min-w-0 border-b-2 border-yellow-500 pb-2 pr-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.28em] text-yellow-500">
+                  BarbosaTips
+                </p>
+                <h1 className="font-display text-base font-black uppercase leading-tight tracking-tight text-yellow-400 sm:text-lg">
+                  Bolão Copa do Mundo 2026
+                </h1>
+                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Fase de grupos · Palpites
+                </p>
+              </header>
+              <Link
+                href="/bolao"
+                className="shrink-0 rounded border border-zinc-800 bg-[#111] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/50 hover:text-yellow-500"
+              >
+                Voltar
+              </Link>
+            </div>
+
+            {confirmado && (
+              <p className="mb-2 text-[9px] uppercase tracking-wider text-zinc-600">
+                Rodada confirmada neste dispositivo.
+              </p>
+            )}
+
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-3 overflow-hidden transition-all duration-300 ${
+                msgConfirmados ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              {msgConfirmados && (
+                <div className="rounded border border-yellow-600/40 bg-yellow-500/10 px-2 py-2 text-center">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-yellow-400">
+                    {MSG_CONFIRMADOS}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {!hydrated ? (
+              <p className="py-8 text-center text-[11px] text-zinc-600">Carregando…</p>
+            ) : (
+              <>
+                {grupos.map(({ grupo, jogos }) => (
+                  <section key={grupo} className="mb-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-400">
+                        Grupo {grupo}
+                      </span>
+                      <div className="h-[3px] min-w-[12px] flex-1 bg-yellow-500" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {jogos.map((jogo) => (
+                        <Copa2026PalpiteCard
+                          key={jogo.id}
+                          jogo={jogo}
+                          placarCasa={placares[jogo.id]?.casa ?? ""}
+                          placarVisitante={placares[jogo.id]?.fora ?? ""}
+                          onPlacarChange={onPlacarChange}
+                          onSalvarPalpite={onSalvarPalpite}
+                          salvoFlash={Boolean(salvoFlash[jogo.id])}
+                          bloquearEdicao={confirmado}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+
+                <div className="mt-4 border-t-2 border-yellow-500/40 pt-3">
+                  <button
+                    type="button"
+                    disabled={!hydrated}
+                    onClick={confirmarTodos}
+                    className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
+                  >
+                    Confirmar todos os palpites
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          <Link
-            href="/bolao"
-            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-pitch-600 px-4 py-2.5 text-sm font-medium text-neutral-200 transition-colors hover:border-gold/40 hover:text-gold"
-          >
-            ← Voltar ao bolão
-          </Link>
-        </div>
 
-        {/* Sucesso */}
-        <div
-          role="status"
-          aria-live="polite"
-          className={`mb-6 overflow-hidden rounded-lg border transition-all duration-300 ${
-            msgSucesso
-              ? "max-h-24 border-gold/35 bg-gold/10 py-3 opacity-100"
-              : "max-h-0 border-transparent py-0 opacity-0"
-          }`}
-        >
-          {msgSucesso && (
-            <p className="px-4 text-center text-sm font-semibold text-gold">
-              {MSG_SUCESSO}
-            </p>
-          )}
-        </div>
-
-        {/* Lista */}
-        <div className="mx-auto flex max-w-3xl flex-col gap-4">
-          {!hydrated ? (
-            <p className="text-center text-sm text-neutral-500">Carregando…</p>
-          ) : (
-            lista.map((jogo) => (
-              <PalpiteJogoCard
-                key={jogo.id}
-                jogo={jogo}
-                placarCasa={placares[jogo.id]?.casa ?? ""}
-                placarVisitante={placares[jogo.id]?.fora ?? ""}
-                onPlacarChange={onPlacarChange}
-              />
-            ))
-          )}
-        </div>
-
-        {/* Ação */}
-        <div className="mx-auto mt-10 flex max-w-3xl flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            onClick={salvar}
-            disabled={!hydrated}
-            className="inline-flex min-h-[48px] items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-8 text-sm font-bold text-pitch-950 shadow-lg transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Salvar Palpites
-          </button>
+          <div className="mt-5 lg:sticky lg:top-20 lg:mt-0">
+            <Copa2026PalpitesSidebar />
+          </div>
         </div>
       </div>
     </div>
