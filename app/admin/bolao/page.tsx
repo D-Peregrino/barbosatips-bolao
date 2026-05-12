@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { copa2026JogosResolvidos } from "@/lib/mocks/copa2026-groupstage.mock";
 
 const SUPABASE_URL = "https://blrlplzjlnofhivtydxt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mSK2fm2fX3YBbyJvsjEbEg_hF3RXYLb";
@@ -19,6 +20,15 @@ type Inscrito = {
   valor_pago: number | string | null;
   link_pagamento: string | null;
   created_at?: string | null;
+};
+
+type PalpiteBolaoRow = {
+  id: string;
+  inscricao_id: string;
+  jogo_id: string;
+  placar_casa: number | null;
+  placar_fora: number | null;
+  created_at: string | null;
 };
 
 const HEADERS_REST = {
@@ -40,10 +50,29 @@ function parseValor(v: number | string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function numeroPalpiteSupabase(v: unknown): number | null {
+  if (v === undefined || v === null || v === "") return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const n = parseInt(String(v), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 function encurtarUrl(texto: string, max: number) {
   const t = texto.trim();
   if (t.length <= max) return t;
   return `${t.slice(0, Math.floor(max / 2))}…${t.slice(-Math.floor(max / 2))}`;
+}
+
+function formatarDataHoraPalpite(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 /** Converte qualquer linha do PostgREST para o formato usado na tabela. */
@@ -124,6 +153,10 @@ export default function AdminBolaoPage() {
   const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
   const [copiouId, setCopiouId] = useState<string | null>(null);
 
+  const [palpites, setPalpites] = useState<PalpiteBolaoRow[]>([]);
+  const [palpitesCarregando, setPalpitesCarregando] = useState(false);
+  const [palpitesErro, setPalpitesErro] = useState("");
+
   useEffect(() => {
     try {
       setSessaoOk(localStorage.getItem(STORAGE_ADMIN_SESSION) === "1");
@@ -138,7 +171,7 @@ export default function AdminBolaoPage() {
     }
   }, [sessaoOk]);
 
-  const carregarInscritos = useCallback(async () => {
+  const carregarInscritos = useCallback(async (): Promise<Inscrito[] | null> => {
     const seq = ++loadSeqRef.current;
     setCarregando(true);
     setErro("");
@@ -161,7 +194,7 @@ export default function AdminBolaoPage() {
 
     try {
       for (const pathQuery of candidatos) {
-        if (seq !== loadSeqRef.current) return;
+        if (seq !== loadSeqRef.current) return null;
 
         const resposta = await fetch(`${SUPABASE_URL}/rest/v1/${pathQuery}`, {
           method: "GET",
@@ -200,26 +233,29 @@ export default function AdminBolaoPage() {
           continue;
         }
 
-        if (seq !== loadSeqRef.current) return;
+        if (seq !== loadSeqRef.current) return null;
 
-        setLista(ordenarMaisRecentePrimeiro(normalizados));
+        const ordenados = ordenarMaisRecentePrimeiro(normalizados);
+        setLista(ordenados);
         setCarregando(false);
-        return;
+        return ordenados;
       }
 
-      if (seq !== loadSeqRef.current) return;
+      if (seq !== loadSeqRef.current) return null;
 
       setLista([]);
       setErro(
         ultimoCorpo ||
           `Não foi possível carregar inscritos (HTTP ${ultimoStatus}). Verifique colunas da tabela e políticas RLS para SELECT.`,
       );
+      return null;
     } catch (e: unknown) {
-      if (seq !== loadSeqRef.current) return;
+      if (seq !== loadSeqRef.current) return null;
       const msg =
         e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
       setErro(msg);
       setLista([]);
+      return null;
     } finally {
       if (seq === loadSeqRef.current) {
         setCarregando(false);
@@ -227,11 +263,107 @@ export default function AdminBolaoPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (sessaoOk === true) {
-      void carregarInscritos();
+  const carregarPalpites = useCallback(async () => {
+    setPalpitesCarregando(true);
+    setPalpitesErro("");
+
+    const candidatos = [
+      "palpites_bolao?select=id,inscricao_id,jogo_id,placar_casa,placar_fora,created_at&order=created_at.desc.nullslast",
+      "palpites_bolao?select=id,inscricao_id,jogo_id,placar_casa,placar_fora,created_at&order=created_at.desc",
+      "palpites_bolao?select=*&order=created_at.desc",
+      "palpites_bolao?select=*",
+    ];
+
+    let ultimoCorpo = "";
+    let ultimoStatus = 0;
+
+    try {
+      for (const pathQuery of candidatos) {
+        const resposta = await fetch(`${SUPABASE_URL}/rest/v1/${pathQuery}`, {
+          method: "GET",
+          headers: { ...HEADERS_REST },
+          cache: "no-store",
+        });
+
+        ultimoStatus = resposta.status;
+        const bruto = (await resposta.text()).replace(/^\uFEFF/, "").trim();
+        ultimoCorpo = bruto;
+
+        if (!resposta.ok) {
+          continue;
+        }
+
+        let parsed: unknown;
+        try {
+          parsed = bruto.length ? JSON.parse(bruto) : [];
+        } catch {
+          continue;
+        }
+
+        if (!Array.isArray(parsed)) {
+          continue;
+        }
+
+        const normalizados: PalpiteBolaoRow[] = [];
+
+        for (const item of parsed) {
+          if (!item || typeof item !== "object") continue;
+          const row = item as Record<string, unknown>;
+          const id = row.id;
+          const inscricao_id = row.inscricao_id;
+          const jogo_id = row.jogo_id;
+          if (
+            id === undefined ||
+            id === null ||
+            inscricao_id === undefined ||
+            inscricao_id === null ||
+            jogo_id === undefined ||
+            jogo_id === null
+          ) {
+            continue;
+          }
+          const c = row.placar_casa;
+          const f = row.placar_fora;
+          normalizados.push({
+            id: String(id),
+            inscricao_id: String(inscricao_id),
+            jogo_id: String(jogo_id),
+            placar_casa: numeroPalpiteSupabase(c),
+            placar_fora: numeroPalpiteSupabase(f),
+            created_at:
+              row.created_at === undefined || row.created_at === null
+                ? null
+                : String(row.created_at),
+          });
+        }
+
+        setPalpites(normalizados);
+        setPalpitesCarregando(false);
+        return;
+      }
+
+      setPalpites([]);
+      setPalpitesErro(
+        ultimoCorpo ||
+          `Não foi possível carregar palpites (HTTP ${ultimoStatus}). Aplique a migração 003 e confira RLS em palpites_bolao.`,
+      );
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
+      setPalpitesErro(msg);
+      setPalpites([]);
+    } finally {
+      setPalpitesCarregando(false);
     }
-  }, [sessaoOk, carregarInscritos]);
+  }, []);
+
+  useEffect(() => {
+    if (sessaoOk !== true) return;
+    void (async () => {
+      await carregarInscritos();
+      await carregarPalpites();
+    })();
+  }, [sessaoOk, carregarInscritos, carregarPalpites]);
 
   useEffect(() => {
     const next: Record<string, string> = {};
@@ -251,6 +383,19 @@ export default function AdminBolaoPage() {
       return acc;
     }, 0);
   }, [lista]);
+
+  const inscritoPorId = useMemo(
+    () => new Map(lista.map((i) => [i.id, i])),
+    [lista],
+  );
+
+  const rotuloPorJogoId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const j of copa2026JogosResolvidos()) {
+      m.set(j.id, `${j.mandante.nome} × ${j.visitante.nome}`);
+    }
+    return m;
+  }, []);
 
   function tentarLogin() {
     setLoginErro("");
@@ -276,6 +421,8 @@ export default function AdminBolaoPage() {
     }
     setSessaoOk(false);
     setLista([]);
+    setPalpites([]);
+    setPalpitesErro("");
     setErro("");
   }
 
@@ -301,6 +448,7 @@ export default function AdminBolaoPage() {
       }
 
       await carregarInscritos();
+      await carregarPalpites();
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
@@ -335,6 +483,7 @@ export default function AdminBolaoPage() {
       }
 
       await carregarInscritos();
+      await carregarPalpites();
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
@@ -449,11 +598,16 @@ export default function AdminBolaoPage() {
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <button
               type="button"
-              onClick={() => void carregarInscritos()}
-              disabled={carregando}
+              onClick={() =>
+                void (async () => {
+                  await carregarInscritos();
+                  await carregarPalpites();
+                })()
+              }
+              disabled={carregando || palpitesCarregando}
               className="rounded-xl border border-[#C9A227]/40 bg-[#1a140c] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#F0D78C] transition hover:bg-[#241c12] disabled:opacity-50"
             >
-              {carregando ? "Atualizando…" : "Atualizar lista"}
+              {carregando || palpitesCarregando ? "Atualizando…" : "Atualizar lista"}
             </button>
             <button
               type="button"
@@ -690,6 +844,100 @@ export default function AdminBolaoPage() {
                               ? "Salvando…"
                               : "Marcar como pago"}
                           </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-2xl border border-[#3d3420]/90 bg-[#0c0b09]/90 shadow-[0_24px_80px_-32px_rgba(212,175,55,.35)] backdrop-blur-sm">
+          <div className="flex items-center gap-3 border-b border-[#3d3420]/80 px-4 py-4 sm:px-6">
+            <span className="h-8 w-1 rounded-full bg-gradient-to-b from-[#F7E7B5] to-[#9a7628]" />
+            <div>
+              <h2 className="font-serif text-lg font-bold text-white sm:text-xl">
+                Palpites recebidos
+              </h2>
+              <p className="text-xs text-zinc-500">
+                Placares enviados em /bolao/palpites (Copa 2026 · fase de grupos)
+              </p>
+            </div>
+          </div>
+
+          {palpitesErro ? (
+            <div className="border-b border-[#3d3420]/80 px-4 py-3 text-sm text-amber-200/90 sm:px-6">
+              <pre className="whitespace-pre-wrap font-sans">{palpitesErro}</pre>
+            </div>
+          ) : null}
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#3d3420]/80 bg-black/40">
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Nome
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    E-mail
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Jogo
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Placar
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Registrado
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {palpitesCarregando ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                      Carregando palpites…
+                    </td>
+                  </tr>
+                ) : palpites.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                      Nenhum palpite salvo ainda.
+                    </td>
+                  </tr>
+                ) : (
+                  palpites.map((p, idx) => {
+                    const ins = inscritoPorId.get(p.inscricao_id);
+                    const alternada = idx % 2 === 0;
+                    const placarTxt = `${p.placar_casa ?? "—"} × ${p.placar_fora ?? "—"}`;
+                    return (
+                      <tr
+                        key={p.id}
+                        className={
+                          alternada
+                            ? "border-b border-[#1f1a14]/90 bg-[#080706]/60"
+                            : "border-b border-[#1f1a14]/90 bg-transparent"
+                        }
+                      >
+                        <td className="max-w-[140px] truncate px-4 py-3 align-top font-medium text-zinc-100 sm:px-6">
+                          {ins?.nome ?? "—"}
+                        </td>
+                        <td className="max-w-[200px] truncate px-4 py-3 align-top text-zinc-400 sm:px-6">
+                          {ins?.email ?? "—"}
+                        </td>
+                        <td className="max-w-[280px] px-4 py-3 align-top text-xs text-zinc-300 sm:px-6">
+                          <span className="font-mono text-[10px] text-zinc-600">{p.jogo_id}</span>
+                          <span className="mt-1 block text-[13px] leading-snug text-zinc-200">
+                            {rotuloPorJogoId.get(p.jogo_id) ?? p.jogo_id}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 align-top font-mono tabular-nums text-[#F0D78C] sm:px-6">
+                          {placarTxt}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-zinc-500 sm:px-6">
+                          {formatarDataHoraPalpite(p.created_at)}
                         </td>
                       </tr>
                     );

@@ -44,6 +44,8 @@ export interface Copa2026PalpiteCardProps {
   onSalvarPalpite: (jogoId: string) => void;
   salvoFlash: boolean;
   bloquearEdicao?: boolean;
+  /** Desabilita só o botão Salvar (ex.: gravação no Supabase em andamento). */
+  salvandoPalpite?: boolean;
 }
 
 export function Copa2026PalpiteCard({
@@ -54,6 +56,7 @@ export function Copa2026PalpiteCard({
   onSalvarPalpite,
   salvoFlash,
   bloquearEdicao,
+  salvandoPalpite,
 }: Copa2026PalpiteCardProps) {
   const {
     id,
@@ -186,11 +189,11 @@ export function Copa2026PalpiteCard({
           )}
           <button
             type="button"
-            disabled={encerrado}
+            disabled={encerrado || salvandoPalpite}
             onClick={() => onSalvarPalpite(id)}
             className="rounded-md bg-yellow-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black shadow-sm transition-opacity hover:bg-yellow-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 lg:px-5 lg:py-2 lg:text-xs xl:text-sm"
           >
-            Salvar Palpite
+            {salvandoPalpite ? "Salvando…" : "Salvar Palpite"}
           </button>
         </div>
       </div>

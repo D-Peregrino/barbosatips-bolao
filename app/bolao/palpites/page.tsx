@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { salvarPalpitesBolao, verificarECarregarPalpitesBolao } from "@/app/bolao/palpites/actions";
 import { Copa2026PalpiteCard } from "@/components/bolao/Copa2026PalpiteCard";
 import { Copa2026PalpitesSidebar } from "@/components/bolao/Copa2026PalpitesSidebar";
 import {
@@ -10,8 +11,11 @@ import {
   type Copa2026PalpitesPersistidos,
   copa2026JogosPorGrupo,
 } from "@/lib/mocks/copa2026-groupstage.mock";
+import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
+
+const SESSION_EMAIL_KEY = "barbosatips:bolao:palpites:email";
 
 /** Chaves legadas de mocks de clubes/ligas — removidas para não poluir o cliente. */
 const LS_LEGACY_KEYS = [
@@ -29,15 +33,36 @@ function placaresIniciais(): Record<string, { casa: string; fora: string }> {
   );
 }
 
+function normalizarEmailInput(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export default function BolaoPalpitesPage() {
+  const usarSupabase = useMemo(() => !isSupabaseMock(), []);
+
   const [placares, setPlacares] = useState<Record<string, { casa: string; fora: string }>>(
     () => placaresIniciais(),
   );
+  const placaresRef = useRef(placares);
+  useEffect(() => {
+    placaresRef.current = placares;
+  }, [placares]);
+
   const [confirmado, setConfirmado] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(() => usarSupabase);
   const [msgConfirmados, setMsgConfirmados] = useState(false);
   const [salvoFlash, setSalvoFlash] = useState<Record<string, boolean>>({});
   const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const [emailInput, setEmailInput] = useState("");
+  const [emailBolao, setEmailBolao] = useState("");
+  const [emailOk, setEmailOk] = useState(false);
+  const [verificandoEmail, setVerificandoEmail] = useState(false);
+  const [erroEmail, setErroEmail] = useState("");
+  const [erroApi, setErroApi] = useState("");
+
+  const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
+  const [confirmandoTodos, setConfirmandoTodos] = useState(false);
 
   const grupos = useMemo(() => copa2026JogosPorGrupo(), []);
 
@@ -52,6 +77,20 @@ export default function BolaoPalpitesPage() {
   }, []);
 
   useEffect(() => {
+    if (!usarSupabase) return;
+    try {
+      const salvo = sessionStorage.getItem(SESSION_EMAIL_KEY);
+      if (salvo) setEmailInput(salvo);
+    } catch {
+      /* ignore */
+    }
+  }, [usarSupabase]);
+
+  useEffect(() => {
+    if (usarSupabase) {
+      setHydrated(true);
+      return;
+    }
     try {
       const bruto = localStorage.getItem(COPA2026_PALPITES_STORAGE_KEY);
       if (!bruto) {
@@ -77,9 +116,9 @@ export default function BolaoPalpitesPage() {
       /* ignore */
     }
     setHydrated(true);
-  }, []);
+  }, [usarSupabase]);
 
-  const persistir = useCallback(
+  const persistirLocal = useCallback(
     (nextPlacares: Record<string, { casa: string; fora: string }>, nextConfirmado: boolean) => {
       const payload: Copa2026PalpitesPersistidos = {
         placares: nextPlacares,
@@ -119,38 +158,121 @@ export default function BolaoPalpitesPage() {
     }, 1800);
   }, []);
 
-  const onSalvarPalpite = useCallback(
-    (jogoId: string) => {
-      if (confirmado) return;
-      setPlacares((prev) => {
-        persistir(prev, confirmado);
-        return prev;
-      });
-      dispararFlashSalvo(jogoId);
-    },
-    [confirmado, dispararFlashSalvo, persistir],
-  );
-
   useEffect(() => {
     return () => {
       Object.values(flashTimers.current).forEach(clearTimeout);
     };
   }, []);
 
-  const confirmarTodos = useCallback(() => {
+  async function handleVerificarEmail() {
+    if (!usarSupabase) return;
+    setErroEmail("");
+    setErroApi("");
+    const norm = normalizarEmailInput(emailInput);
+    if (!norm || !norm.includes("@")) {
+      setErroEmail("Informe o e-mail cadastrado no bolão.");
+      return;
+    }
+    setVerificandoEmail(true);
+    const res = await verificarECarregarPalpitesBolao(norm);
+    setVerificandoEmail(false);
+    if (!res.ok) {
+      setErroEmail(res.error);
+      setEmailOk(false);
+      return;
+    }
+    try {
+      sessionStorage.setItem(SESSION_EMAIL_KEY, norm);
+    } catch {
+      /* ignore */
+    }
+    setEmailBolao(norm);
+    setEmailOk(true);
+    setPlacares(res.placares);
+    setConfirmado(res.confirmado);
+  }
+
+  function handleTrocarEmail() {
+    setEmailOk(false);
+    setEmailBolao("");
+    setErroEmail("");
+    setErroApi("");
+    setPlacares(placaresIniciais());
+    setConfirmado(false);
+    try {
+      sessionStorage.removeItem(SESSION_EMAIL_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const onSalvarPalpite = useCallback(
+    async (jogoId: string) => {
+      if (confirmado) return;
+      if (usarSupabase) {
+        if (!emailBolao) return;
+        setErroApi("");
+        setSalvandoJogoId(jogoId);
+        const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
+          confirmar: false,
+        });
+        setSalvandoJogoId(null);
+        if (!res.ok) {
+          setErroApi(res.error);
+          return;
+        }
+        dispararFlashSalvo(jogoId);
+        return;
+      }
+      setPlacares((prev) => {
+        persistirLocal(prev, confirmado);
+        return prev;
+      });
+      dispararFlashSalvo(jogoId);
+    },
+    [
+      confirmado,
+      dispararFlashSalvo,
+      emailBolao,
+      persistirLocal,
+      usarSupabase,
+    ],
+  );
+
+  const confirmarTodos = useCallback(async () => {
     if (confirmado) {
       setMsgConfirmados(true);
       window.setTimeout(() => setMsgConfirmados(false), 4000);
       return;
     }
+    if (usarSupabase) {
+      if (!emailBolao) return;
+      setErroApi("");
+      setConfirmandoTodos(true);
+      const res = await salvarPalpitesBolao(emailBolao, placaresRef.current, {
+        confirmar: true,
+      });
+      setConfirmandoTodos(false);
+      if (!res.ok) {
+        setErroApi(res.error);
+        return;
+      }
+      setConfirmado(true);
+      setMsgConfirmados(true);
+      window.setTimeout(() => setMsgConfirmados(false), 5000);
+      return;
+    }
     setPlacares((prev) => {
-      persistir(prev, true);
+      persistirLocal(prev, true);
       return prev;
     });
     setConfirmado(true);
     setMsgConfirmados(true);
     window.setTimeout(() => setMsgConfirmados(false), 5000);
-  }, [confirmado, persistir]);
+  }, [confirmado, emailBolao, persistirLocal, usarSupabase]);
+
+  const podeVerJogos = !usarSupabase || emailOk;
+  const bloquearCards = confirmado;
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
@@ -177,11 +299,75 @@ export default function BolaoPalpitesPage() {
               </Link>
             </div>
 
+            {usarSupabase && !emailOk ? (
+              <div className="mb-4 rounded border border-zinc-800 bg-[#111] p-3 sm:p-4">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-yellow-500/90">
+                  Acesso aos palpites
+                </p>
+                <p className="mb-3 text-[11px] leading-relaxed text-zinc-400">
+                  Digite o mesmo e-mail usado na inscrição do bolão. Só assim é possível salvar e
+                  confirmar os placares no servidor.
+                </p>
+                <label htmlFor="bolao-email-palpites" className="sr-only">
+                  E-mail da inscrição
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                  <input
+                    id="bolao-email-palpites"
+                    type="email"
+                    autoComplete="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    disabled={verificandoEmail}
+                    placeholder="seu@email.com"
+                    className="min-h-[40px] flex-1 rounded border border-zinc-700 bg-black px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-yellow-600/60 disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    disabled={verificandoEmail}
+                    onClick={() => void handleVerificarEmail()}
+                    className="shrink-0 rounded bg-yellow-500 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-black transition hover:bg-yellow-400 disabled:opacity-40"
+                  >
+                    {verificandoEmail ? "Verificando…" : "Continuar"}
+                  </button>
+                </div>
+                {erroEmail ? (
+                  <p className="mt-2 text-xs text-red-400" role="alert">
+                    {erroEmail}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {usarSupabase && emailOk ? (
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-500">
+                <p>
+                  <span className="font-semibold text-zinc-400">E-mail:</span>{" "}
+                  <span className="font-mono text-zinc-300">{emailBolao}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={handleTrocarEmail}
+                  className="rounded border border-zinc-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/40 hover:text-yellow-500"
+                >
+                  Trocar e-mail
+                </button>
+              </div>
+            ) : null}
+
             {confirmado && (
               <p className="mb-2 text-[9px] uppercase tracking-wider text-zinc-600">
-                Rodada confirmada neste dispositivo.
+                {usarSupabase
+                  ? "Rodada confirmada no bolão."
+                  : "Rodada confirmada neste dispositivo."}
               </p>
             )}
+
+            {erroApi ? (
+              <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
+                {erroApi}
+              </p>
+            ) : null}
 
             <div
               role="status"
@@ -201,6 +387,10 @@ export default function BolaoPalpitesPage() {
 
             {!hydrated ? (
               <p className="py-8 text-center text-[11px] text-zinc-600">Carregando…</p>
+            ) : !podeVerJogos ? (
+              <p className="py-6 text-center text-[11px] text-zinc-600">
+                Confirme o e-mail acima para ver os jogos e lançar palpites.
+              </p>
             ) : (
               <>
                 {grupos.map(({ grupo, jogos }) => (
@@ -220,9 +410,10 @@ export default function BolaoPalpitesPage() {
                           placarCasa={placares[jogo.id]?.casa ?? ""}
                           placarVisitante={placares[jogo.id]?.fora ?? ""}
                           onPlacarChange={onPlacarChange}
-                          onSalvarPalpite={onSalvarPalpite}
+                          onSalvarPalpite={(id) => void onSalvarPalpite(id)}
                           salvoFlash={Boolean(salvoFlash[jogo.id])}
-                          bloquearEdicao={confirmado}
+                          bloquearEdicao={bloquearCards}
+                          salvandoPalpite={salvandoJogoId === jogo.id}
                         />
                       ))}
                     </div>
@@ -232,11 +423,11 @@ export default function BolaoPalpitesPage() {
                 <div className="mt-4 border-t-2 border-yellow-500/40 pt-3">
                   <button
                     type="button"
-                    disabled={!hydrated}
-                    onClick={confirmarTodos}
+                    disabled={!hydrated || confirmandoTodos}
+                    onClick={() => void confirmarTodos()}
                     className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
                   >
-                    Confirmar todos os palpites
+                    {confirmandoTodos ? "Confirmando…" : "Confirmar todos os palpites"}
                   </button>
                 </div>
               </>

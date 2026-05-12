@@ -137,6 +137,11 @@ export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
   },
 ];
 
+/** IDs de jogos válidos para validação no servidor (palpites). */
+export const COPA2026_JOGO_IDS: ReadonlySet<string> = new Set(
+  COPA2026_JOGOS.map((j) => j.id),
+);
+
 export interface JogoCopa2026Resolvido extends JogoCopa2026Mock {
   mandante: SelecaoCopa2026Mock;
   visitante: SelecaoCopa2026Mock;
