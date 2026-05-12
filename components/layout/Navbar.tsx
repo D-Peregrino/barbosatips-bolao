@@ -78,10 +78,10 @@ export function Navbar() {
 
         {/* CTA + Auth */}
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/bolao/criar" className="btn-ghost text-sm px-3 py-2">
+          <Link href="/bolao" className="btn-ghost text-sm px-3 py-2">
             + Bolão
           </Link>
-          <Link href="/dashboard" className="btn-primary text-xs px-4 py-2">
+          <Link href="/admin/bolao" className="btn-primary text-xs px-4 py-2">
             Entrar
           </Link>
         </div>
@@ -132,10 +132,10 @@ export function Navbar() {
             ))}
 
             <div className="mt-3 pt-3 border-t border-pitch-700 flex gap-3">
-              <Link href="/bolao/criar" className="btn-secondary flex-1 justify-center py-2.5">
+              <Link href="/bolao" className="btn-secondary flex-1 justify-center py-2.5">
                 + Criar Bolão
               </Link>
-              <Link href="/dashboard" className="btn-primary flex-1 justify-center py-2.5">
+              <Link href="/admin/bolao" className="btn-primary flex-1 justify-center py-2.5">
                 Entrar
               </Link>
             </div>
