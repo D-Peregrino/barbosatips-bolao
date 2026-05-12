@@ -22,7 +22,7 @@ const SPORT_PILL: Record<AnaliseSport, { bg: string; text: string }> = {
   esports:             { bg: "rgba(26,140,255,.10)",  text: "#1A8CFF" },
 };
 
-const STATUS_CFG: Record
+const STATUS_CFG: Record<
   AnaliseStatus,
   { label: string; bg: string; border: string; text: string }
 > = {
