@@ -184,7 +184,7 @@ export function Copa2026PalpiteCard({
 
       <div className="space-y-2 border-b border-[#1a1a1a] px-2.5 py-2 lg:px-5 lg:py-3">
         <span className={seloSalvoClass}>
-          {palpiteSalvoNoServidor ? "Palpite enviado" : "Aguardando palpite"}
+          {palpiteSalvoNoServidor ? "PALPITE ENVIADO" : "AGUARDANDO PALPITE"}
         </span>
 
         <div

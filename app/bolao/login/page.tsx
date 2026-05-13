@@ -27,7 +27,11 @@ export default function BolaoLoginPage() {
       try {
         localStorage.setItem(
           BOLAO_PARTICIPANTE_LS,
-          JSON.stringify({ nome: res.nome, email: res.email }),
+          JSON.stringify({
+            inscricao_id: res.inscricao_id,
+            nome: res.nome,
+            email: res.email,
+          }),
         );
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));

@@ -23,6 +23,7 @@ function createBolaoServiceClient() {
 
 export async function verificarECarregarPalpitesBolao(
   email: string,
+  inscricaoId: string,
 ): Promise<VerificarPalpitesBolaoResult> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -35,11 +36,12 @@ export async function verificarECarregarPalpitesBolao(
     return { ok: false, error: MSG_VARIAVEIS };
   }
 
-  return verificarECarregarPalpitesBolaoWithClient(admin, email);
+  return verificarECarregarPalpitesBolaoWithClient(admin, email, inscricaoId);
 }
 
 export async function salvarPalpitesBolao(
   email: string,
+  inscricaoId: string,
   placares: Record<string, { casa: string; fora: string }>,
   options?: { confirmar?: boolean; apenasJogoId?: string },
 ): Promise<SalvarPalpitesBolaoResult> {
@@ -54,5 +56,5 @@ export async function salvarPalpitesBolao(
     return { ok: false, error: MSG_VARIAVEIS };
   }
 
-  return salvarPalpitesBolaoWithClient(admin, email, placares, options);
+  return salvarPalpitesBolaoWithClient(admin, email, inscricaoId, placares, options);
 }

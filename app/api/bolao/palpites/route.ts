@@ -22,6 +22,15 @@ function strPlacar(v: unknown): string {
   return String(v).replace(/\D/g, "").slice(0, 2);
 }
 
+function createBolaoServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -33,8 +42,6 @@ export async function POST(request: Request) {
     );
   }
 
-  console.log("API PALPITES RECEBEU", body);
-
   if (!body || typeof body !== "object") {
     return NextResponse.json(
       { ok: false as const, error: "Corpo da requisição inválido." },
@@ -44,11 +51,19 @@ export async function POST(request: Request) {
 
   const o = body as Record<string, unknown>;
   const email = String(o.email ?? "").trim();
+  const inscricaoId = String(o.inscricao_id ?? o.inscricaoId ?? "").trim();
   const jogoId = String(o.jogo_id ?? o.jogoId ?? "").trim();
 
   if (!email || !email.includes("@")) {
     return NextResponse.json(
       { ok: false as const, error: "Informe um e-mail válido." },
+      { status: 400 },
+    );
+  }
+
+  if (!inscricaoId) {
+    return NextResponse.json(
+      { ok: false as const, error: "Identificador da inscrição ausente." },
       { status: 400 },
     );
   }
@@ -81,9 +96,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  if (!url || !anon) {
+  const admin = createBolaoServiceClient();
+  if (!admin) {
     return NextResponse.json(
       { ok: false as const, error: MSG_VARIAVEIS },
       { status: 400 },
@@ -97,15 +111,17 @@ export async function POST(request: Request) {
     },
   };
 
-  const client = createClient(url, anon, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
   try {
-    const result = await salvarPalpitesBolaoWithClient(client, email, placaresNorm, {
-      confirmar: false,
-      apenasJogoId: jogoId,
-    });
+    const result = await salvarPalpitesBolaoWithClient(
+      admin,
+      email,
+      inscricaoId,
+      placaresNorm,
+      {
+        confirmar: false,
+        apenasJogoId: jogoId,
+      },
+    );
 
     if (!result.ok) {
       return NextResponse.json(

@@ -25,6 +25,10 @@ function placaresVazios(): Record<string, { casa: string; fora: string }> {
   return Object.fromEntries(COPA2026_JOGOS.map((j) => [j.id, { casa: "", fora: "" }]));
 }
 
+function palpitePersistidoInicialPorJogo(): Record<string, boolean> {
+  return Object.fromEntries(COPA2026_JOGOS.map((j) => [j.id, false]));
+}
+
 function parsePlacarInt(valor: string): number | null {
   const limpo = valor.replace(/\D/g, "").slice(0, 2);
   if (!limpo) return null;
@@ -123,17 +127,23 @@ async function salvarOuAtualizarPalpite(
   return { ok: false, error: mensagemErroPostgrest(errIns) };
 }
 
-async function buscarInscricaoPorEmail(
+async function validarInscricaoIdParaEmail(
   admin: SupabaseClient,
+  inscricaoId: string,
   emailNorm: string,
 ): Promise<
   | { ok: true; id: string; palpites_confirmados_at: string | null }
   | { ok: false; error: string }
 > {
+  const idTrim = inscricaoId.trim();
+  if (!idTrim) {
+    return { ok: false, error: "Identificador da inscrição ausente." };
+  }
+
   const { data: insc, error: errInsc } = await admin
     .from("inscricoes_bolao")
-    .select("id, palpites_confirmados_at")
-    .eq("email", emailNorm)
+    .select("id, email, palpites_confirmados_at")
+    .eq("id", idTrim)
     .maybeSingle();
 
   if (errInsc) {
@@ -146,9 +156,18 @@ async function buscarInscricaoPorEmail(
   if (!insc?.id) {
     return { ok: false, error: MSG_EMAIL_NAO_INSCRITO };
   }
+
+  const emailInsc = normalizarEmail(String((insc as { email?: unknown }).email ?? ""));
+  if (emailInsc !== emailNorm) {
+    return {
+      ok: false,
+      error: "Sessão inválida para este participante. Faça login novamente.",
+    };
+  }
+
   return {
     ok: true,
-    id: insc.id as string,
+    id: String(insc.id),
     palpites_confirmados_at: (insc as { palpites_confirmados_at?: string | null })
       .palpites_confirmados_at ?? null,
   };
@@ -157,6 +176,7 @@ async function buscarInscricaoPorEmail(
 export async function verificarECarregarPalpitesBolaoWithClient(
   admin: SupabaseClient,
   email: string,
+  inscricaoId: string,
 ): Promise<VerificarPalpitesBolaoResult> {
   const emailNorm = normalizarEmail(email);
   if (!emailNorm || !emailNorm.includes("@")) {
@@ -164,7 +184,7 @@ export async function verificarECarregarPalpitesBolaoWithClient(
   }
 
   try {
-    const inscRes = await buscarInscricaoPorEmail(admin, emailNorm);
+    const inscRes = await validarInscricaoIdParaEmail(admin, inscricaoId, emailNorm);
     if (!inscRes.ok) {
       return { ok: false, error: inscRes.error };
     }
@@ -180,9 +200,12 @@ export async function verificarECarregarPalpitesBolaoWithClient(
     }
 
     const placares = placaresVazios();
+    const palpitePersistidoPorJogo = palpitePersistidoInicialPorJogo();
+
     for (const row of rows ?? []) {
       const jid = String(row.jogo_id ?? "");
       if (!COPA2026_JOGO_IDS.has(jid)) continue;
+      palpitePersistidoPorJogo[jid] = true;
       const c = row.placar_casa;
       const f = row.placar_fora;
       placares[jid] = {
@@ -195,6 +218,7 @@ export async function verificarECarregarPalpitesBolaoWithClient(
       ok: true,
       placares,
       confirmado: Boolean(inscRes.palpites_confirmados_at),
+      palpitePersistidoPorJogo,
     };
   } catch (e) {
     console.error("ERRO SUPABASE", e);
@@ -206,6 +230,7 @@ export async function verificarECarregarPalpitesBolaoWithClient(
 export async function salvarPalpitesBolaoWithClient(
   admin: SupabaseClient,
   email: string,
+  inscricaoId: string,
   placares: Record<string, { casa: string; fora: string }>,
   options?: { confirmar?: boolean; apenasJogoId?: string },
 ): Promise<SalvarPalpitesBolaoResult> {
@@ -227,7 +252,7 @@ export async function salvarPalpitesBolaoWithClient(
   }
 
   try {
-    const inscRes = await buscarInscricaoPorEmail(admin, emailNorm);
+    const inscRes = await validarInscricaoIdParaEmail(admin, inscricaoId, emailNorm);
     if (!inscRes.ok) {
       return { ok: false, error: inscRes.error };
     }
@@ -239,7 +264,7 @@ export async function salvarPalpitesBolaoWithClient(
       };
     }
 
-    const inscricaoId = inscRes.id;
+    const idInscricao = inscRes.id;
 
     if (!confirmar && apenasJogoId) {
       if (!copa2026PalpitesAbertosParaJogo(apenasJogoId)) {
@@ -254,7 +279,7 @@ export async function salvarPalpitesBolaoWithClient(
         const { error: delErr } = await admin
           .from("palpites_bolao")
           .delete()
-          .eq("inscricao_id", inscricaoId)
+          .eq("inscricao_id", idInscricao)
           .eq("jogo_id", apenasJogoId);
         if (delErr) {
           console.error("ERRO SUPABASE", delErr);
@@ -267,7 +292,7 @@ export async function salvarPalpitesBolaoWithClient(
         return { ok: false, error: MSG_PLACAR_INCOMPLETO };
       }
 
-      const r = await salvarOuAtualizarPalpite(admin, inscricaoId, apenasJogoId, c, f);
+      const r = await salvarOuAtualizarPalpite(admin, idInscricao, apenasJogoId, c, f);
       if (!r.ok) return r;
       return { ok: true };
     }
@@ -289,7 +314,7 @@ export async function salvarPalpitesBolaoWithClient(
         const { error: delErr } = await admin
           .from("palpites_bolao")
           .delete()
-          .eq("inscricao_id", inscricaoId)
+          .eq("inscricao_id", idInscricao)
           .eq("jogo_id", jogo.id);
         if (delErr) {
           console.error("ERRO SUPABASE", delErr);
@@ -302,7 +327,7 @@ export async function salvarPalpitesBolaoWithClient(
         return { ok: false, error: MSG_PLACAR_INCOMPLETO };
       }
 
-      const r = await salvarOuAtualizarPalpite(admin, inscricaoId, jogo.id, c, f);
+      const r = await salvarOuAtualizarPalpite(admin, idInscricao, jogo.id, c, f);
       if (!r.ok) return r;
     }
 
@@ -310,7 +335,7 @@ export async function salvarPalpitesBolaoWithClient(
       const { error: confErr } = await admin
         .from("inscricoes_bolao")
         .update({ palpites_confirmados_at: new Date().toISOString() })
-        .eq("id", inscricaoId);
+        .eq("id", idInscricao);
       if (confErr) {
         console.error("ERRO SUPABASE", confErr);
         return { ok: false, error: mensagemErroPostgrest(confErr) };

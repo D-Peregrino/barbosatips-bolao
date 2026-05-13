@@ -338,4 +338,6 @@ export const COPA2026_PALPITES_STORAGE_KEY = "barbosatips:copa2026:palpites:v3";
 export interface Copa2026PalpitesPersistidos {
   placares: Record<string, { casa: string; fora: string }>;
   confirmado: boolean;
+  /** Mock offline: jogos com palpite gravado localmente após salvar (não inferir só pelo placar). */
+  palpitePersistidoPorJogo?: Record<string, boolean>;
 }

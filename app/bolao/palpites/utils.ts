@@ -6,6 +6,11 @@ export type VerificarPalpitesBolaoResult =
       ok: true;
       placares: Record<string, { casa: string; fora: string }>;
       confirmado: boolean;
+      /**
+       * true somente onde existe linha em `palpites_bolao` para esta inscrição e o jogo.
+       * Não inferir pelo placar do formulário.
+       */
+      palpitePersistidoPorJogo: Record<string, boolean>;
     }
   | { ok: false; error: string };
 
