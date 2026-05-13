@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   mergeJogosComOverrides,
   type BolaoJogoOverrideRow,
@@ -203,35 +204,48 @@ export function AdminBolaoPanel() {
     return () => window.clearTimeout(t);
   }, [toastMsg]);
 
-  const refetchResultados = useCallback(async (): Promise<ResultadoRow[] | null> => {
-    let sb: ReturnType<typeof createClient>;
-    try {
-      sb = createClient();
-    } catch (e) {
-      console.error("ERRO AO CARREGAR RESULTADOS", e);
-      return null;
-    }
+  /**
+   * Recarrega `bolao_resultados_teste` e reconstrói jogos/drafts.
+   * `linhaGarantida`: mescla por cima do fetch (evita lista vazia / lag logo após upsert).
+   */
+  const carregarResultadosSalvos = useCallback(
+    async (linhaGarantida?: ResultadoRow | null): Promise<ResultadoRow[] | null> => {
+      let sb: ReturnType<typeof createClient>;
+      try {
+        sb = createClient();
+      } catch (e) {
+        console.error("ERRO AO CARREGAR RESULTADOS", e);
+        return null;
+      }
 
-    const resRes = await sb
-      .from("bolao_resultados_teste")
-      .select("jogo_id,placar_casa_real,placar_fora_real,status");
+      const resRes = await sb
+        .from("bolao_resultados_teste")
+        .select("jogo_id,placar_casa_real,placar_fora_real,status");
 
-    if (resRes.error) {
-      console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
-      return null;
-    }
+      if (resRes.error) {
+        console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
+        return null;
+      }
 
-    const resNext = normalizarResultadoRows(resRes.data as unknown[]);
-    setResultados(resNext);
-    const built = buildListaJogos(
-      overridesRef.current,
-      resNext,
-      draftsRef.current,
-    );
-    setJogos(built.jogos);
-    setDrafts(built.drafts);
-    return resNext;
-  }, []);
+      const resNext = normalizarResultadoRows(resRes.data as unknown[]);
+      const merged = linhaGarantida
+        ? mergeResultadosList(resNext, [linhaGarantida])
+        : resNext;
+
+      setResultados(merged);
+      const built = buildListaJogos(
+        overridesRef.current,
+        merged,
+        draftsRef.current,
+      );
+      setJogos(built.jogos);
+      setDrafts(built.drafts);
+      draftsRef.current = built.drafts;
+      resultadosRef.current = merged;
+      return merged;
+    },
+    [],
+  );
 
   const carregarRanking = useCallback(async (): Promise<boolean> => {
     let sb: ReturnType<typeof createClient>;
@@ -482,35 +496,37 @@ export function AdminBolaoPanel() {
           status: "finalizado",
         };
 
-      const mergedRes = mergeResultadosList(resultadosRef.current, [linha]);
-      setResultados(mergedRes);
+      flushSync(() => {
+        const mergedRes = mergeResultadosList(resultadosRef.current, [linha]);
+        const built = buildListaJogos(
+          overridesRef.current,
+          mergedRes,
+          draftsRef.current,
+        );
+        setResultados(mergedRes);
+        setDrafts(built.drafts);
+        setJogos(() =>
+          built.jogos.map((j) =>
+            j.id === jogoId
+              ? {
+                  ...j,
+                  placar_casa_real: linha.placar_casa_real,
+                  placar_fora_real: linha.placar_fora_real,
+                  resultado_status: linha.status ?? "finalizado",
+                }
+              : j,
+          ),
+        );
+        draftsRef.current = built.drafts;
+        resultadosRef.current = mergedRes;
+      });
 
-      const built = buildListaJogos(
-        overridesRef.current,
-        mergedRes,
-        draftsRef.current,
-      );
-      setDrafts(built.drafts);
-      setJogos(() =>
-        built.jogos.map((j) =>
-          j.id === jogoId
-            ? {
-                ...j,
-                placar_casa_real: linha.placar_casa_real,
-                placar_fora_real: linha.placar_fora_real,
-                resultado_status: linha.status ?? "finalizado",
-              }
-            : j,
-        ),
-      );
-
-      draftsRef.current = built.drafts;
-      resultadosRef.current = mergedRes;
-
-      await refetchResultados();
+      await carregarResultadosSalvos(linha);
       await carregarRanking();
 
-      setToastMsg("Resultado salvo");
+      queueMicrotask(() => {
+        setToastMsg("Resultado salvo");
+      });
       setFeedbackOk(null);
       setFeedbackErr(null);
     } catch (error) {

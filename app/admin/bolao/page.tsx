@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { AdminBolaoPanel } from "@/components/admin/bolao/AdminBolaoPanel";
 
-/** `/admin/bolao`: painel cliente; pós-save atualiza estado local (sem `location.reload`). */
+/**
+ * Painel `/admin/bolao` (cliente: `AdminBolaoPanel`).
+ * Após salvar resultado: estado local com retorno do upsert (`flushSync`), depois
+ * `carregarResultadosSalvos()` e `carregarRanking()`; toast “Resultado salvo” só após isso.
+ * Sem `location.reload()`.
+ */
 
 export const metadata: Metadata = {
   title: "Admin Bolão · Copa 2026",
