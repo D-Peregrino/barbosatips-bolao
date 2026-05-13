@@ -48,6 +48,30 @@ type JogoDraft = {
   placarFora: string;
 };
 
+/** PostgREST pode devolver números como string; o ranking exige `number` finito. */
+function normalizarResultadoRows(raw: unknown[] | null | undefined): ResultadoRow[] {
+  const out: ResultadoRow[] = [];
+  for (const row of raw ?? []) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const jogoId = String(r.jogo_id ?? "").trim();
+    if (!jogoId) continue;
+    const casa = Number(r.placar_casa_real);
+    const fora = Number(r.placar_fora_real);
+    if (!Number.isInteger(casa) || !Number.isInteger(fora)) continue;
+    if (casa < 0 || casa > 99 || fora < 0 || fora > 99) continue;
+    const st = r.status;
+    out.push({
+      jogo_id: jogoId,
+      placar_casa_real: casa,
+      placar_fora_real: fora,
+      status:
+        st === undefined || st === null ? undefined : String(st).trim() || undefined,
+    });
+  }
+  return out;
+}
+
 function extrairInscricaoEmbed(
   row: Record<string, unknown>,
 ): { nome: string | null } {
@@ -104,7 +128,9 @@ function draftsFromMerged(
 
 export function AdminBolaoPanel() {
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  /** Só a linha em gravação fica “travada”; evita painel inteiro escuro. */
+  const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
+  const [salvandoResultadoId, setSalvandoResultadoId] = useState<string | null>(null);
   const [feedbackOk, setFeedbackOk] = useState<string | null>(null);
   const [feedbackErr, setFeedbackErr] = useState<string | null>(null);
 
@@ -127,27 +153,8 @@ export function AdminBolaoPanel() {
     [overrides],
   );
 
-  const refetchResultados = useCallback(async (): Promise<boolean> => {
-    let sb: ReturnType<typeof createClient>;
-    try {
-      sb = createClient();
-    } catch (e) {
-      console.error("ERRO AO CARREGAR RESULTADOS", e);
-      return false;
-    }
-
-    const resRes = await sb
-      .from("bolao_resultados_teste")
-      .select("jogo_id,placar_casa_real,placar_fora_real");
-
-    if (resRes.error) {
-      console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
-      return false;
-    }
-
-    const resNext = (resRes.data ?? []) as ResultadoRow[];
-    setResultados(resNext);
-    const rm = new Map(resNext.map((r) => [r.jogo_id, r]));
+  const aplicarResultadosNasDrafts = useCallback((rows: ResultadoRow[]) => {
+    const rm = new Map(rows.map((r) => [r.jogo_id, r]));
     setDrafts((prev) => {
       const next = { ...prev };
       for (const id of Object.keys(next)) {
@@ -162,8 +169,31 @@ export function AdminBolaoPanel() {
       }
       return next;
     });
-    return true;
   }, []);
+
+  const refetchResultados = useCallback(async (): Promise<ResultadoRow[] | null> => {
+    let sb: ReturnType<typeof createClient>;
+    try {
+      sb = createClient();
+    } catch (e) {
+      console.error("ERRO AO CARREGAR RESULTADOS", e);
+      return null;
+    }
+
+    const resRes = await sb
+      .from("bolao_resultados_teste")
+      .select("jogo_id,placar_casa_real,placar_fora_real");
+
+    if (resRes.error) {
+      console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
+      return null;
+    }
+
+    const resNext = normalizarResultadoRows(resRes.data as unknown[]);
+    setResultados(resNext);
+    aplicarResultadosNasDrafts(resNext);
+    return resNext;
+  }, [aplicarResultadosNasDrafts]);
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -224,7 +254,7 @@ export function AdminBolaoPanel() {
     const palpitesNext = palRows.map(mapPalpiteRow);
 
     const ovNext = (ovRes.data ?? []) as BolaoJogoOverrideRow[];
-    const resNext = (resRes.data ?? []) as ResultadoRow[];
+    const resNext = normalizarResultadoRows(resRes.data as unknown[]);
 
     setInscritos(inscritosNext);
     setPalpites(palpitesNext);
@@ -304,23 +334,26 @@ export function AdminBolaoPanel() {
   async function handleSalvarJogo(jogoId: string) {
     const d = drafts[jogoId];
     if (!d) return;
-    setBusy(true);
+    setSalvandoJogoId(jogoId);
     setFeedbackOk(null);
     setFeedbackErr(null);
-    const res = await salvarJogoOverrideAdmin({
-      jogoId,
-      dataIso: d.dataISO.trim() || null,
-      horario: d.horario.trim() || null,
-      statusManual: d.status,
-      inicioPartidaIso: null,
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setFeedbackErr(res.error);
-      return;
+    try {
+      const res = await salvarJogoOverrideAdmin({
+        jogoId,
+        dataIso: d.dataISO.trim() || null,
+        horario: d.horario.trim() || null,
+        statusManual: d.status,
+        inicioPartidaIso: null,
+      });
+      if (!res.ok) {
+        setFeedbackErr(res.error);
+        return;
+      }
+      setFeedbackOk("Jogo atualizado.");
+      await reload();
+    } finally {
+      setSalvandoJogoId(null);
     }
-    setFeedbackOk("Jogo atualizado.");
-    await reload();
   }
 
   async function handleSalvarResultado(jogoId: string) {
@@ -340,52 +373,54 @@ export function AdminBolaoPanel() {
     };
     console.log("SALVANDO RESULTADO", payload);
 
-    setBusy(true);
+    setSalvandoResultadoId(jogoId);
     setFeedbackOk(null);
     setFeedbackErr(null);
 
-    const res = await salvarResultadoOficialBolao(payload);
-    if (!res.ok) {
-      console.error("ERRO AO SALVAR RESULTADO", res.error);
-      setFeedbackErr(res.error);
-      setBusy(false);
-      return;
-    }
+    try {
+      const res = await salvarResultadoOficialBolao(payload);
+      if (!res.ok) {
+        console.error("ERRO AO SALVAR RESULTADO", res.error);
+        setFeedbackErr(res.error);
+        return;
+      }
 
-    setResultados((prev) => {
-      const rest = prev.filter((r) => r.jogo_id !== jogoId);
-      return [
-        ...rest,
-        {
-          jogo_id: jogoId,
-          placar_casa_real: c,
-          placar_fora_real: f,
-          status: "finalizado",
+      const linha: ResultadoRow = {
+        jogo_id: jogoId,
+        placar_casa_real: c,
+        placar_fora_real: f,
+      };
+      setResultados((prev) => {
+        const rest = prev.filter((r) => r.jogo_id !== jogoId);
+        return [...rest, linha];
+      });
+      setDrafts((prev) => ({
+        ...prev,
+        [jogoId]: {
+          ...prev[jogoId],
+          placarCasa: String(c),
+          placarFora: String(f),
         },
-      ];
-    });
-    setDrafts((prev) => ({
-      ...prev,
-      [jogoId]: {
-        ...prev[jogoId],
-        placarCasa: String(c),
-        placarFora: String(f),
-      },
-    }));
+      }));
 
-    const synced = await refetchResultados();
-    if (!synced) {
-      console.error(
-        "ERRO AO SALVAR RESULTADO",
-        new Error(
-          "Gravação ok, mas o refetch de public.bolao_resultados_teste falhou; ranking usa dados locais.",
-        ),
-      );
+      const doServidor = await refetchResultados();
+      if (!doServidor) {
+        console.error(
+          "ERRO AO CARREGAR RESULTADOS",
+          new Error(
+            "Gravação ok, mas não foi possível recarregar public.bolao_resultados_teste; interface mantém o placar salvo localmente.",
+          ),
+        );
+      }
+
+      setFeedbackOk("Resultado salvo com sucesso");
+      setFeedbackErr(null);
+    } catch (e) {
+      console.error("ERRO AO SALVAR RESULTADO", e);
+      setFeedbackErr(e instanceof Error ? e.message : "Falha ao salvar resultado.");
+    } finally {
+      setSalvandoResultadoId(null);
     }
-
-    setBusy(false);
-    setFeedbackOk("Resultado salvo com sucesso");
-    setFeedbackErr(null);
   }
 
   function updateDraft(jogoId: string, patch: Partial<JogoDraft>) {
@@ -449,7 +484,10 @@ export function AdminBolaoPanel() {
           </p>
         ) : null}
         {feedbackOk ? (
-          <p className="mt-4 text-sm text-[#C9A227]" role="status">
+          <p
+            className="mt-4 text-sm font-medium text-green-400"
+            role="status"
+          >
             {feedbackOk}
           </p>
         ) : null}
@@ -553,6 +591,8 @@ export function AdminBolaoPanel() {
                   if (!d) return null;
                   const m = copa2026SelecaoPorId(j.mandanteId);
                   const v = copa2026SelecaoPorId(j.visitanteId);
+                  const linhaOcupada =
+                    salvandoJogoId === j.id || salvandoResultadoId === j.id;
                   return (
                     <tr
                       key={j.id}
@@ -575,8 +615,8 @@ export function AdminBolaoPanel() {
                           onChange={(e) =>
                             updateDraft(j.id, { dataISO: e.target.value })
                           }
-                          className="w-full max-w-[11rem] rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white"
-                          disabled={busy}
+                          className="w-full max-w-[11rem] rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white disabled:opacity-50"
+                          disabled={linhaOcupada}
                         />
                       </td>
                       <td className="px-3 py-3">
@@ -586,8 +626,8 @@ export function AdminBolaoPanel() {
                           onChange={(e) =>
                             updateDraft(j.id, { horario: e.target.value })
                           }
-                          className="w-full max-w-[5.5rem] rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white"
-                          disabled={busy}
+                          className="w-full max-w-[5.5rem] rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white disabled:opacity-50"
+                          disabled={linhaOcupada}
                         />
                       </td>
                       <td className="px-3 py-3">
@@ -598,8 +638,8 @@ export function AdminBolaoPanel() {
                               status: e.target.value as StatusPalpiteJogo,
                             })
                           }
-                          className="rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white"
-                          disabled={busy}
+                          className="rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white disabled:opacity-50"
+                          disabled={linhaOcupada}
                         >
                           <option value="aberto">aberto</option>
                           <option value="quase">quase</option>
@@ -609,29 +649,35 @@ export function AdminBolaoPanel() {
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1">
                           <input
-                            type="number"
-                            min={0}
-                            max={99}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
                             placeholder="casa"
                             value={d.placarCasa}
                             onChange={(e) =>
-                              updateDraft(j.id, { placarCasa: e.target.value })
+                              updateDraft(j.id, {
+                                placarCasa: e.target.value.replace(/\D/g, ""),
+                              })
                             }
-                            className="w-14 rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white"
-                            disabled={busy}
+                            className="w-14 rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white disabled:opacity-50"
+                            disabled={linhaOcupada}
                           />
                           <span className="text-zinc-600">×</span>
                           <input
-                            type="number"
-                            min={0}
-                            max={99}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
                             placeholder="fora"
                             value={d.placarFora}
                             onChange={(e) =>
-                              updateDraft(j.id, { placarFora: e.target.value })
+                              updateDraft(j.id, {
+                                placarFora: e.target.value.replace(/\D/g, ""),
+                              })
                             }
-                            className="w-14 rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white"
-                            disabled={busy}
+                            className="w-14 rounded-lg border border-[#3d3420] bg-[#050608] px-2 py-1.5 text-xs text-white disabled:opacity-50"
+                            disabled={linhaOcupada}
                           />
                         </div>
                       </td>
@@ -639,19 +685,21 @@ export function AdminBolaoPanel() {
                         <div className="flex flex-col gap-2">
                           <button
                             type="button"
-                            disabled={busy}
+                            disabled={linhaOcupada}
                             onClick={() => void handleSalvarJogo(j.id)}
-                            className="rounded-lg border border-[#5c4d28]/90 bg-[#14120e] px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#E8D48B] hover:border-[#C9A227]/45 disabled:opacity-40"
+                            className="rounded-lg border border-[#5c4d28]/90 bg-[#14120e] px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#E8D48B] hover:border-[#C9A227]/45 enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
                           >
-                            Salvar jogo
+                            {salvandoJogoId === j.id ? "Salvando…" : "Salvar jogo"}
                           </button>
                           <button
                             type="button"
-                            disabled={busy}
+                            disabled={linhaOcupada}
                             onClick={() => void handleSalvarResultado(j.id)}
-                            className="rounded-lg bg-gradient-to-r from-[#b8860b] to-[#d4af37] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a0a0a] disabled:opacity-40"
+                            className="rounded-lg bg-gradient-to-r from-[#b8860b] to-[#d4af37] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a0a0a] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                           >
-                            Salvar resultado
+                            {salvandoResultadoId === j.id
+                              ? "Salvando…"
+                              : "Salvar resultado"}
                           </button>
                         </div>
                       </td>
