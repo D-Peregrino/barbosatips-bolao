@@ -400,6 +400,69 @@
   margin:         1.5rem 0;
 }
 
+/* Tiptap — editor editorial admin análises (BarbosaTips preto/dourado) */
+.editorial-prosemirror .ProseMirror {
+  min-height: 280px;
+  outline: none;
+}
+
+.editorial-prosemirror .ProseMirror h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #fafafa;
+  margin: 1rem 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.editorial-prosemirror .ProseMirror h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #e4e4e7;
+  margin: 0.85rem 0 0.4rem;
+}
+
+.editorial-prosemirror .ProseMirror h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #d4d4d8;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.editorial-prosemirror .ProseMirror a {
+  color: #c9a227;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.editorial-prosemirror .ProseMirror blockquote {
+  border-left: 3px solid rgba(201, 162, 39, 0.55);
+  margin: 1rem 0;
+  padding-left: 1rem;
+  color: #a1a1aa;
+  font-style: italic;
+}
+
+.editorial-prosemirror .ProseMirror hr,
+.editorial-prosemirror .ProseMirror .editorial-hr {
+  border: none;
+  border-top: 1px solid rgba(201, 162, 39, 0.35);
+  margin: 1.25rem 0;
+}
+
+.editorial-prosemirror .ProseMirror ul,
+.editorial-prosemirror .ProseMirror ol {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.editorial-prosemirror .ProseMirror p.is-editor-empty:first-child::before {
+  color: #71717a;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 @media (max-width: 640px) {
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }

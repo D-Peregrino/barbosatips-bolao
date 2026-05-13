@@ -10,6 +10,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseStatus } from "@/lib/analises/types";
+import { sanitizeAnaliseHtml } from "@/lib/analises/sanitize-html";
 
 async function guardAdminAnalises(): Promise<
   { ok: true } | { ok: false; error: string }
@@ -94,7 +95,7 @@ export async function criarAnaliseAction(
         odd,
         confianca,
         resumo: String(input.resumo ?? "").trim(),
-        conteudo: String(input.conteudo ?? "").trim(),
+        conteudo: sanitizeAnaliseHtml(String(input.conteudo ?? "")),
         imagem_capa: String(input.imagem_capa ?? "").trim(),
         status,
       })

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { obterAnalisePublicadaPorSlug } from "@/lib/analises/queries";
 import { oddParaNumero } from "@/lib/analises/types";
+import { legadoTextoParaHtmlSeguro } from "@/lib/analises/sanitize-html";
 
 type Props = { params: { slug: string } };
 
@@ -27,6 +28,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
 
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const tg = siteConfig.social.telegram;
+  const corpoHtml = legadoTextoParaHtmlSeguro(a.conteudo);
 
   return (
     <article className="min-h-[calc(100vh-64px)] bg-black pb-20 pt-6 text-zinc-100">
@@ -75,10 +77,16 @@ export default async function AnaliseSlugPage({ params }: Props) {
           </div>
         </header>
 
-        <div className="prose prose-invert prose-p:text-zinc-300 prose-headings:font-display max-w-none">
-          <div className="whitespace-pre-wrap rounded-2xl border border-[#2a2418] bg-[#0c0b09]/90 p-6 text-base leading-relaxed text-zinc-200 sm:p-8">
-            {a.conteudo || "Conteúdo em elaboração."}
-          </div>
+        <div className="prose prose-invert prose-headings:font-display max-w-none rounded-2xl border border-[#2a2418] bg-[#0c0b09]/90 p-6 text-base leading-relaxed text-zinc-200 sm:p-8 prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-a:text-[#C9A227] prose-blockquote:border-[#C9A227]/50 prose-blockquote:text-zinc-400 prose-hr:border-zinc-600">
+          {corpoHtml ? (
+            <div
+              className="analise-conteudo-html"
+              // eslint-disable-next-line react/no-danger -- HTML sanitizado (XSS mitigado)
+              dangerouslySetInnerHTML={{ __html: corpoHtml }}
+            />
+          ) : (
+            <p className="text-zinc-500">Conteúdo em elaboração.</p>
+          )}
         </div>
 
         <aside className="mt-12 rounded-2xl border border-[#C9A227]/35 bg-gradient-to-br from-[#1a1610] to-[#0c0b09] p-6 sm:p-8">

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { criarAnaliseAction } from "@/app/admin/analises/actions";
+import { EditorialTiptapEditor } from "@/components/admin/analises/EditorialTiptapEditor";
 
 const labels =
   "mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500";
@@ -164,15 +165,9 @@ export function AdminNovaAnaliseForm() {
           />
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="conteudo" className={labels}>
-            Conteúdo completo
-          </label>
-          <textarea
-            id="conteudo"
-            className={textarea}
-            rows={12}
+          <EditorialTiptapEditor
             value={conteudo}
-            onChange={(e) => setConteudo(e.target.value)}
+            onChange={setConteudo}
             disabled={pending}
           />
         </div>
