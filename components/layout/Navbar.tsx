@@ -81,7 +81,7 @@ export function Navbar() {
           <Link href="/bolao" className="btn-ghost text-sm px-3 py-2">
             + Bolão
           </Link>
-          <Link href="/admin/bolao" className="btn-primary text-xs px-4 py-2">
+          <Link href="/bolao/login" className="btn-primary text-xs px-4 py-2">
             Entrar
           </Link>
         </div>
@@ -135,7 +135,7 @@ export function Navbar() {
               <Link href="/bolao" className="btn-secondary flex-1 justify-center py-2.5">
                 + Criar Bolão
               </Link>
-              <Link href="/admin/bolao" className="btn-primary flex-1 justify-center py-2.5">
+              <Link href="/bolao/login" className="btn-primary flex-1 justify-center py-2.5">
                 Entrar
               </Link>
             </div>

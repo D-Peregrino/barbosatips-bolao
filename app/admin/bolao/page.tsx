@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { copa2026JogosResolvidos } from "@/lib/mocks/copa2026-groupstage.mock";
+import {
+  copa2026JogosPorGrupo,
+  copa2026JogosResolvidos,
+} from "@/lib/mocks/copa2026-groupstage.mock";
+import { pontuacaoPalpiteContraResultado } from "@/lib/bolao/pontuacao-palpite";
+import { salvarResultadoTesteBolao } from "@/app/admin/bolao/actions";
 
 const SUPABASE_URL = "https://blrlplzjlnofhivtydxt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mSK2fm2fX3YBbyJvsjEbEg_hF3RXYLb";
@@ -32,6 +37,12 @@ type PalpiteBolaoRow = {
   /** Preenchido quando a API retorna embed `inscricoes_bolao(...)`. */
   inscricao_nome: string | null;
   inscricao_email: string | null;
+};
+
+type ResultadoTesteRow = {
+  jogo_id: string;
+  placar_casa_real: number;
+  placar_fora_real: number;
 };
 
 const HEADERS_REST = {
@@ -193,6 +204,18 @@ export default function AdminBolaoPage() {
   const [palpites, setPalpites] = useState<PalpiteBolaoRow[]>([]);
   const [palpitesCarregando, setPalpitesCarregando] = useState(false);
   const [palpitesErro, setPalpitesErro] = useState("");
+
+  const [resultadosTeste, setResultadosTeste] = useState<ResultadoTesteRow[]>(
+    [],
+  );
+  const [resultadosCarregando, setResultadosCarregando] = useState(false);
+  const [resultadosErro, setResultadosErro] = useState("");
+  const [draftsResultado, setDraftsResultado] = useState<
+    Record<string, { casa: string; fora: string }>
+  >({});
+  const [salvandoResultadoJogoId, setSalvandoResultadoJogoId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     try {
@@ -399,13 +422,99 @@ export default function AdminBolaoPage() {
     }
   }, []);
 
+  const carregarResultadosTeste = useCallback(async () => {
+    setResultadosCarregando(true);
+    setResultadosErro("");
+
+    const candidatos = [
+      "bolao_resultados_teste?select=jogo_id,placar_casa_real,placar_fora_real&order=jogo_id.asc",
+      "bolao_resultados_teste?select=*",
+    ];
+
+    let ultimoCorpo = "";
+    let ultimoStatus = 0;
+
+    try {
+      for (const pathQuery of candidatos) {
+        const resposta = await fetch(`${SUPABASE_URL}/rest/v1/${pathQuery}`, {
+          method: "GET",
+          headers: { ...HEADERS_REST },
+          cache: "no-store",
+        });
+
+        ultimoStatus = resposta.status;
+        const bruto = (await resposta.text()).replace(/^\uFEFF/, "").trim();
+        ultimoCorpo = bruto;
+
+        if (!resposta.ok) {
+          continue;
+        }
+
+        let parsed: unknown;
+        try {
+          parsed = bruto.length ? JSON.parse(bruto) : [];
+        } catch {
+          continue;
+        }
+
+        if (!Array.isArray(parsed)) {
+          continue;
+        }
+
+        const normalizados: ResultadoTesteRow[] = [];
+        for (const item of parsed) {
+          if (!item || typeof item !== "object") continue;
+          const row = item as Record<string, unknown>;
+          const jogo_id = row.jogo_id;
+          if (jogo_id === undefined || jogo_id === null) continue;
+          const c = numeroPalpiteSupabase(row.placar_casa_real ?? row.placar_casa);
+          const f = numeroPalpiteSupabase(row.placar_fora_real ?? row.placar_fora);
+          if (c === null || f === null) continue;
+          normalizados.push({
+            jogo_id: String(jogo_id),
+            placar_casa_real: c,
+            placar_fora_real: f,
+          });
+        }
+
+        setResultadosTeste(normalizados);
+        setDraftsResultado((prev) => {
+          const next = { ...prev };
+          for (const r of normalizados) {
+            next[r.jogo_id] = {
+              casa: String(r.placar_casa_real),
+              fora: String(r.placar_fora_real),
+            };
+          }
+          return next;
+        });
+        setResultadosCarregando(false);
+        return;
+      }
+
+      setResultadosTeste([]);
+      setResultadosErro(
+        ultimoCorpo ||
+          `Não foi possível carregar resultados de teste (HTTP ${ultimoStatus}). Aplique a migração 004 (bolao_resultados_teste) e confira RLS.`,
+      );
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
+      setResultadosErro(msg);
+      setResultadosTeste([]);
+    } finally {
+      setResultadosCarregando(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (sessaoOk !== true) return;
     void (async () => {
       await carregarInscritos();
       await carregarPalpites();
+      await carregarResultadosTeste();
     })();
-  }, [sessaoOk, carregarInscritos, carregarPalpites]);
+  }, [sessaoOk, carregarInscritos, carregarPalpites, carregarResultadosTeste]);
 
   useEffect(() => {
     const next: Record<string, string> = {};
@@ -439,6 +548,107 @@ export default function AdminBolaoPage() {
     return m;
   }, []);
 
+  const gruposJogosBolao = useMemo(() => copa2026JogosPorGrupo(), []);
+
+  const mapaResultadosTeste = useMemo(() => {
+    const m = new Map<string, { casa: number; fora: number }>();
+    for (const r of resultadosTeste) {
+      m.set(r.jogo_id, { casa: r.placar_casa_real, fora: r.placar_fora_real });
+    }
+    return m;
+  }, [resultadosTeste]);
+
+  const palpiteMaisRecentePorChave = useMemo(() => {
+    const m = new Map<string, PalpiteBolaoRow>();
+    for (const p of palpites) {
+      const key = `${p.inscricao_id}::${p.jogo_id}`;
+      const cur = m.get(key);
+      if (!cur) {
+        m.set(key, p);
+        continue;
+      }
+      const tp = p.created_at ? Date.parse(p.created_at) : 0;
+      const tc = cur.created_at ? Date.parse(cur.created_at) : 0;
+      if (tp >= tc) m.set(key, p);
+    }
+    return m;
+  }, [palpites]);
+
+  const rankingModoTeste = useMemo(() => {
+    type Linha = {
+      inscricaoId: string;
+      nome: string;
+      email: string;
+      pontos: number;
+      jogosComResultado: number;
+    };
+    const acc = new Map<string, Linha>();
+    for (const p of Array.from(palpiteMaisRecentePorChave.values())) {
+      const real = mapaResultadosTeste.get(p.jogo_id);
+      if (!real) continue;
+      const pts = pontuacaoPalpiteContraResultado(
+        real.casa,
+        real.fora,
+        p.placar_casa,
+        p.placar_fora,
+      );
+      const ins = inscritoPorId.get(p.inscricao_id);
+      const nome =
+        p.inscricao_nome ?? (ins?.nome?.trim() ? ins.nome : null) ?? "—";
+      const email =
+        p.inscricao_email ?? (ins?.email?.trim() ? ins.email : null) ?? "—";
+      const cur =
+        acc.get(p.inscricao_id) ?? {
+          inscricaoId: p.inscricao_id,
+          nome,
+          email,
+          pontos: 0,
+          jogosComResultado: 0,
+        };
+      cur.pontos += pts;
+      cur.jogosComResultado += 1;
+      acc.set(p.inscricao_id, cur);
+    }
+    return Array.from(acc.values()).sort((a, b) =>
+      b.pontos !== a.pontos
+        ? b.pontos - a.pontos
+        : a.nome.localeCompare(b.nome, "pt", { sensitivity: "base" }),
+    );
+  }, [palpiteMaisRecentePorChave, mapaResultadosTeste, inscritoPorId]);
+
+  async function salvarResultadoTesteParaJogo(jogoId: string) {
+    setErro("");
+    const d = draftsResultado[jogoId] ?? { casa: "", fora: "" };
+    const c = parseInt(String(d.casa).replace(/\D/g, ""), 10);
+    const f = parseInt(String(d.fora).replace(/\D/g, ""), 10);
+    if (!Number.isFinite(c) || !Number.isFinite(f)) {
+      setErro(
+        "Informe placar da casa e do visitante (0–99) antes de salvar o resultado.",
+      );
+      return;
+    }
+    setSalvandoResultadoJogoId(jogoId);
+    try {
+      const res = await salvarResultadoTesteBolao({
+        jogoId,
+        placarCasaReal: c,
+        placarForaReal: f,
+      });
+      if (!res.ok) {
+        setErro(res.error);
+        return;
+      }
+      await carregarResultadosTeste();
+      await carregarPalpites();
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
+      setErro(msg);
+    } finally {
+      setSalvandoResultadoJogoId(null);
+    }
+  }
+
   function tentarLogin() {
     setLoginErro("");
     if (senhaLogin.trim() !== ADMIN_PASSWORD_FIXA) {
@@ -465,6 +675,9 @@ export default function AdminBolaoPage() {
     setLista([]);
     setPalpites([]);
     setPalpitesErro("");
+    setResultadosTeste([]);
+    setResultadosErro("");
+    setDraftsResultado({});
     setErro("");
   }
 
@@ -644,12 +857,15 @@ export default function AdminBolaoPage() {
                 void (async () => {
                   await carregarInscritos();
                   await carregarPalpites();
+                  await carregarResultadosTeste();
                 })()
               }
-              disabled={carregando || palpitesCarregando}
+              disabled={carregando || palpitesCarregando || resultadosCarregando}
               className="rounded-xl border border-[#C9A227]/40 bg-[#1a140c] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#F0D78C] transition hover:bg-[#241c12] disabled:opacity-50"
             >
-              {carregando || palpitesCarregando ? "Atualizando…" : "Atualizar lista"}
+              {carregando || palpitesCarregando || resultadosCarregando
+                ? "Atualizando…"
+                : "Atualizar lista"}
             </button>
             <button
               type="button"
@@ -918,7 +1134,7 @@ export default function AdminBolaoPage() {
           ) : null}
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[820px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-[#3d3420]/80 bg-black/40">
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
@@ -934,6 +1150,9 @@ export default function AdminBolaoPage() {
                     Placar do palpite
                   </th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Pts (teste)
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
                     Data/hora do envio
                   </th>
                 </tr>
@@ -941,13 +1160,13 @@ export default function AdminBolaoPage() {
               <tbody>
                 {palpitesCarregando ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                       Carregando palpites…
                     </td>
                   </tr>
                 ) : palpites.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                       Nenhum palpite salvo ainda.
                     </td>
                   </tr>
@@ -962,6 +1181,16 @@ export default function AdminBolaoPage() {
                       "—";
                     const alternada = idx % 2 === 0;
                     const placarTxt = `${p.placar_casa ?? "—"} × ${p.placar_fora ?? "—"}`;
+                    const real = mapaResultadosTeste.get(p.jogo_id);
+                    const ptsTeste =
+                      real !== undefined
+                        ? pontuacaoPalpiteContraResultado(
+                            real.casa,
+                            real.fora,
+                            p.placar_casa,
+                            p.placar_fora,
+                          )
+                        : null;
                     return (
                       <tr
                         key={p.id}
@@ -986,8 +1215,266 @@ export default function AdminBolaoPage() {
                         <td className="whitespace-nowrap px-4 py-3 align-top font-mono tabular-nums text-[#F0D78C] sm:px-6">
                           {placarTxt}
                         </td>
+                        <td className="whitespace-nowrap px-4 py-3 align-top text-center sm:px-6">
+                          {ptsTeste === null ? (
+                            <span className="text-zinc-600">—</span>
+                          ) : (
+                            <span className="font-mono font-bold text-[#E8D48B]">
+                              {ptsTeste}
+                            </span>
+                          )}
+                        </td>
                         <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-zinc-500 sm:px-6">
                           {formatarDataHoraPalpite(p.created_at)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-2xl border border-[#3d3420]/90 bg-[#0c0b09]/90 shadow-[0_24px_80px_-32px_rgba(212,175,55,.35)] backdrop-blur-sm">
+          <div className="flex flex-col gap-2 border-b border-[#3d3420]/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex items-center gap-3">
+              <span className="h-8 w-1 rounded-full bg-gradient-to-b from-[#F7E7B5] to-[#9a7628]" />
+              <div>
+                <h2 className="font-serif text-lg font-bold text-white sm:text-xl">
+                  Resultados dos Jogos
+                </h2>
+                <p className="text-xs text-zinc-500">
+                  Modo de teste: placares reais fictícios em{" "}
+                  <code className="text-[#C9A227]/90">bolao_resultados_teste</code>{" "}
+                  (não altera palpites dos participantes). Use para validar o ranking
+                  antes dos jogos oficiais.
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a806f]">
+              3 pts = placar exato · 1 pt = vencedor ou empate · 0 = erro
+            </p>
+          </div>
+
+          {resultadosErro ? (
+            <div className="border-b border-[#3d3420]/80 px-4 py-3 text-sm text-amber-200/90 sm:px-6">
+              <pre className="whitespace-pre-wrap font-sans">{resultadosErro}</pre>
+            </div>
+          ) : null}
+
+          <div className="max-h-[min(70vh,720px)] overflow-y-auto px-2 py-4 sm:px-4">
+            {resultadosCarregando ? (
+              <p className="py-8 text-center text-sm text-zinc-500">
+                Carregando resultados de teste…
+              </p>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {gruposJogosBolao.map(({ grupo, jogos }) => (
+                  <div key={grupo}>
+                    <div className="mb-2 flex items-center gap-2 px-2">
+                      <div className="h-px min-w-[8px] flex-1 bg-[#C9A227]/40" />
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] text-[#E8D48B]">
+                        Grupo {grupo}
+                      </span>
+                      <div className="h-px min-w-[8px] flex-1 bg-[#C9A227]/40" />
+                    </div>
+                    <div className="overflow-x-auto rounded-xl border border-[#1f1a14]/90 bg-black/30">
+                      <table className="w-full min-w-[640px] border-collapse text-left text-xs sm:text-sm">
+                        <thead>
+                          <tr className="border-b border-[#3d3420]/80 bg-black/50">
+                            <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a806f] sm:px-4">
+                              Rod.
+                            </th>
+                            <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a806f] sm:px-4">
+                              Partida
+                            </th>
+                            <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a806f] sm:px-4">
+                              placar_casa_real
+                            </th>
+                            <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a806f] sm:px-4">
+                              placar_fora_real
+                            </th>
+                            <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a806f] sm:px-4">
+                              Ação
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {jogos.map((jogo, idx) => {
+                            const draft = draftsResultado[jogo.id] ?? {
+                              casa: "",
+                              fora: "",
+                            };
+                            const salvo = mapaResultadosTeste.get(jogo.id);
+                            const alternada = idx % 2 === 0;
+                            return (
+                              <tr
+                                key={jogo.id}
+                                className={
+                                  alternada
+                                    ? "border-b border-[#1f1a14]/80 bg-[#080706]/50"
+                                    : "border-b border-[#1f1a14]/80 bg-transparent"
+                                }
+                              >
+                                <td className="whitespace-nowrap px-3 py-2 text-zinc-500 sm:px-4">
+                                  {jogo.rodada}
+                                </td>
+                                <td className="max-w-[220px] px-3 py-2 sm:max-w-xs sm:px-4">
+                                  <span className="block font-mono text-[9px] text-zinc-600">
+                                    {jogo.id}
+                                  </span>
+                                  <span className="mt-0.5 block leading-snug text-zinc-200">
+                                    {jogo.mandante.nome} × {jogo.visitante.nome}
+                                  </span>
+                                  {salvo !== undefined ? (
+                                    <span className="mt-1 block text-[10px] text-emerald-400/90">
+                                      Salvo: {salvo.casa} × {salvo.fora}
+                                    </span>
+                                  ) : null}
+                                </td>
+                                <td className="px-3 py-2 sm:px-4">
+                                  <label className="sr-only" htmlFor={`rc-${jogo.id}`}>
+                                    placar_casa_real {jogo.id}
+                                  </label>
+                                  <input
+                                    id={`rc-${jogo.id}`}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={2}
+                                    value={draft.casa}
+                                    onChange={(e) =>
+                                      setDraftsResultado((prev) => ({
+                                        ...prev,
+                                        [jogo.id]: {
+                                          ...draft,
+                                          casa: e.target.value.replace(/\D/g, "").slice(0, 2),
+                                        },
+                                      }))
+                                    }
+                                    className="w-12 rounded border border-zinc-700/90 bg-black/60 px-2 py-1.5 text-center font-mono text-[#F0D78C] outline-none focus:border-[#C9A227]/60 sm:w-14"
+                                    placeholder="—"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 sm:px-4">
+                                  <label className="sr-only" htmlFor={`rf-${jogo.id}`}>
+                                    placar_fora_real {jogo.id}
+                                  </label>
+                                  <input
+                                    id={`rf-${jogo.id}`}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={2}
+                                    value={draft.fora}
+                                    onChange={(e) =>
+                                      setDraftsResultado((prev) => ({
+                                        ...prev,
+                                        [jogo.id]: {
+                                          ...draft,
+                                          fora: e.target.value.replace(/\D/g, "").slice(0, 2),
+                                        },
+                                      }))
+                                    }
+                                    className="w-12 rounded border border-zinc-700/90 bg-black/60 px-2 py-1.5 text-center font-mono text-[#F0D78C] outline-none focus:border-[#C9A227]/60 sm:w-14"
+                                    placeholder="—"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 text-right sm:px-4">
+                                  <button
+                                    type="button"
+                                    disabled={salvandoResultadoJogoId === jogo.id}
+                                    onClick={() =>
+                                      void salvarResultadoTesteParaJogo(jogo.id)
+                                    }
+                                    className="rounded-lg border border-[#C9A227]/50 bg-gradient-to-r from-[#e8c96b]/90 via-[#d4af37]/90 to-[#b8922b]/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-black shadow-sm transition hover:brightness-105 disabled:opacity-40 sm:text-[11px]"
+                                  >
+                                    {salvandoResultadoJogoId === jogo.id
+                                      ? "Salvando…"
+                                      : "Salvar resultado"}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-2xl border border-[#3d3420]/90 bg-[#0c0b09]/90 shadow-[0_24px_80px_-32px_rgba(212,175,55,.35)] backdrop-blur-sm">
+          <div className="flex items-center gap-3 border-b border-[#3d3420]/80 px-4 py-4 sm:px-6">
+            <span className="h-8 w-1 rounded-full bg-gradient-to-b from-[#F7E7B5] to-[#9a7628]" />
+            <div>
+              <h2 className="font-serif text-lg font-bold text-white sm:text-xl">
+                Ranking (modo teste)
+              </h2>
+              <p className="text-xs text-zinc-500">
+                Soma automática dos pontos por inscrição, usando apenas jogos com
+                resultado de teste salvo e palpite completo (0–99 em ambos os lados).
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#3d3420]/80 bg-black/40">
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    #
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Nome
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    E-mail
+                  </th>
+                  <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Jogos c/ resultado
+                  </th>
+                  <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
+                    Total pts
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankingModoTeste.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-zinc-500">
+                      Nenhum ponto ainda — cadastre resultados de teste e palpites
+                      completos para ver o ranking.
+                    </td>
+                  </tr>
+                ) : (
+                  rankingModoTeste.map((row, idx) => {
+                    const alternada = idx % 2 === 0;
+                    return (
+                      <tr
+                        key={row.inscricaoId}
+                        className={
+                          alternada
+                            ? "border-b border-[#1f1a14]/90 bg-[#080706]/60"
+                            : "border-b border-[#1f1a14]/90 bg-transparent"
+                        }
+                      >
+                        <td className="px-4 py-3 font-mono text-[#C9A227] sm:px-6">
+                          {idx + 1}
+                        </td>
+                        <td className="max-w-[160px] truncate px-4 py-3 font-medium text-zinc-100 sm:px-6">
+                          {row.nome}
+                        </td>
+                        <td className="max-w-[220px] truncate px-4 py-3 text-zinc-400 sm:px-6">
+                          {row.email}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-zinc-400 sm:px-6">
+                          {row.jogosComResultado}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-lg font-bold text-[#F0D78C] sm:px-6">
+                          {row.pontos}
                         </td>
                       </tr>
                     );
