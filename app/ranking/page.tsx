@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { pontuacaoPalpiteContraResultado } from "@/lib/bolao/pontuacao-palpite";
+import { COPA2026_JOGOS } from "@/lib/mocks/copa2026-groupstage.mock";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 export const metadata: Metadata = {
@@ -26,22 +27,45 @@ type PalpiteRow = {
   placar_fora: unknown;
 };
 
-function createPublicSupabase() {
+/** Mesma base que o admin: no SSR preferimos service role para ler `bolao_resultados_teste` com garantia. */
+function createRankingSupabaseServer(): SupabaseClient | null {
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
     process.env.SUPABASE_URL?.trim();
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  if (!url || !key) return null;
+  if (!url) return null;
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const key = service || anon;
+  if (!key) return null;
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
-function parsePlacar(v: unknown): number | null {
+const JOGO_ID_CANONICO_POR_LOWER = new Map(
+  COPA2026_JOGOS.map((j) => [j.id.toLowerCase(), j.id] as const),
+);
+
+function canonicalizarJogoId(raw: string): string {
+  const t = raw.trim();
+  if (!t) return t;
+  return JOGO_ID_CANONICO_POR_LOWER.get(t.toLowerCase()) ?? t;
+}
+
+/** Placar oficial vindo do PostgREST (número, string, float). */
+function parsePlacarOficial(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "number" && Number.isInteger(v)) return v;
-  const n = parseInt(String(v), 10);
-  return Number.isInteger(n) ? n : null;
+  const n = typeof v === "number" ? v : Number(String(v).trim());
+  if (!Number.isFinite(n)) return null;
+  const r = Math.trunc(n);
+  if (r < 0 || r > 99) return null;
+  return r;
+}
+
+function linhaTemPlacaresOficiais(row: Record<string, unknown>): boolean {
+  const c = parsePlacarOficial(row.placar_casa_real);
+  const f = parsePlacarOficial(row.placar_fora_real);
+  return c !== null && f !== null;
 }
 
 function normalizarResultadosOficiais(
@@ -51,12 +75,12 @@ function normalizarResultadosOficiais(
   for (const row of raw ?? []) {
     if (!row || typeof row !== "object") continue;
     const r = row as Record<string, unknown>;
-    const jogoId = String(r.jogo_id ?? "").trim();
-    if (!jogoId) continue;
-    const casa = Number(r.placar_casa_real);
-    const fora = Number(r.placar_fora_real);
-    if (!Number.isInteger(casa) || !Number.isInteger(fora)) continue;
-    if (casa < 0 || casa > 99 || fora < 0 || fora > 99) continue;
+    const jogoIdRaw = String(r.jogo_id ?? "").trim();
+    if (!jogoIdRaw) continue;
+    const jogoId = canonicalizarJogoId(jogoIdRaw);
+    const casa = parsePlacarOficial(r.placar_casa_real);
+    const fora = parsePlacarOficial(r.placar_fora_real);
+    if (casa === null || fora === null) continue;
     out.push({
       jogo_id: jogoId,
       placar_casa_real: casa,
@@ -64,6 +88,23 @@ function normalizarResultadosOficiais(
     });
   }
   return out;
+}
+
+function temAlgumResultadoOficialNaResposta(
+  raw: unknown[] | null | undefined,
+): boolean {
+  for (const row of raw ?? []) {
+    if (!row || typeof row !== "object") continue;
+    if (linhaTemPlacaresOficiais(row as Record<string, unknown>)) return true;
+  }
+  return false;
+}
+
+function parsePlacarPalpite(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number" && Number.isInteger(v)) return v;
+  const n = parseInt(String(v), 10);
+  return Number.isInteger(n) ? n : null;
 }
 
 function mapInscrito(row: Record<string, unknown>): InscritoRow | null {
@@ -79,7 +120,7 @@ function mapPalpite(row: Record<string, unknown>): PalpiteRow | null {
   if (!inscricao_id || !jogo_id) return null;
   return {
     inscricao_id,
-    jogo_id,
+    jogo_id: canonicalizarJogoId(jogo_id),
     placar_casa: row.placar_casa,
     placar_fora: row.placar_fora,
   };
@@ -102,11 +143,11 @@ async function carregarRankingBolao(): Promise<
     return { ok: false, erro: "Ranking indisponível no ambiente atual." };
   }
 
-  const sb = createPublicSupabase();
+  const sb = createRankingSupabaseServer();
   if (!sb) {
     return {
       ok: false,
-      erro: "Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+      erro: "Configure Supabase (URL e SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_ANON_KEY).",
     };
   }
 
@@ -122,7 +163,7 @@ async function carregarRankingBolao(): Promise<
     sb
       .schema("public")
       .from("bolao_resultados_teste")
-      .select("jogo_id,placar_casa_real,placar_fora_real"),
+      .select("*"),
   ]);
 
   if (insRes.error) {
@@ -138,6 +179,11 @@ async function carregarRankingBolao(): Promise<
     return { ok: false, erro: resRes.error.message || "Erro ao carregar resultados." };
   }
 
+  const rawResultados = (resRes.data ?? []) as unknown[];
+  const temResultadosOficiais =
+    temAlgumResultadoOficialNaResposta(rawResultados) ||
+    normalizarResultadosOficiais(rawResultados).length > 0;
+
   const inscritos = ((insRes.data ?? []) as Record<string, unknown>[])
     .map(mapInscrito)
     .filter((x): x is InscritoRow => x != null);
@@ -146,10 +192,7 @@ async function carregarRankingBolao(): Promise<
     .map(mapPalpite)
     .filter((x): x is PalpiteRow => x != null);
 
-  const resultadosOficiais = normalizarResultadosOficiais(
-    resRes.data as unknown[],
-  );
-  const temResultadosOficiais = resultadosOficiais.length > 0;
+  const resultadosOficiais = normalizarResultadosOficiais(rawResultados);
   const resultadoPorJogo = new Map(
     resultadosOficiais.map((r) => [r.jogo_id, r]),
   );
@@ -168,8 +211,8 @@ async function carregarRankingBolao(): Promise<
     let palpitesValidos = 0;
 
     for (const p of lista) {
-      const pc = parsePlacar(p.placar_casa);
-      const pf = parsePlacar(p.placar_fora);
+      const pc = parsePlacarPalpite(p.placar_casa);
+      const pf = parsePlacarPalpite(p.placar_fora);
       if (pc !== null && pf !== null) {
         palpitesValidos++;
       }
@@ -251,7 +294,7 @@ export default async function RankingPage() {
                 style={{ borderColor: "rgba(245, 158, 11, 0.15)" }}
               >
                 <p className="text-sm leading-relaxed text-zinc-300">
-                  Ranking será atualizado após os primeiros resultados oficiais.
+                  Ranking será liberado após os primeiros resultados.
                 </p>
               </div>
             ) : null}
@@ -266,9 +309,9 @@ export default async function RankingPage() {
                     <thead className="border-b border-[#2a2418] bg-[#14120e] text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                       <tr>
                         <th className="px-4 py-3">Posição</th>
-                        <th className="px-4 py-3">Participante</th>
+                        <th className="px-4 py-3">Nome</th>
                         <th className="px-4 py-3 text-right">Pontos</th>
-                        <th className="px-4 py-3 text-right">Acertos exatos</th>
+                        <th className="px-4 py-3 text-right">Exatos</th>
                         <th className="px-4 py-3 text-right">Palpites válidos</th>
                       </tr>
                     </thead>
@@ -279,9 +322,7 @@ export default async function RankingPage() {
                           className="border-b border-[#2a2418]/90 odd:bg-[#0c0b09]/50"
                         >
                           <td className="px-4 py-3 text-zinc-500">{r.posicao}</td>
-                          <td className="px-4 py-3 font-medium text-white">
-                            {r.nome}
-                          </td>
+                          <td className="px-4 py-3 font-medium text-white">{r.nome}</td>
                           <td className="px-4 py-3 text-right font-semibold text-amber-400">
                             {r.pontos}
                           </td>
