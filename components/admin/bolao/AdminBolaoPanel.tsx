@@ -37,6 +37,7 @@ type ResultadoRow = {
   jogo_id: string;
   placar_casa_real: number;
   placar_fora_real: number;
+  status?: string | null;
 };
 
 type JogoDraft = {
@@ -104,7 +105,8 @@ function draftsFromMerged(
 export function AdminBolaoPanel() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [feedbackOk, setFeedbackOk] = useState<string | null>(null);
+  const [feedbackErr, setFeedbackErr] = useState<string | null>(null);
 
   const [inscritos, setInscritos] = useState<Inscrito[]>([]);
   const [palpites, setPalpites] = useState<PalpiteBolaoRow[]>([]);
@@ -125,9 +127,46 @@ export function AdminBolaoPanel() {
     [overrides],
   );
 
+  const refetchResultados = useCallback(async (): Promise<boolean> => {
+    let sb: ReturnType<typeof createClient>;
+    try {
+      sb = createClient();
+    } catch (e) {
+      console.error("ERRO AO CARREGAR RESULTADOS", e);
+      return false;
+    }
+
+    const resRes = await sb
+      .from("bolao_resultados_teste")
+      .select("jogo_id,placar_casa_real,placar_fora_real");
+
+    if (resRes.error) {
+      console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
+      return false;
+    }
+
+    const resNext = (resRes.data ?? []) as ResultadoRow[];
+    setResultados(resNext);
+    const rm = new Map(resNext.map((r) => [r.jogo_id, r]));
+    setDrafts((prev) => {
+      const next = { ...prev };
+      for (const id of Object.keys(next)) {
+        const r = rm.get(id);
+        if (r) {
+          next[id] = {
+            ...next[id],
+            placarCasa: String(r.placar_casa_real),
+            placarFora: String(r.placar_fora_real),
+          };
+        }
+      }
+      return next;
+    });
+    return true;
+  }, []);
+
   const reload = useCallback(async () => {
     setLoadError(null);
-    setMsg(null);
     let sb: ReturnType<typeof createClient>;
     try {
       sb = createClient();
@@ -150,7 +189,9 @@ export function AdminBolaoPanel() {
         )
         .order("created_at", { ascending: false }),
       sb.from("bolao_jogo_admin_override").select("*"),
-      sb.from("bolao_resultados_teste").select("jogo_id,placar_casa_real,placar_fora_real"),
+      sb
+        .from("bolao_resultados_teste")
+        .select("jogo_id,placar_casa_real,placar_fora_real"),
     ]);
 
     if (insRes.error) {
@@ -264,7 +305,8 @@ export function AdminBolaoPanel() {
     const d = drafts[jogoId];
     if (!d) return;
     setBusy(true);
-    setMsg(null);
+    setFeedbackOk(null);
+    setFeedbackErr(null);
     const res = await salvarJogoOverrideAdmin({
       jogoId,
       dataIso: d.dataISO.trim() || null,
@@ -274,10 +316,10 @@ export function AdminBolaoPanel() {
     });
     setBusy(false);
     if (!res.ok) {
-      setMsg(res.error);
+      setFeedbackErr(res.error);
       return;
     }
-    setMsg("Jogo atualizado.");
+    setFeedbackOk("Jogo atualizado.");
     await reload();
   }
 
@@ -287,23 +329,63 @@ export function AdminBolaoPanel() {
     const c = parseInt(d.placarCasa.trim(), 10);
     const f = parseInt(d.placarFora.trim(), 10);
     if (!Number.isFinite(c) || !Number.isFinite(f)) {
-      setMsg("Informe placares válidos (inteiros).");
+      setFeedbackErr("Informe placares válidos (inteiros).");
+      setFeedbackOk(null);
       return;
     }
-    setBusy(true);
-    setMsg(null);
-    const res = await salvarResultadoOficialBolao({
+    const payload = {
       jogoId,
       placarCasaReal: c,
       placarForaReal: f,
-    });
-    setBusy(false);
+    };
+    console.log("SALVANDO RESULTADO", payload);
+
+    setBusy(true);
+    setFeedbackOk(null);
+    setFeedbackErr(null);
+
+    const res = await salvarResultadoOficialBolao(payload);
     if (!res.ok) {
-      setMsg(res.error);
+      console.error("ERRO AO SALVAR RESULTADO", res.error);
+      setFeedbackErr(res.error);
+      setBusy(false);
       return;
     }
-    setMsg("Resultado salvo — ranking recalculado na visualização.");
-    await reload();
+
+    setResultados((prev) => {
+      const rest = prev.filter((r) => r.jogo_id !== jogoId);
+      return [
+        ...rest,
+        {
+          jogo_id: jogoId,
+          placar_casa_real: c,
+          placar_fora_real: f,
+          status: "finalizado",
+        },
+      ];
+    });
+    setDrafts((prev) => ({
+      ...prev,
+      [jogoId]: {
+        ...prev[jogoId],
+        placarCasa: String(c),
+        placarFora: String(f),
+      },
+    }));
+
+    const synced = await refetchResultados();
+    if (!synced) {
+      console.error(
+        "ERRO AO SALVAR RESULTADO",
+        new Error(
+          "Gravação ok, mas o refetch de public.bolao_resultados_teste falhou; ranking usa dados locais.",
+        ),
+      );
+    }
+
+    setBusy(false);
+    setFeedbackOk("Resultado salvo com sucesso");
+    setFeedbackErr(null);
   }
 
   function updateDraft(jogoId: string, patch: Partial<JogoDraft>) {
@@ -361,9 +443,14 @@ export function AdminBolaoPanel() {
             {loadError}
           </p>
         ) : null}
-        {msg ? (
+        {feedbackErr ? (
+          <p className="mt-4 text-sm text-red-400" role="alert">
+            {feedbackErr}
+          </p>
+        ) : null}
+        {feedbackOk ? (
           <p className="mt-4 text-sm text-[#C9A227]" role="status">
-            {msg}
+            {feedbackOk}
           </p>
         ) : null}
 

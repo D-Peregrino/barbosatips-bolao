@@ -73,18 +73,26 @@ export async function salvarResultadoOficialBolao(input: {
     };
   }
 
-  const { error } = await admin.from("bolao_resultados_teste").upsert(
-    {
-      jogo_id: jogoId,
-      placar_casa_real: placarCasaReal,
-      placar_fora_real: placarForaReal,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "jogo_id" },
-  );
+  const payload = {
+    jogo_id: jogoId,
+    placar_casa_real: placarCasaReal,
+    placar_fora_real: placarForaReal,
+    status: "finalizado" as const,
+    updated_at: new Date().toISOString(),
+  };
+
+  console.log("SALVANDO RESULTADO", payload);
+
+  const { error } = await admin
+    .from("bolao_resultados_teste")
+    .upsert(payload, { onConflict: "jogo_id" });
 
   if (error) {
-    return { ok: false, error: error.message || "Falha ao gravar resultado." };
+    console.error("ERRO AO SALVAR RESULTADO", error);
+    return {
+      ok: false,
+      error: error.message || "Falha ao gravar resultado no Supabase.",
+    };
   }
 
   return { ok: true };
