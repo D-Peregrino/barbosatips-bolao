@@ -1,14 +1,38 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  ADMIN_BOLAO_COOKIE,
+  adminBolaoSessionSecret,
+  verifyAdminBolaoCookieValue,
+} from "@/lib/admin/bolao-cookie";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
-const PROTECTED_ROUTES = ["/dashboard", "/bolao/criar", "/admin"];
+const PROTECTED_ROUTES = ["/dashboard", "/bolao/criar"];
 
 const ADMIN_ROUTES = ["/admin"];
 
 const AUTH_ROUTES = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  if (path.startsWith("/admin/bolao")) {
+    if (path.startsWith("/admin/bolao/login")) {
+      return NextResponse.next();
+    }
+    const secret = adminBolaoSessionSecret();
+    if (!secret) {
+      return NextResponse.redirect(
+        new URL("/admin/bolao/login?erro=config", request.url),
+      );
+    }
+    const token = request.cookies.get(ADMIN_BOLAO_COOKIE)?.value;
+    if (!(await verifyAdminBolaoCookieValue(token, secret))) {
+      return NextResponse.redirect(new URL("/admin/bolao/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
@@ -38,8 +62,6 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone();
@@ -55,7 +77,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (ADMIN_ROUTES.some((r) => path.startsWith(r)) && user) {
+  if (
+    ADMIN_ROUTES.some((r) => path.startsWith(r)) &&
+    !path.startsWith("/admin/bolao") &&
+    user
+  ) {
     const { data: profile } = await supabase
       .from("users")
       .select("role")
