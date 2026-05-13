@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   mergeJogosComOverrides,
   type BolaoJogoOverrideRow,
@@ -72,6 +72,62 @@ function normalizarResultadoRows(raw: unknown[] | null | undefined): ResultadoRo
   return out;
 }
 
+/** Uma linha retornada pelo upsert (serialização server action). */
+function normalizarLinhaResultado(raw: unknown): ResultadoRow | null {
+  const rows = normalizarResultadoRows(raw == null ? [] : [raw as unknown]);
+  return rows[0] ?? null;
+}
+
+function mergeResultadosList(
+  anterior: ResultadoRow[],
+  novos: ResultadoRow[],
+): ResultadoRow[] {
+  const m = new Map(anterior.map((x) => [x.jogo_id, x]));
+  for (const r of novos) m.set(r.jogo_id, r);
+  return Array.from(m.values());
+}
+
+type JogoPainel = ReturnType<typeof mergeJogosComOverrides>[number] & {
+  placar_casa_real: number | null;
+  placar_fora_real: number | null;
+  resultado_status: string | null;
+};
+
+/**
+ * Reconstrói drafts e lista de jogos (placar + status do resultado) sem perder campos da linha.
+ */
+function buildListaJogos(
+  overrides: BolaoJogoOverrideRow[],
+  resRows: ResultadoRow[],
+  prevDrafts: Record<string, JogoDraft> | null,
+): { jogos: JogoPainel[]; drafts: Record<string, JogoDraft> } {
+  const merged = mergeJogosComOverrides(overrides);
+  const rm = new Map(resRows.map((r) => [r.jogo_id, r]));
+  const drafts: Record<string, JogoDraft> = {};
+  const jogos: JogoPainel[] = merged.map((j) => {
+    const r = rm.get(j.id);
+    const p = prevDrafts?.[j.id];
+    const placarCasa =
+      r != null ? String(r.placar_casa_real) : (p?.placarCasa ?? "");
+    const placarFora =
+      r != null ? String(r.placar_fora_real) : (p?.placarFora ?? "");
+    drafts[j.id] = {
+      dataISO: p?.dataISO ?? j.dataISO,
+      horario: p?.horario ?? j.horario,
+      status: p?.status ?? j.status,
+      placarCasa,
+      placarFora,
+    };
+    return {
+      ...j,
+      placar_casa_real: r?.placar_casa_real ?? null,
+      placar_fora_real: r?.placar_fora_real ?? null,
+      resultado_status: r?.status ?? null,
+    };
+  });
+  return { jogos, drafts };
+}
+
 function extrairInscricaoEmbed(
   row: Record<string, unknown>,
 ): { nome: string | null } {
@@ -108,24 +164,6 @@ function mapPalpiteRow(row: Record<string, unknown>): PalpiteBolaoRow {
   };
 }
 
-function draftsFromMerged(
-  jogos: ReturnType<typeof mergeJogosComOverrides>,
-  resultados: Map<string, ResultadoRow>,
-): Record<string, JogoDraft> {
-  const d: Record<string, JogoDraft> = {};
-  for (const j of jogos) {
-    const r = resultados.get(j.id);
-    d[j.id] = {
-      dataISO: j.dataISO,
-      horario: j.horario,
-      status: j.status,
-      placarCasa: r ? String(r.placar_casa_real) : "",
-      placarFora: r ? String(r.placar_fora_real) : "",
-    };
-  }
-  return d;
-}
-
 export function AdminBolaoPanel() {
   const [loadError, setLoadError] = useState<string | null>(null);
   /** Só a linha em gravação fica “travada”; evita painel inteiro escuro. */
@@ -133,14 +171,25 @@ export function AdminBolaoPanel() {
   const [salvandoResultadoId, setSalvandoResultadoId] = useState<string | null>(null);
   const [feedbackOk, setFeedbackOk] = useState<string | null>(null);
   const [feedbackErr, setFeedbackErr] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const [inscritos, setInscritos] = useState<Inscrito[]>([]);
   const [palpites, setPalpites] = useState<PalpiteBolaoRow[]>([]);
   const [overrides, setOverrides] = useState<BolaoJogoOverrideRow[]>([]);
   const [resultados, setResultados] = useState<ResultadoRow[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, JogoDraft>>(() =>
-    draftsFromMerged(mergeJogosComOverrides([]), new Map()),
+  const [jogos, setJogos] = useState<JogoPainel[]>(() =>
+    buildListaJogos([], [], null).jogos,
   );
+  const [drafts, setDrafts] = useState<Record<string, JogoDraft>>(() =>
+    buildListaJogos([], [], null).drafts,
+  );
+
+  const overridesRef = useRef(overrides);
+  const resultadosRef = useRef(resultados);
+  const draftsRef = useRef(drafts);
+  overridesRef.current = overrides;
+  resultadosRef.current = resultados;
+  draftsRef.current = drafts;
 
   const resultadoMap = useMemo(() => {
     const m = new Map<string, ResultadoRow>();
@@ -148,28 +197,11 @@ export function AdminBolaoPanel() {
     return m;
   }, [resultados]);
 
-  const mergedJogos = useMemo(
-    () => mergeJogosComOverrides(overrides),
-    [overrides],
-  );
-
-  const aplicarResultadosNasDrafts = useCallback((rows: ResultadoRow[]) => {
-    const rm = new Map(rows.map((r) => [r.jogo_id, r]));
-    setDrafts((prev) => {
-      const next = { ...prev };
-      for (const id of Object.keys(next)) {
-        const r = rm.get(id);
-        if (r) {
-          next[id] = {
-            ...next[id],
-            placarCasa: String(r.placar_casa_real),
-            placarFora: String(r.placar_fora_real),
-          };
-        }
-      }
-      return next;
-    });
-  }, []);
+  useEffect(() => {
+    if (!toastMsg) return;
+    const t = window.setTimeout(() => setToastMsg(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [toastMsg]);
 
   const refetchResultados = useCallback(async (): Promise<ResultadoRow[] | null> => {
     let sb: ReturnType<typeof createClient>;
@@ -182,7 +214,7 @@ export function AdminBolaoPanel() {
 
     const resRes = await sb
       .from("bolao_resultados_teste")
-      .select("jogo_id,placar_casa_real,placar_fora_real");
+      .select("jogo_id,placar_casa_real,placar_fora_real,status");
 
     if (resRes.error) {
       console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
@@ -191,9 +223,58 @@ export function AdminBolaoPanel() {
 
     const resNext = normalizarResultadoRows(resRes.data as unknown[]);
     setResultados(resNext);
-    aplicarResultadosNasDrafts(resNext);
+    const built = buildListaJogos(
+      overridesRef.current,
+      resNext,
+      draftsRef.current,
+    );
+    setJogos(built.jogos);
+    setDrafts(built.drafts);
     return resNext;
-  }, [aplicarResultadosNasDrafts]);
+  }, []);
+
+  const carregarRanking = useCallback(async (): Promise<boolean> => {
+    let sb: ReturnType<typeof createClient>;
+    try {
+      sb = createClient();
+    } catch (e) {
+      console.error("ERRO AO CARREGAR RANKING", e);
+      return false;
+    }
+
+    const [insRes, palRes] = await Promise.all([
+      sb
+        .from("inscricoes_bolao")
+        .select("id,nome,email")
+        .order("created_at", { ascending: false }),
+      sb
+        .from("palpites_bolao")
+        .select(
+          "id,inscricao_id,jogo_id,placar_casa,placar_fora,inscricoes_bolao(nome)",
+        )
+        .order("created_at", { ascending: false }),
+    ]);
+
+    if (insRes.error) {
+      console.error("ERRO AO CARREGAR RANKING", insRes.error);
+      return false;
+    }
+    if (palRes.error) {
+      console.error("ERRO AO CARREGAR RANKING", palRes.error);
+      return false;
+    }
+
+    const insRows = (insRes.data ?? []) as Record<string, unknown>[];
+    const inscritosNext: Inscrito[] = insRows.map((r) => ({
+      id: String(r.id),
+      nome: String(r.nome ?? "").trim() || "—",
+      email: String(r.email ?? "").trim() || "—",
+    }));
+    const palRows = (palRes.data ?? []) as Record<string, unknown>[];
+    setInscritos(inscritosNext);
+    setPalpites(palRows.map(mapPalpiteRow));
+    return true;
+  }, []);
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -221,7 +302,7 @@ export function AdminBolaoPanel() {
       sb.from("bolao_jogo_admin_override").select("*"),
       sb
         .from("bolao_resultados_teste")
-        .select("jogo_id,placar_casa_real,placar_fora_real"),
+        .select("jogo_id,placar_casa_real,placar_fora_real,status"),
     ]);
 
     if (insRes.error) {
@@ -260,10 +341,9 @@ export function AdminBolaoPanel() {
     setPalpites(palpitesNext);
     setOverrides(ovNext);
     setResultados(resNext);
-
-    const rm = new Map<string, ResultadoRow>();
-    for (const r of resNext) rm.set(r.jogo_id, r);
-    setDrafts(draftsFromMerged(mergeJogosComOverrides(ovNext), rm));
+    const built = buildListaJogos(ovNext, resNext, null);
+    setJogos(built.jogos);
+    setDrafts(built.drafts);
   }, []);
 
   useEffect(() => {
@@ -271,8 +351,8 @@ export function AdminBolaoPanel() {
   }, [reload]);
 
   const totalEncerrados = useMemo(
-    () => mergedJogos.filter((j) => j.status === "encerrado").length,
-    [mergedJogos],
+    () => jogos.filter((j) => j.status === "encerrado").length,
+    [jogos],
   );
 
   const totalComResultadoOficial = resultados.length;
@@ -394,36 +474,44 @@ export function AdminBolaoPanel() {
 
       console.log("DEPOIS DO UPSERT", res.data);
 
-      const linhas = normalizarResultadoRows([res.data]);
-      const linha = linhas[0] ?? {
-        jogo_id: jogoId,
-        placar_casa_real: c,
-        placar_fora_real: f,
-      };
-      setResultados((prev) => {
-        const rest = prev.filter((r) => r.jogo_id !== linha.jogo_id);
-        return [...rest, linha];
-      });
-      setDrafts((prev) => ({
-        ...prev,
-        [jogoId]: {
-          ...prev[jogoId],
-          placarCasa: String(linha.placar_casa_real),
-          placarFora: String(linha.placar_fora_real),
-        },
-      }));
+      const linha =
+        normalizarLinhaResultado(res.data) ?? {
+          jogo_id: jogoId,
+          placar_casa_real: c,
+          placar_fora_real: f,
+          status: "finalizado",
+        };
 
-      const doServidor = await refetchResultados();
-      if (!doServidor) {
-        console.error(
-          "ERRO AO RECARREGAR RESULTADOS",
-          new Error(
-            "Gravação ok, mas o refetch de public.bolao_resultados_teste falhou; ranking usa dados retornados pelo upsert.",
-          ),
-        );
-      }
+      const mergedRes = mergeResultadosList(resultadosRef.current, [linha]);
+      setResultados(mergedRes);
 
-      setFeedbackOk("Resultado salvo com sucesso");
+      const built = buildListaJogos(
+        overridesRef.current,
+        mergedRes,
+        draftsRef.current,
+      );
+      setDrafts(built.drafts);
+      setJogos(() =>
+        built.jogos.map((j) =>
+          j.id === jogoId
+            ? {
+                ...j,
+                placar_casa_real: linha.placar_casa_real,
+                placar_fora_real: linha.placar_fora_real,
+                resultado_status: linha.status ?? "finalizado",
+              }
+            : j,
+        ),
+      );
+
+      draftsRef.current = built.drafts;
+      resultadosRef.current = mergedRes;
+
+      await refetchResultados();
+      await carregarRanking();
+
+      setToastMsg("Resultado salvo");
+      setFeedbackOk(null);
       setFeedbackErr(null);
     } catch (error) {
       console.error("ERRO AO SALVAR RESULTADO", error);
@@ -600,7 +688,7 @@ export function AdminBolaoPanel() {
                 </tr>
               </thead>
               <tbody>
-                {mergedJogos.map((j) => {
+                {jogos.map((j) => {
                   const d = drafts[j.id];
                   if (!d) return null;
                   const m = copa2026SelecaoPorId(j.mandanteId);
@@ -728,6 +816,15 @@ export function AdminBolaoPanel() {
           </div>
         </section>
       </div>
+
+      {toastMsg ? (
+        <div
+          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-green-500/40 bg-[#0a1a0f]/95 px-5 py-3 text-sm font-medium text-green-400 shadow-lg backdrop-blur-sm"
+          role="status"
+        >
+          {toastMsg}
+        </div>
+      ) : null}
     </div>
   );
 }
