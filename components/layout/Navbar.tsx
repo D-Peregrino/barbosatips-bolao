@@ -133,7 +133,7 @@ export function Navbar() {
 
             <div className="mt-3 pt-3 border-t border-pitch-700 flex gap-3">
               <Link href="/bolao" className="btn-secondary flex-1 justify-center py-2.5">
-                + Criar Bolão
+                + Bolão
               </Link>
               <Link href="/bolao/login" className="btn-primary flex-1 justify-center py-2.5">
                 Entrar

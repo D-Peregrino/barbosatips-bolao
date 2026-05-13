@@ -7,7 +7,7 @@ import {
 } from "@/lib/admin/bolao-cookie";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
-const PROTECTED_ROUTES = ["/dashboard", "/bolao/criar"];
+const PROTECTED_ROUTES = ["/dashboard"];
 
 const ADMIN_ROUTES = ["/admin"];
 

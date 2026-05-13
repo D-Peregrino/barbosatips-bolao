@@ -23,6 +23,16 @@ const nextConfig = {
         destination: "/",
         permanent: true,
       },
+      {
+        source: "/bolao/ranking",
+        destination: "/ranking",
+        permanent: true,
+      },
+      {
+        source: "/bolao/criar",
+        destination: "/bolao",
+        permanent: true,
+      },
     ];
   },
 

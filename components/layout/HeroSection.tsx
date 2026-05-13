@@ -167,7 +167,7 @@ export function HeroSection({ tipsHoje = 0 }: HeroSectionProps) {
 
           {/* CTA secundário */}
           <Link
-            href="/bolao"
+            href="/bolao/login"
             className="inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold transition-all duration-150 active:scale-[.97]"
             style={{
               height:      48,

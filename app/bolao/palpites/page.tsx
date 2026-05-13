@@ -266,7 +266,7 @@ export default function BolaoPalpitesPage() {
 
   function handleSair() {
     try {
-      localStorage.clear();
+      localStorage.removeItem(BOLAO_PARTICIPANTE_LS);
     } catch {
       // ignore
     }
@@ -605,7 +605,7 @@ export default function BolaoPalpitesPage() {
                 href="/bolao"
                 className="shrink-0 rounded border border-zinc-800 bg-[#111] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/50 hover:text-yellow-500"
               >
-                Voltar à inscrição
+                Voltar
               </a>
             </div>
 

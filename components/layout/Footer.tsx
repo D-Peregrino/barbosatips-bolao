@@ -9,8 +9,8 @@ const FOOTER_LINKS = {
     { href: "/guias",   label: "Guias de Apostas" },
   ],
   "Comunidade": [
-    { href: "/bolao",        label: "Bolão" },
-    { href: "/bolao/criar",  label: "Criar Bolão" },
+    { href: "/bolao", label: "Bolão" },
+    { href: "/bolao", label: "Criar Bolão" },
     { href: "/dashboard",    label: "Minha Conta" },
   ],
   "Esportes": siteConfig.sports.slice(0, 4).map((s) => ({
@@ -41,7 +41,7 @@ export function Footer() {
               </h3>
               <ul className="space-y-2.5">
                 {links.map(({ href, label }) => (
-                  <li key={href}>
+                  <li key={`${section}-${href}-${label}`}>
                     <Link
                       href={href}
                       className="text-sm text-neutral-500 hover:text-neutral-200 transition-colors"
