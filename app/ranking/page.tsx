@@ -7,7 +7,7 @@ import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase
 export const metadata: Metadata = {
   title: "Ranking · Bolão Copa 2026 | BarbosaTips",
   description:
-    "Ranking público do bolão Copa 2026 — pontos por placar exato e resultado.",
+    "Ranking público do bolão Copa 2026 — transparência: pontos, exatos e palpites válidos.",
 };
 
 export const dynamic = "force-dynamic";
@@ -214,92 +214,113 @@ export default async function RankingPage() {
   const data = await carregarRankingBolao();
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-pitch-950 text-white">
-      <div className="container-site px-4 py-12 md:py-16">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold/80">
+    <div className="relative min-h-[calc(100vh-72px)] overflow-hidden bg-[#050608] text-white">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.28]"
+        aria-hidden
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -15%, rgba(212,175,55,.22), transparent 55%)",
+        }}
+      />
+
+      <div className="relative container-site px-4 py-12 md:py-16">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/90">
           BarbosaTips · Bolão Copa 2026
         </p>
-        <h1 className="font-display text-3xl font-bold text-gold md:text-4xl">
+        <h1 className="font-display text-3xl font-bold text-amber-400 md:text-4xl">
           Ranking
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-neutral-400 md:text-base">
-          3 pontos placar exato · 1 ponto vencedor ou empate · 0 erro ou palpite
-          incompleto nos jogos já com resultado oficial.
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 md:text-base">
+          Transparência do bolão: 3 pontos placar exato · 1 ponto vencedor ou empate · 0
+          erro ou palpite incompleto nos jogos com resultado oficial.
         </p>
 
         {!data.ok ? (
           <p
-            className="mt-8 max-w-xl rounded-xl border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss-light"
+            className="mt-8 max-w-xl rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200"
             role="alert"
           >
             {data.erro}
           </p>
-        ) : !data.temResultadosOficiais ? (
-          <div
-            className="mt-10 max-w-xl rounded-xl border border-pitch-700 bg-pitch-900/80 p-6 shadow-card"
-            style={{ borderColor: "rgba(245, 158, 11, 0.12)" }}
-          >
-            <p className="text-sm leading-relaxed text-neutral-300">
-              Ranking será liberado após os primeiros resultados.
-            </p>
-          </div>
         ) : (
-          <section className="mt-10">
-            <div
-              className="overflow-x-auto rounded-xl border border-pitch-700 bg-pitch-900/60 shadow-card"
-              style={{ borderColor: "rgba(245, 158, 11, 0.12)" }}
-            >
-              <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="border-b border-pitch-700 bg-pitch-900/90 text-[11px] font-semibold uppercase tracking-[0.1em] text-neutral-500">
-                  <tr>
-                    <th className="px-4 py-3">#</th>
-                    <th className="px-4 py-3">Nome</th>
-                    <th className="px-4 py-3 text-right">Pontos</th>
-                    <th className="px-4 py-3 text-right">Exatos</th>
-                    <th className="px-4 py-3 text-right">Palpites válidos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.linhas.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="border-b border-pitch-800 odd:bg-pitch-900/40"
-                    >
-                      <td className="px-4 py-3 text-neutral-500">{r.posicao}</td>
-                      <td className="px-4 py-3 font-medium text-white">{r.nome}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-gold">
-                        {r.pontos}
-                      </td>
-                      <td className="px-4 py-3 text-right text-neutral-300">
-                        {r.acertosExatos}
-                      </td>
-                      <td className="px-4 py-3 text-right text-neutral-500">
-                        {r.palpitesValidos}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <>
+            {!data.temResultadosOficiais ? (
+              <div
+                className="mt-10 max-w-2xl rounded-xl border border-[#3d3420]/90 bg-[#0c0b09]/90 p-5 shadow-[0_20px_60px_-28px_rgba(212,175,55,.2)]"
+                style={{ borderColor: "rgba(245, 158, 11, 0.15)" }}
+              >
+                <p className="text-sm leading-relaxed text-zinc-300">
+                  Ranking será atualizado após os primeiros resultados oficiais.
+                </p>
+              </div>
+            ) : null}
+
+            {data.linhas.length > 0 ? (
+              <section className="mt-10">
+                <div
+                  className="overflow-x-auto rounded-xl border border-[#3d3420]/90 bg-[#0c0b09]/70 shadow-[0_24px_80px_-32px_rgba(212,175,55,.18)]"
+                  style={{ borderColor: "rgba(245, 158, 11, 0.12)" }}
+                >
+                  <table className="w-full min-w-[520px] text-left text-sm">
+                    <thead className="border-b border-[#2a2418] bg-[#14120e] text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                      <tr>
+                        <th className="px-4 py-3">Posição</th>
+                        <th className="px-4 py-3">Participante</th>
+                        <th className="px-4 py-3 text-right">Pontos</th>
+                        <th className="px-4 py-3 text-right">Acertos exatos</th>
+                        <th className="px-4 py-3 text-right">Palpites válidos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.linhas.map((r) => (
+                        <tr
+                          key={r.id}
+                          className="border-b border-[#2a2418]/90 odd:bg-[#0c0b09]/50"
+                        >
+                          <td className="px-4 py-3 text-zinc-500">{r.posicao}</td>
+                          <td className="px-4 py-3 font-medium text-white">
+                            {r.nome}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-amber-400">
+                            {r.pontos}
+                          </td>
+                          <td className="px-4 py-3 text-right text-zinc-300">
+                            {r.acertosExatos}
+                          </td>
+                          <td className="px-4 py-3 text-right text-zinc-500">
+                            {r.palpitesValidos}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ) : (
+              <p className="mt-10 max-w-xl text-sm text-zinc-500">
+                Ainda não há participantes inscritos no bolão.
+              </p>
+            )}
+          </>
         )}
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
             href="/bolao"
-            className="inline-flex items-center justify-center rounded-lg border border-pitch-600 px-4 py-2.5 text-sm font-medium text-neutral-200 transition-colors hover:border-gold/40 hover:text-gold"
+            className="inline-flex items-center justify-center rounded-lg border border-[#3d3420] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-amber-500/40 hover:text-amber-300"
           >
             Bolão
           </Link>
           <Link
             href="/tips"
-            className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-pitch-950 transition-opacity hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2.5 text-sm font-semibold text-[#0a0a0a] transition-opacity hover:opacity-90"
           >
             Tips do dia
           </Link>
           <Link
             href="/analises"
-            className="inline-flex items-center justify-center rounded-lg border border-pitch-600 px-4 py-2.5 text-sm font-medium text-neutral-200 transition-colors hover:border-gold/40 hover:text-gold"
+            className="inline-flex items-center justify-center rounded-lg border border-[#3d3420] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-amber-500/40 hover:text-amber-300"
           >
             Análises
           </Link>
