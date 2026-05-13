@@ -105,7 +105,7 @@ export async function carregarResultadosSalvosBolao(): Promise<CarregarResultado
   const { data, error } = await admin
     .schema("public")
     .from("bolao_resultados_teste")
-    .select("jogo_id,placar_casa_real,placar_fora_real,status");
+    .select("*");
 
   if (error) {
     return {
