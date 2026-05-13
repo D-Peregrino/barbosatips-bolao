@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { mockTipsterGetByUsername, mockTipsterGetRanking } from "@/lib/mock-data";
 import type { TipsterPublico } from "@/types/database.types";
 
 export const tipsterService = {
 
   async getRanking(limit = 50): Promise<TipsterPublico[]> {
-    if (isSupabaseMock()) return mockTipsterGetRanking(limit);
+    if (shouldSkipLiveSupabase()) return mockTipsterGetRanking(limit);
 
     const supabase = createClient();
 
@@ -25,7 +25,7 @@ export const tipsterService = {
   },
 
   async getByUsername(username: string): Promise<TipsterPublico | null> {
-    if (isSupabaseMock()) return mockTipsterGetByUsername(username);
+    if (shouldSkipLiveSupabase()) return mockTipsterGetByUsername(username);
 
     const supabase = createClient();
 

@@ -234,7 +234,7 @@ export function Copa2026PalpiteCard({
               <p className="text-[9px] leading-snug text-zinc-500 lg:text-xs xl:text-sm">
                 <span className="text-zinc-500">Ranking FIFA</span>{" "}
                 <span className="font-mono font-bold tabular-nums text-yellow-400 lg:text-sm xl:text-base">
-                  #{mandante.rankingFifa}
+                  {mandante.rankingFifa != null ? `#${mandante.rankingFifa}` : "—"}
                 </span>
               </p>
             </div>
@@ -284,7 +284,7 @@ export function Copa2026PalpiteCard({
               <p className="text-[9px] leading-snug text-zinc-500 lg:text-xs xl:text-sm">
                 <span className="text-zinc-500">Ranking FIFA</span>{" "}
                 <span className="font-mono font-bold tabular-nums text-yellow-400 lg:text-sm xl:text-base">
-                  #{visitante.rankingFifa}
+                  {visitante.rankingFifa != null ? `#${visitante.rankingFifa}` : "—"}
                 </span>
               </p>
             </div>

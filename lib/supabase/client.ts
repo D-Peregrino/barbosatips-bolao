@@ -1,12 +1,12 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 let client: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createClient() {
-  if (isSupabaseMock()) {
+  if (shouldSkipLiveSupabase()) {
     throw new Error(
-      "Supabase desativado (modo demonstração). Não chame createClient() no cliente.",
+      "Supabase indisponível no cliente: verifique NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     );
   }
 

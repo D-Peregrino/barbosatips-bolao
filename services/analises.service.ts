@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import {
   mockAnalisesGetAll,
   mockAnalisesGetBySlug,
@@ -12,7 +12,7 @@ import { siteConfig } from "@/config/site";
 export const analisesService = {
 
   async getAll(filters: AnaliseFilters = {}): Promise<PaginatedResponse<AnaliseWithTipster>> {
-    if (isSupabaseMock()) return mockAnalisesGetAll(filters);
+    if (shouldSkipLiveSupabase()) return mockAnalisesGetAll(filters);
 
     const supabase = createClient();
     const {
@@ -59,7 +59,7 @@ export const analisesService = {
   },
 
   async getBySlug(slug: string): Promise<AnaliseWithTipster | null> {
-    if (isSupabaseMock()) return mockAnalisesGetBySlug(slug);
+    if (shouldSkipLiveSupabase()) return mockAnalisesGetBySlug(slug);
 
     const supabase = createClient();
 
@@ -91,7 +91,7 @@ export const analisesService = {
   },
 
   async getRelated(analise: AnaliseWithTipster, limit = 3): Promise<AnaliseWithTipster[]> {
-    if (isSupabaseMock()) return mockAnalisesGetRelated(analise, limit);
+    if (shouldSkipLiveSupabase()) return mockAnalisesGetRelated(analise, limit);
 
     const supabase = createClient();
 
@@ -116,7 +116,7 @@ export const analisesService = {
   },
 
   async getSlugsForStaticPaths(): Promise<string[]> {
-    if (isSupabaseMock()) return mockAnalisesGetSlugsForStaticPaths();
+    if (shouldSkipLiveSupabase()) return mockAnalisesGetSlugsForStaticPaths();
 
     const supabase = createClient();
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 export type InscreverBolaoResult =
   | { ok: true }
@@ -37,7 +37,7 @@ export async function inscreverBolaoCopa2026(
     return { ok: false, error: "Informe um e-mail válido." };
   }
 
-  if (isSupabaseMock()) {
+  if (shouldSkipLiveSupabase()) {
     return { ok: true };
   }
 

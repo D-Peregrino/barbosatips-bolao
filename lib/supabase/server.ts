@@ -1,11 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 export function createClient() {
-  if (isSupabaseMock()) {
+  if (shouldSkipLiveSupabase()) {
     throw new Error(
-      "Supabase desativado (modo demonstração). Os serviços usam dados mock em lib/mock-data.ts.",
+      "Supabase indisponível no servidor: credenciais ou URL não configuradas.",
     );
   }
 
@@ -35,8 +35,10 @@ export function createClient() {
 }
 
 export function createAdminClient() {
-  if (isSupabaseMock()) {
-    throw new Error("createAdminClient não está disponível em modo demonstração.");
+  if (shouldSkipLiveSupabase()) {
+    throw new Error(
+      "createAdminClient indisponível: credenciais Supabase não configuradas neste ambiente.",
+    );
   }
 
   return createServerClient(

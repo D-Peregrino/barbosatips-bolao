@@ -1,13 +1,14 @@
 /**
- * Modo mock explícito: `NEXT_PUBLIC_SUPABASE_MOCK=true`.
+ * Quando `NEXT_PUBLIC_SUPABASE_MOCK=true`, o backend Supabase ao vivo é ignorado
+ * (útil para desenvolvimento com dados estáticos).
  *
- * No **navegador**, não inferimos mock por falta de `NEXT_PUBLIC_SUPABASE_URL`
- * no bundle (build sem a var gera falso “mock” em produção). Quem valida
- * credenciais no bolão é a API / server actions.
+ * No **navegador**, não inferimos “sem URL” só por falta de `NEXT_PUBLIC_SUPABASE_URL`
+ * no bundle (build sem a variável não deve desativar o cliente em produção).
+ * Fluxos sensíveis (ex.: bolão) validam credenciais na API ou em server actions.
  *
- * No **servidor** (SSR, Server Actions, Route Handlers), mantém a inferência:
- * sem URL configurável ou sem chave utilizável → mock para fluxos que
- * precisam evitar chamadas reais em dev.
+ * No **servidor** (SSR, Server Actions, Route Handlers), sem URL configurável
+ * ou sem chave utilizável (anon ou service role) → considera-se backend ao vivo
+ * indisponível para evitar chamadas reais acidentais.
  */
 function env(name: "MOCK" | "URL" | "ANON"): string | undefined {
   const prefix = "NEXT_PUBLIC_SUPABASE_";
@@ -32,7 +33,7 @@ function supabaseUrl(): string | undefined {
   );
 }
 
-export function isSupabaseMock(): boolean {
+export function shouldSkipLiveSupabase(): boolean {
   if (env("MOCK") === "true") return true;
   if (env("MOCK") === "false") return false;
 

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import {
   mockTipsGetAll,
   mockTipsGetById,
@@ -17,7 +17,7 @@ export const tipsService = {
 
   // Buscar tips paginadas com filtros
   async getAll(filters: TipFilters = {}): Promise<PaginatedResponse<TipWithTipster>> {
-    if (isSupabaseMock()) return mockTipsGetAll(filters);
+    if (shouldSkipLiveSupabase()) return mockTipsGetAll(filters);
 
     const supabase = createClient();
     const {
@@ -66,7 +66,7 @@ export const tipsService = {
 
   // Buscar tips do dia
   async getTipsOfTheDay(): Promise<TipWithTipster[]> {
-    if (isSupabaseMock()) return mockTipsGetTipsOfTheDay();
+    if (shouldSkipLiveSupabase()) return mockTipsGetTipsOfTheDay();
 
     const supabase = createClient();
     const today    = new Date().toISOString().split("T")[0];
@@ -91,7 +91,7 @@ export const tipsService = {
 
   // Buscar tip por ID
   async getById(id: string): Promise<TipWithTipster | null> {
-    if (isSupabaseMock()) return mockTipsGetById(id);
+    if (shouldSkipLiveSupabase()) return mockTipsGetById(id);
 
     const supabase = createClient();
 
@@ -112,7 +112,7 @@ export const tipsService = {
 
   // Tips recentes de um tipster
   async getByTipster(tipsterId: string, limit = 10): Promise<TipWithTipster[]> {
-    if (isSupabaseMock()) return mockTipsGetByTipster(tipsterId, limit);
+    if (shouldSkipLiveSupabase()) return mockTipsGetByTipster(tipsterId, limit);
 
     const supabase = createClient();
 
@@ -135,7 +135,7 @@ export const tipsService = {
 
   // Tips para o sitemap
   async getIdsForSitemap(): Promise<{ id: string; updated_at: string }[]> {
-    if (isSupabaseMock()) return mockTipsGetIdsForSitemap();
+    if (shouldSkipLiveSupabase()) return mockTipsGetIdsForSitemap();
 
     const supabase = createClient();
 

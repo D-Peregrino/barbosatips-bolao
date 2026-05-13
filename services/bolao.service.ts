@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import {
   mockBolaoCreate,
   mockBolaoGetById,
@@ -14,7 +14,7 @@ import { generateInviteCode } from "@/lib/utils";
 export const bolaoService = {
 
   async getPublic(limit = 20): Promise<BolaoWithOwner[]> {
-    if (isSupabaseMock()) return mockBolaoGetPublic(limit);
+    if (shouldSkipLiveSupabase()) return mockBolaoGetPublic(limit);
 
     const supabase = createClient();
 
@@ -37,7 +37,7 @@ export const bolaoService = {
   },
 
   async getById(id: string): Promise<BolaoCompleto | null> {
-    if (isSupabaseMock()) return mockBolaoGetById(id);
+    if (shouldSkipLiveSupabase()) return mockBolaoGetById(id);
 
     const supabase = createClient();
 
@@ -69,7 +69,7 @@ export const bolaoService = {
   },
 
   async getByInviteCode(code: string): Promise<BolaoWithOwner | null> {
-    if (isSupabaseMock()) return mockBolaoGetByInviteCode(code);
+    if (shouldSkipLiveSupabase()) return mockBolaoGetByInviteCode(code);
 
     const supabase = createClient();
 
@@ -98,7 +98,7 @@ export const bolaoService = {
     max_members?: number;
     prize_desc?:  string;
   }): Promise<{ id: string } | null> {
-    if (isSupabaseMock()) return mockBolaoCreate(payload);
+    if (shouldSkipLiveSupabase()) return mockBolaoCreate(payload);
 
     const supabase = createClient();
 
@@ -119,7 +119,7 @@ export const bolaoService = {
     user_id:   string;
     palpites:  Record<string, string>;
   }): Promise<Palpite | null> {
-    if (isSupabaseMock()) return mockBolaoSubmitPalpite(payload);
+    if (shouldSkipLiveSupabase()) return mockBolaoSubmitPalpite(payload);
 
     const supabase = createClient();
 
@@ -154,7 +154,7 @@ export const bolaoService = {
   },
 
   async getUserBoloes(userId: string): Promise<BolaoWithOwner[]> {
-    if (isSupabaseMock()) return mockBolaoGetUserBoloes(userId);
+    if (shouldSkipLiveSupabase()) return mockBolaoGetUserBoloes(userId);
 
     const supabase = createClient();
 

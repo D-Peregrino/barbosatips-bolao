@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ApiResponse } from "@/types/database.types";
@@ -24,10 +24,11 @@ type CreateTipInput = z.infer<typeof CreateTipSchema>;
 export async function createTip(
   input: CreateTipInput,
 ): Promise<ApiResponse<{ id: string }>> {
-  if (isSupabaseMock()) {
+  if (shouldSkipLiveSupabase()) {
     return {
       data:    null,
-      error:   "Modo demonstração: Supabase não configurado. Publicação de tips desativada.",
+      error:
+        "Supabase não configurado neste ambiente. Publicação de tips indisponível.",
       success: false,
     };
   }

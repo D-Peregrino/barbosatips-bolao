@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     );
   }
 
-  /** Bloqueio por calendário (início oficial − 15 min), espelhando o mock Copa 2026. */
+  /** Bloqueio por calendário (início oficial − 15 min), alinhado ao fixture Copa 2026. */
   if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
     return NextResponse.json(
       { ok: false as const, error: MSG_PALPITES_ENCERRADOS_JOGO },

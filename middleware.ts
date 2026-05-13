@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/bolao/criar", "/admin"];
 
@@ -9,7 +9,7 @@ const ADMIN_ROUTES = ["/admin"];
 const AUTH_ROUTES = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
-  if (isSupabaseMock()) {
+  if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
 

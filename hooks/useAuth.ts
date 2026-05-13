@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { User } from "@supabase/supabase-js";
 import type { User as UserProfile } from "@/types/database.types";
 
@@ -17,15 +17,15 @@ interface AuthState {
 }
 
 export function useAuth(): AuthState {
-  const mock = useMemo(() => isSupabaseMock(), []);
+  const skipLive = useMemo(() => shouldSkipLiveSupabase(), []);
   const supabase = useMemo(
-    () => (mock ? null : createClient()),
-    [mock],
+    () => (skipLive ? null : createClient()),
+    [skipLive],
   );
 
   const [user, setUser]         = useState<User | null>(null);
   const [profile, setProfile]   = useState<UserProfile | null>(null);
-  const [loading, setLoading]   = useState(!mock);
+  const [loading, setLoading]   = useState(!skipLive);
 
   const fetchProfile = useCallback(
     async (userId: string) => {
@@ -41,7 +41,7 @@ export function useAuth(): AuthState {
   );
 
   useEffect(() => {
-    if (mock || !supabase) {
+    if (skipLive || !supabase) {
       setUser(null);
       setProfile(null);
       setLoading(false);
@@ -67,7 +67,7 @@ export function useAuth(): AuthState {
     );
 
     return () => subscription.unsubscribe();
-  }, [mock, supabase, fetchProfile]);
+  }, [skipLive, supabase, fetchProfile]);
 
   const signOut = useCallback(async () => {
     if (!supabase) return;

@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const MSG_EMAIL_NAO_ENCONTRADO = "E-mail não encontrado no bolão";
 const MSG_SENHA_INCORRETA = "Senha incorreta";
@@ -41,7 +41,7 @@ export async function loginBolaoParticipante(
     return { ok: false, error: "Informe a senha." };
   }
 
-  if (isSupabaseMock()) {
+  if (shouldSkipLiveSupabase()) {
     if (senhaNorm !== emailNorm) {
       return { ok: false, error: MSG_SENHA_INCORRETA };
     }
