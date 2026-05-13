@@ -366,58 +366,72 @@ export function AdminBolaoPanel() {
       setFeedbackOk(null);
       return;
     }
+
     const payload = {
-      jogoId,
-      placarCasaReal: c,
-      placarForaReal: f,
+      jogo_id: jogoId,
+      placar_casa_real: c,
+      placar_fora_real: f,
+      status: "finalizado" as const,
     };
-    console.log("SALVANDO RESULTADO", payload);
+    console.log("ANTES DO UPSERT", payload);
 
     setSalvandoResultadoId(jogoId);
     setFeedbackOk(null);
     setFeedbackErr(null);
 
     try {
-      const res = await salvarResultadoOficialBolao(payload);
+      const res = await salvarResultadoOficialBolao({
+        jogoId: payload.jogo_id,
+        placarCasaReal: payload.placar_casa_real,
+        placarForaReal: payload.placar_fora_real,
+      });
       if (!res.ok) {
-        console.error("ERRO AO SALVAR RESULTADO", res.error);
-        setFeedbackErr(res.error);
+        const err = new Error(res.error);
+        console.error("ERRO AO SALVAR RESULTADO", err);
+        setFeedbackErr(err.message);
         return;
       }
 
-      const linha: ResultadoRow = {
+      console.log("DEPOIS DO UPSERT", res.data);
+
+      const linhas = normalizarResultadoRows([res.data]);
+      const linha = linhas[0] ?? {
         jogo_id: jogoId,
         placar_casa_real: c,
         placar_fora_real: f,
       };
       setResultados((prev) => {
-        const rest = prev.filter((r) => r.jogo_id !== jogoId);
+        const rest = prev.filter((r) => r.jogo_id !== linha.jogo_id);
         return [...rest, linha];
       });
       setDrafts((prev) => ({
         ...prev,
         [jogoId]: {
           ...prev[jogoId],
-          placarCasa: String(c),
-          placarFora: String(f),
+          placarCasa: String(linha.placar_casa_real),
+          placarFora: String(linha.placar_fora_real),
         },
       }));
 
       const doServidor = await refetchResultados();
       if (!doServidor) {
         console.error(
-          "ERRO AO CARREGAR RESULTADOS",
+          "ERRO AO RECARREGAR RESULTADOS",
           new Error(
-            "Gravação ok, mas não foi possível recarregar public.bolao_resultados_teste; interface mantém o placar salvo localmente.",
+            "Gravação ok, mas o refetch de public.bolao_resultados_teste falhou; ranking usa dados retornados pelo upsert.",
           ),
         );
       }
 
       setFeedbackOk("Resultado salvo com sucesso");
       setFeedbackErr(null);
-    } catch (e) {
-      console.error("ERRO AO SALVAR RESULTADO", e);
-      setFeedbackErr(e instanceof Error ? e.message : "Falha ao salvar resultado.");
+    } catch (error) {
+      console.error("ERRO AO SALVAR RESULTADO", error);
+      setFeedbackErr(
+        error instanceof Error
+          ? error.message
+          : "Falha ao salvar resultado.",
+      );
     } finally {
       setSalvandoResultadoId(null);
     }
@@ -694,7 +708,10 @@ export function AdminBolaoPanel() {
                           <button
                             type="button"
                             disabled={linhaOcupada}
-                            onClick={() => void handleSalvarResultado(j.id)}
+                            onClick={() => {
+                              console.log("CLICOU SALVAR RESULTADO", j.id);
+                              void handleSalvarResultado(j.id);
+                            }}
                             className="rounded-lg bg-gradient-to-r from-[#b8860b] to-[#d4af37] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a0a0a] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                           >
                             {salvandoResultadoId === j.id

@@ -43,11 +43,19 @@ async function guardAdminBolao(): Promise<
   return { ok: true };
 }
 
+export type SalvarResultadoBolaoResponse =
+  | { ok: true; data: Record<string, unknown> }
+  | { ok: false; error: string };
+
+/**
+ * Upsert em `public.bolao_resultados_teste` (PK / conflito: `jogo_id`).
+ * Retorna a linha gravada via `.select().single()`.
+ */
 export async function salvarResultadoOficialBolao(input: {
   jogoId: string;
   placarCasaReal: number;
   placarForaReal: number;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<SalvarResultadoBolaoResponse> {
   const g = await guardAdminBolao();
   if (!g.ok) return g;
 
@@ -73,35 +81,53 @@ export async function salvarResultadoOficialBolao(input: {
     };
   }
 
+  /** Campos alinhados a `public.bolao_resultados_teste` (placares SMALLINT / inteiros). */
   const payload = {
     jogo_id: jogoId,
-    placar_casa_real: placarCasaReal,
-    placar_fora_real: placarForaReal,
+    placar_casa_real: placarCasaReal as number,
+    placar_fora_real: placarForaReal as number,
     status: "finalizado" as const,
     updated_at: new Date().toISOString(),
   };
 
-  console.log("SALVANDO RESULTADO", payload);
+  try {
+    console.log("ANTES DO UPSERT", payload);
 
-  const { error } = await admin
-    .from("bolao_resultados_teste")
-    .upsert(payload, { onConflict: "jogo_id" });
+    const { data, error } = await admin
+      .schema("public")
+      .from("bolao_resultados_teste")
+      .upsert(payload, {
+        onConflict: "jogo_id",
+      })
+      .select()
+      .single();
 
-  if (error) {
+    console.log("DEPOIS DO UPSERT", data);
+
+    if (error) {
+      console.error("ERRO AO SALVAR RESULTADO", error);
+      return {
+        ok: false,
+        error: error.message || "Falha ao gravar resultado no Supabase.",
+      };
+    }
+
+    return { ok: true, data: (data ?? {}) as Record<string, unknown> };
+  } catch (error) {
     console.error("ERRO AO SALVAR RESULTADO", error);
+    const message =
+      error instanceof Error ? error.message : String(error);
     return {
       ok: false,
-      error: error.message || "Falha ao gravar resultado no Supabase.",
+      error: message || "Erro inesperado ao salvar resultado.",
     };
   }
-
-  return { ok: true };
 }
 
 /** Alias compatível com código legado / referências. */
 export async function salvarResultadoTesteBolao(
   input: Parameters<typeof salvarResultadoOficialBolao>[0],
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<SalvarResultadoBolaoResponse> {
   return salvarResultadoOficialBolao(input);
 }
 
