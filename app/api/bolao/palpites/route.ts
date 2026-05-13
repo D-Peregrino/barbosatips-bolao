@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { MSG_PALPITES_ENCERRADOS_JOGO } from "@/app/bolao/palpites/utils";
 import { salvarPalpitesBolaoWithClient } from "@/lib/bolao/palpites-supabase-core";
+import {
+  COPA2026_DEV_PALPITE_BLOQUEIO_ID,
+  copa2026DevPalpiteBloqueioAtivo,
+  copa2026PalpitesAbertosParaJogo,
+} from "@/lib/mocks/copa2026-groupstage.mock";
 
 type PlacaresBody = Record<string, { casa: string; fora: string }>;
 
@@ -51,6 +57,27 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false as const, error: "Identificador do jogo ausente." },
       { status: 400 },
+    );
+  }
+
+  if (
+    copa2026DevPalpiteBloqueioAtivo() &&
+    jogoId === COPA2026_DEV_PALPITE_BLOQUEIO_ID
+  ) {
+    return NextResponse.json(
+      {
+        ok: false as const,
+        error: "Jogo de simulação local — não é persistido no banco.",
+      },
+      { status: 400 },
+    );
+  }
+
+  /** Bloqueio por calendário (início oficial − 15 min), espelhando o mock Copa 2026. */
+  if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
+    return NextResponse.json(
+      { ok: false as const, error: MSG_PALPITES_ENCERRADOS_JOGO },
+      { status: 403 },
     );
   }
 

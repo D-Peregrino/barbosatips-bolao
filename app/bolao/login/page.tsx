@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { loginBolaoParticipante } from "@/app/bolao/login/actions";
@@ -69,9 +68,19 @@ export default function BolaoLoginPage() {
           </span>
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-          Use o mesmo e-mail da inscrição. Por enquanto, a senha é o próprio e-mail (tudo em
-          minúsculas após salvar).
+          Digite o e-mail cadastrado no bolão e sua senha.
         </p>
+
+        <div
+          className="mt-4 rounded-xl border border-amber-500/35 bg-amber-950/25 px-4 py-3 text-sm text-amber-100/95"
+          role="note"
+        >
+          <p className="font-semibold text-amber-200">Aviso</p>
+          <p className="mt-1 leading-relaxed text-amber-100/90">
+            Por enquanto, sua senha é seu próprio e-mail (tudo em minúsculas, igual ao
+            cadastro).
+          </p>
+        </div>
 
         <section className="mt-8 rounded-2xl border border-[#3d3420]/90 bg-[#0c0b09]/90 p-5 shadow-[0_24px_80px_-32px_rgba(212,175,55,.35)] backdrop-blur-sm sm:p-8">
           <div className="mb-6 flex items-center gap-3">
@@ -142,14 +151,32 @@ export default function BolaoLoginPage() {
 
           <p className="mt-6 text-center text-xs text-zinc-500">
             Ainda não se inscreveu?{" "}
-            <Link
+            <a
               href="/bolao"
               className="font-semibold text-[#C9A227] underline-offset-4 hover:underline"
             >
               Voltar à inscrição
-            </Link>
+            </a>
           </p>
         </section>
+
+        <p className="mt-8 text-center text-[11px] text-zinc-600">
+          <a
+            href="/bolao"
+            className="text-zinc-500 underline-offset-2 hover:text-zinc-400 hover:underline"
+          >
+            Fazer inscrição
+          </a>
+          <span className="mx-2 text-zinc-700" aria-hidden>
+            ·
+          </span>
+          <a
+            href="/bolao/login"
+            className="text-zinc-500 underline-offset-2 hover:text-zinc-400 hover:underline"
+          >
+            Entrar
+          </a>
+        </p>
       </main>
     </div>
   );

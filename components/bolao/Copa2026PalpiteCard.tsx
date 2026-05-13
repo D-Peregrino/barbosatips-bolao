@@ -27,7 +27,7 @@ function badgePalpitesPrazo(encerrado: boolean) {
   const base =
     "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider lg:px-2 lg:py-1 lg:text-[10px]";
   if (encerrado) {
-    return `${base} bg-zinc-700/40 text-zinc-400 ring-1 ring-zinc-600/50`;
+    return `${base} bg-red-950/70 text-red-200 ring-1 ring-red-500/55`;
   }
   return `${base} bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30`;
 }
@@ -57,8 +57,6 @@ export interface Copa2026PalpiteCardProps {
   onSalvarPalpite: (jogo: JogoCopa2026Resolvido) => void;
   salvoFlash: boolean;
   bloquearEdicao?: boolean;
-  /** Em /bolao/palpites: o botão Salvar só fica indisponível enquanto grava; prazo/API validam. */
-  ignorarPrazoNoBotaoSalvar?: boolean;
   salvandoPalpite?: boolean;
   prazoPalpites?: {
     encerrado: boolean;
@@ -106,7 +104,6 @@ export function Copa2026PalpiteCard({
   onSalvarPalpite,
   salvoFlash,
   bloquearEdicao,
-  ignorarPrazoNoBotaoSalvar,
   salvandoPalpite,
   prazoPalpites,
   palpiteSalvoNoServidor,
@@ -132,12 +129,11 @@ export function Copa2026PalpiteCard({
     Boolean(bloquearEdicao) ||
     palpitesFechadosPorPrazo ||
     (!usaPrazoReal && status === "encerrado");
-  /** Botão salvar: por padrão respeita prazo/status; em palpites só bloqueia durante salvamento. */
-  const salvarDesabilitado = ignorarPrazoNoBotaoSalvar
-    ? Boolean(salvandoPalpite)
-    : palpitesFechadosPorPrazo ||
-      (!usaPrazoReal && status === "encerrado") ||
-      Boolean(salvandoPalpite);
+  const salvarDesabilitado =
+    Boolean(bloquearEdicao) ||
+    palpitesFechadosPorPrazo ||
+    (!usaPrazoReal && status === "encerrado") ||
+    Boolean(salvandoPalpite);
 
   const faixa = faixaPontuacao(pontuacaoBolao);
 
@@ -164,7 +160,14 @@ export function Copa2026PalpiteCard({
         <div className="flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           {usaPrazoReal ? (
             <>
-              <span className={badgePalpitesPrazo(prazoPalpites!.encerrado)}>
+              <span
+                className={badgePalpitesPrazo(prazoPalpites!.encerrado)}
+                title={
+                  prazoPalpites!.encerrado
+                    ? "Palpites encerrados 15 minutos antes do apito inicial."
+                    : undefined
+                }
+              >
                 {prazoPalpites!.encerrado ? "Palpites encerrados" : "Aberto"}
               </span>
               {!prazoPalpites!.encerrado && prazoPalpites!.tempoRestante ? (

@@ -65,7 +65,16 @@ export function copa2026SelecaoPorId(id: string): SelecaoCopa2026Mock {
  * Jogos divulgados pela FIFA (imprensa oficial, 06/12/2025).
  * CAN–GAL: o anfitrião enfrenta o vencedor da repescagem UEFA (Itália, Irlanda do Norte,
  * País de Gales ou Bósnia); aqui usamos Gales como representante do chaveamento.
+ *
+ * Em `NODE_ENV === "development"`, um jogo fictício é injetado em `copa2026JogosResolvidos`
+ * (id `COPA2026_DEV_PALPITE_BLOQUEIO_ID`, fora de `COPA2026_JOGO_IDS` — não persiste no Supabase).
  */
+export const COPA2026_DEV_PALPITE_BLOQUEIO_ID = "__dev_palpites_bloqueio__";
+
+export function copa2026DevPalpiteBloqueioAtivo(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
 export const COPA2026_JOGOS: JogoCopa2026Mock[] = [
   {
     id: "wc-2026-001",
@@ -165,6 +174,18 @@ export const COPA2026_JOGO_IDS: ReadonlySet<string> = new Set(
   COPA2026_JOGOS.map((j) => j.id),
 );
 
+/** Chaves iniciais de placares (inclui jogo dev só em desenvolvimento). */
+export function copa2026PlacaresIniciaisVazios(): Record<
+  string,
+  { casa: string; fora: string }
+> {
+  const ids = COPA2026_JOGOS.map((j) => j.id);
+  const ordered = copa2026DevPalpiteBloqueioAtivo()
+    ? [COPA2026_DEV_PALPITE_BLOQUEIO_ID, ...ids]
+    : ids;
+  return Object.fromEntries(ordered.map((id) => [id, { casa: "", fora: "" }]));
+}
+
 /** Antecedência para fechamento dos palpites em relação ao apito inicial (15 min). */
 export const COPA2026_ANTECEDENCIA_PALPITES_MS = 15 * 60 * 1000;
 
@@ -172,6 +193,9 @@ const jogoPorId = new Map(COPA2026_JOGOS.map((j) => [j.id, j]));
 
 /** Instantâneo (epoch ms) em que os palpites fecham para o jogo (início − 15 min). */
 export function copa2026InstanteFechamentoPalpitesMs(jogoId: string): number | null {
+  if (copa2026DevPalpiteBloqueioAtivo() && jogoId === COPA2026_DEV_PALPITE_BLOQUEIO_ID) {
+    return Date.UTC(1999, 5, 1, 12, 0, 0, 0);
+  }
   const j = jogoPorId.get(jogoId);
   if (!j?.inicioPartidaISO) return null;
   const kick = Date.parse(j.inicioPartidaISO);
@@ -251,12 +275,44 @@ export interface JogoCopa2026Resolvido extends JogoCopa2026Mock {
   visitante: SelecaoCopa2026Mock;
 }
 
+function copa2026JogoDevBloqueioResolvido(): JogoCopa2026Resolvido {
+  const mandante: SelecaoCopa2026Mock = {
+    id: "__dev_blq__",
+    nome: "Teste Bloqueado",
+    bandeira: "🧪",
+    rankingFifa: 999,
+  };
+  const visitante: SelecaoCopa2026Mock = {
+    id: "__dev_enc__",
+    nome: "Teste Encerrado",
+    bandeira: "🧪",
+    rankingFifa: 998,
+  };
+  return {
+    id: COPA2026_DEV_PALPITE_BLOQUEIO_ID,
+    grupo: "DEV",
+    dataISO: "2000-01-01",
+    horario: "12:00",
+    inicioPartidaISO: "2000-01-01T12:00:00.000Z",
+    estadio: "Simulação local (não grava no banco)",
+    cidade: "Desenvolvimento",
+    mandanteId: mandante.id,
+    visitanteId: visitante.id,
+    mandante,
+    visitante,
+    status: "encerrado",
+    resultadoOficial: null,
+  };
+}
+
 export function copa2026JogosResolvidos(): JogoCopa2026Resolvido[] {
-  return COPA2026_JOGOS.map((j) => ({
+  const base = COPA2026_JOGOS.map((j) => ({
     ...j,
     mandante: copa2026SelecaoPorId(j.mandanteId),
     visitante: copa2026SelecaoPorId(j.visitanteId),
   }));
+  if (!copa2026DevPalpiteBloqueioAtivo()) return base;
+  return [copa2026JogoDevBloqueioResolvido(), ...base];
 }
 
 export function copa2026JogosPorGrupo(): { grupo: string; jogos: JogoCopa2026Resolvido[] }[] {
@@ -268,7 +324,11 @@ export function copa2026JogosPorGrupo(): { grupo: string; jogos: JogoCopa2026Res
     map.get(g)!.push(j);
   }
   return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b, "en", { numeric: true }))
+    .sort(([a], [b]) => {
+      if (a === "DEV") return -1;
+      if (b === "DEV") return 1;
+      return a.localeCompare(b, "en", { numeric: true });
+    })
     .map(([grupo, jogos]) => ({ grupo, jogos }));
 }
 

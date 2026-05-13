@@ -1,5 +1,5 @@
-export const MSG_PALPITES_ENCERRADOS_JOGO =
-  "Palpites encerrados para este jogo.";
+/** Mensagem alinhada ao selo na UI e às respostas da API quando o prazo (início − 15 min) passou. */
+export const MSG_PALPITES_ENCERRADOS_JOGO = "Palpites encerrados";
 
 export type VerificarPalpitesBolaoResult =
   | {

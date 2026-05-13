@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   salvarPalpitesBolao,
@@ -12,15 +11,19 @@ import {
   Copa2026PalpiteCard,
   type PontuacaoPalpiteCard,
 } from "@/components/bolao/Copa2026PalpiteCard";
+import { BolaoSessaoRecoveryPanel } from "@/components/bolao/BolaoSessaoRecoveryPanel";
 import { Copa2026PalpitesSidebar } from "@/components/bolao/Copa2026PalpitesSidebar";
 import {
+  COPA2026_DEV_PALPITE_BLOQUEIO_ID,
   COPA2026_JOGOS,
   COPA2026_PALPITES_STORAGE_KEY,
   type Copa2026PalpitesPersistidos,
   type JogoCopa2026Resolvido,
+  copa2026DevPalpiteBloqueioAtivo,
   copa2026JogosPorGrupo,
   copa2026PalpitesAbertosParaJogo,
   copa2026PalpitesTextoTempoRestante,
+  copa2026PlacaresIniciaisVazios,
   copa2026PontuacaoPalpite,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import { isSupabaseMock } from "@/lib/supabase/is-mock";
@@ -61,9 +64,7 @@ function placarFormularioCompleto(p: { casa: string; fora: string }): boolean {
 }
 
 function placaresIniciais(): Record<string, { casa: string; fora: string }> {
-  return Object.fromEntries(
-    COPA2026_JOGOS.map((j) => [j.id, { casa: "", fora: "" }]),
-  );
+  return copa2026PlacaresIniciaisVazios();
 }
 
 function mapPalpiteSalvoServidor(
@@ -129,16 +130,22 @@ function lerParticipanteLocal(): BolaoParticipanteLocal | null {
   }
 }
 
+type SessaoBolao = "checking" | "sem_sessao" | "logado";
+
 export default function BolaoPalpitesPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const usarSupabase = useMemo(() => !isSupabaseMock(), []);
 
-  const [authGate, setAuthGate] = useState<"checking" | "ok" | "redirect">(
-    "checking",
-  );
+  const [sessaoBolao, setSessaoBolao] = useState<SessaoBolao>("checking");
+  const sessaoBolaoRef = useRef<SessaoBolao>("checking");
 
   const [participante, setParticipante] =
     useState<BolaoParticipanteLocal | null>(null);
+
+  useEffect(() => {
+    sessaoBolaoRef.current = sessaoBolao;
+  }, [sessaoBolao]);
 
   const [placares, setPlacares] = useState<
     Record<string, { casa: string; fora: string }>
@@ -192,17 +199,63 @@ export default function BolaoPalpitesPage() {
     const p = lerParticipanteLocal();
 
     if (!p) {
-      setAuthGate("redirect");
-      router.replace("/bolao/login");
+      setParticipante(null);
+      setSessaoBolao("sem_sessao");
       return;
     }
 
     setParticipante(p);
-    setAuthGate("ok");
-  }, [router]);
+    setSessaoBolao("logado");
+  }, []);
 
   useEffect(() => {
-    if (authGate !== "ok" || !participante) return;
+    if (sessaoBolao !== "sem_sessao") return;
+    if (!pathname?.startsWith("/bolao/palpites")) return;
+    router.replace("/bolao/login");
+  }, [sessaoBolao, pathname, router]);
+
+  useEffect(() => {
+    function sincronizarParticipanteComArmazenamento() {
+      const p = lerParticipanteLocal();
+      const atual = sessaoBolaoRef.current;
+
+      if (!p) {
+        if (atual === "logado") {
+          setParticipante(null);
+          setSessaoBolao("sem_sessao");
+          if (pathname?.startsWith("/bolao/palpites")) {
+            router.replace("/bolao/login");
+          }
+        }
+        return;
+      }
+
+      if (atual === "sem_sessao") {
+        setParticipante(p);
+        setSessaoBolao("logado");
+      }
+    }
+
+    window.addEventListener("focus", sincronizarParticipanteComArmazenamento);
+    window.addEventListener(
+      "storage",
+      sincronizarParticipanteComArmazenamento,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        sincronizarParticipanteComArmazenamento,
+      );
+      window.removeEventListener(
+        "storage",
+        sincronizarParticipanteComArmazenamento,
+      );
+    };
+  }, [pathname, router]);
+
+  useEffect(() => {
+    if (sessaoBolao !== "logado" || !participante) return;
 
     const emailBolao = participante.email;
     let cancelado = false;
@@ -287,7 +340,7 @@ export default function BolaoPalpitesPage() {
     return () => {
       cancelado = true;
     };
-  }, [authGate, participante, usarSupabase]);
+  }, [sessaoBolao, participante, usarSupabase]);
 
   const persistirLocal = useCallback(
     (
@@ -370,6 +423,8 @@ export default function BolaoPalpitesPage() {
       // ignore
     }
 
+    setParticipante(null);
+    setSessaoBolao("sem_sessao");
     router.replace("/bolao/login");
   }
 
@@ -378,6 +433,26 @@ export default function BolaoPalpitesPage() {
       console.log("CLICOU SALVAR PALPITE", jogo.id);
 
       const jogoId = String(jogo?.id ?? "");
+
+      if (
+        copa2026DevPalpiteBloqueioAtivo() &&
+        jogoId === COPA2026_DEV_PALPITE_BLOQUEIO_ID
+      ) {
+        return;
+      }
+
+      if (confirmado) {
+        setErro(
+          "Os palpites já foram confirmados e não podem mais ser alterados.",
+        );
+        return;
+      }
+
+      if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
+        setErro(MSG_PALPITES_ENCERRADOS_JOGO);
+        return;
+      }
+
       setSucessoSalvos(false);
       setPalpiteSalvoDbMsg("");
       setSalvandoJogoId(jogoId);
@@ -580,11 +655,47 @@ export default function BolaoPalpitesPage() {
     usarSupabase,
   ]);
 
-  if (authGate === "checking" || authGate === "redirect") {
+  if (sessaoBolao === "checking") {
     return (
       <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center text-sm text-zinc-500">
-          Carregando…
+        <div className="mx-auto max-w-5xl px-4 py-10 text-center sm:px-6">
+          <p className="text-sm text-zinc-500">Carregando…</p>
+          <BolaoSessaoRecoveryPanel
+            mensagem="Atalhos"
+            detalhe="Se os dados do navegador foram limpos, use as opções abaixo."
+          />
+          <p className="mt-6 text-sm">
+            <a
+              href="/bolao"
+              className="font-semibold text-[#C9A227] underline-offset-4 hover:underline"
+            >
+              Ainda não sou inscrito
+            </a>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessaoBolao === "sem_sessao") {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-black pb-10 pt-2 text-zinc-200">
+        <div className="mx-auto max-w-5xl px-4 py-10 text-center sm:px-6">
+          <p className="text-sm text-zinc-400">
+            Redirecionando para o login do bolão…
+          </p>
+          <BolaoSessaoRecoveryPanel
+            mensagem="Não encontramos sua sessão neste dispositivo"
+            detalhe="Você também pode seguir pelos botões abaixo."
+          />
+          <p className="mt-6 text-sm">
+            <a
+              href="/bolao"
+              className="font-semibold text-[#C9A227] underline-offset-4 hover:underline"
+            >
+              Ainda não sou inscrito
+            </a>
+          </p>
         </div>
       </div>
     );
@@ -608,12 +719,12 @@ export default function BolaoPalpitesPage() {
                 </p>
               </header>
 
-              <Link
+              <a
                 href="/bolao"
                 className="shrink-0 rounded border border-zinc-800 bg-[#111] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400 hover:border-yellow-600/50 hover:text-yellow-500"
               >
-                Voltar
-              </Link>
+                Voltar à inscrição
+              </a>
             </div>
 
             {participante ? (
@@ -746,9 +857,8 @@ export default function BolaoPalpitesPage() {
                                 );
                               });
                             }}
-                            ignorarPrazoNoBotaoSalvar
                             salvoFlash={Boolean(salvoFlash[jogo.id])}
-                            bloquearEdicao={false}
+                            bloquearEdicao={confirmado}
                             salvandoPalpite={salvandoJogoId === jogo.id}
                             prazoPalpites={{
                               encerrado: !aberto,
@@ -776,7 +886,7 @@ export default function BolaoPalpitesPage() {
                 <div className="mt-4 border-t-2 border-yellow-500/40 pt-3">
                   <button
                     type="button"
-                    disabled={!hydrated || confirmandoTodos}
+                    disabled={!hydrated || confirmandoTodos || confirmado}
                     onClick={() => void confirmarTodos()}
                     className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
                   >
