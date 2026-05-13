@@ -250,3 +250,38 @@ export async function salvarJogoOverrideAdmin(input: {
 
   return { ok: true };
 }
+
+/**
+ * Marca a inscrição como paga (confirmação manual após pagamento Mercado Pago ou equivalente).
+ */
+export async function marcarParticipanteBolaoPago(input: {
+  inscricaoId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const g = await guardAdminBolao();
+  if (!g.ok) return g;
+
+  const inscricaoId = String(input.inscricaoId ?? "").trim();
+  if (!inscricaoId) {
+    return { ok: false, error: "Identificador da inscrição ausente." };
+  }
+
+  const admin = createServiceClient();
+  if (!admin) {
+    return {
+      ok: false,
+      error:
+        "Servidor sem credenciais Supabase (URL ou SUPABASE_SERVICE_ROLE_KEY).",
+    };
+  }
+
+  const { error } = await admin
+    .from("inscricoes_bolao")
+    .update({ pago: true })
+    .eq("id", inscricaoId);
+
+  if (error) {
+    return { ok: false, error: error.message || "Falha ao atualizar inscrição." };
+  }
+
+  return { ok: true };
+}

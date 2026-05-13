@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import {
   carregarResultadosSalvosBolao,
+  marcarParticipanteBolaoPago,
   salvarJogoOverrideAdmin,
   salvarResultadoOficialBolao,
   type BolaoResultadoOficialRow,
@@ -25,6 +26,7 @@ type Inscrito = {
   id: string;
   nome: string;
   email: string;
+  pago: boolean;
 };
 
 type PalpiteBolaoRow = {
@@ -174,6 +176,7 @@ export function AdminBolaoPanel({
   /** Só a linha em gravação fica “travada”; evita painel inteiro escuro. */
   const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
   const [salvandoResultadoId, setSalvandoResultadoId] = useState<string | null>(null);
+  const [salvandoPagoId, setSalvandoPagoId] = useState<string | null>(null);
   const [feedbackOk, setFeedbackOk] = useState<string | null>(null);
   const [feedbackErr, setFeedbackErr] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -259,7 +262,7 @@ export function AdminBolaoPanel({
     const [insRes, palRes] = await Promise.all([
       sb
         .from("inscricoes_bolao")
-        .select("id,nome,email")
+        .select("id,nome,email,pago")
         .order("created_at", { ascending: false }),
       sb
         .from("palpites_bolao")
@@ -283,6 +286,7 @@ export function AdminBolaoPanel({
       id: String(r.id),
       nome: String(r.nome ?? "").trim() || "—",
       email: String(r.email ?? "").trim() || "—",
+      pago: (r as { pago?: unknown }).pago === true,
     }));
     const palRows = (palRes.data ?? []) as Record<string, unknown>[];
     setInscritos(inscritosNext);
@@ -305,7 +309,7 @@ export function AdminBolaoPanel({
     const [insRes, palRes, ovRes] = await Promise.all([
       sb
         .from("inscricoes_bolao")
-        .select("id,nome,email")
+        .select("id,nome,email,pago")
         .order("created_at", { ascending: false }),
       sb
         .from("palpites_bolao")
@@ -336,6 +340,7 @@ export function AdminBolaoPanel({
       id: String(r.id),
       nome: String(r.nome ?? "").trim() || "—",
       email: String(r.email ?? "").trim() || "—",
+      pago: (r as { pago?: unknown }).pago === true,
     }));
 
     const palRows = (palRes.data ?? []) as Record<string, unknown>[];
@@ -419,6 +424,28 @@ export function AdminBolaoPanel({
 
     return rows.map((r, i) => ({ ...r, posicao: i + 1 }));
   }, [inscritos, palpites, resultadoMap, totalPalpitesPorInscricao]);
+
+  async function handleMarcarPagoInscricao(inscricaoId: string) {
+    setSalvandoPagoId(inscricaoId);
+    setFeedbackOk(null);
+    setFeedbackErr(null);
+    try {
+      const res = await marcarParticipanteBolaoPago({ inscricaoId });
+      if (!res.ok) {
+        setFeedbackErr(res.error);
+        return;
+      }
+      setFeedbackOk("Inscrição marcada como paga.");
+      await reload();
+    } catch (error) {
+      console.error(error);
+      setFeedbackErr(
+        error instanceof Error ? error.message : "Falha ao marcar como pago.",
+      );
+    } finally {
+      setSalvandoPagoId(null);
+    }
+  }
 
   async function handleSalvarJogo(jogoId: string) {
     const d = drafts[jogoId];
@@ -635,6 +662,60 @@ export function AdminBolaoPanel({
           com placar oficial em{" "}
           <code className="text-[#C9A227]/80">bolao_resultados_teste</code>.
         </p>
+
+        <section className="mt-10">
+          <h2 className="font-serif text-xl font-bold text-white">
+            Inscrições e pagamento
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Após confirmar o pagamento (ex.: Mercado Pago), marque o participante como
+            pago para liberar o salvamento de palpites.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-[#3d3420]/90">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="bg-[#14120e] text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">E-mail</th>
+                  <th className="px-4 py-3">Pagamento</th>
+                  <th className="px-4 py-3 w-[160px]">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inscritos.map((ins) => (
+                  <tr
+                    key={ins.id}
+                    className="border-t border-[#2a2418]/90 odd:bg-[#0c0b09]/50"
+                  >
+                    <td className="px-4 py-3 font-medium text-white">{ins.nome}</td>
+                    <td className="px-4 py-3 text-zinc-400">{ins.email}</td>
+                    <td className="px-4 py-3 text-zinc-300">
+                      {ins.pago ? (
+                        <span className="text-emerald-400">Pago</span>
+                      ) : (
+                        <span className="text-amber-300">Pendente</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {!ins.pago ? (
+                        <button
+                          type="button"
+                          disabled={salvandoPagoId === ins.id}
+                          onClick={() => void handleMarcarPagoInscricao(ins.id)}
+                          className="rounded-lg border border-[#C9A227]/50 bg-[#1a1810] px-3 py-1.5 text-xs font-semibold text-[#E8D48B] transition hover:bg-[#2a2418]/80 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {salvandoPagoId === ins.id ? "Salvando…" : "Marcar pago"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-zinc-600">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <section className="mt-10">
           <h2 className="font-serif text-xl font-bold text-white">Ranking</h2>

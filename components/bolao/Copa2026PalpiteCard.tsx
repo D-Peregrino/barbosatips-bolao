@@ -57,6 +57,8 @@ export interface Copa2026PalpiteCardProps {
   onSalvarPalpite: (jogo: JogoCopa2026Resolvido) => void;
   salvoFlash: boolean;
   bloquearEdicao?: boolean;
+  /** Inscrição sem pagamento confirmado: desabilita apenas o botão Salvar. */
+  pagamentoPendente?: boolean;
   salvandoPalpite?: boolean;
   prazoPalpites?: {
     encerrado: boolean;
@@ -104,6 +106,7 @@ export function Copa2026PalpiteCard({
   onSalvarPalpite,
   salvoFlash,
   bloquearEdicao,
+  pagamentoPendente,
   salvandoPalpite,
   prazoPalpites,
   palpiteSalvoNoServidor,
@@ -133,7 +136,8 @@ export function Copa2026PalpiteCard({
     Boolean(bloquearEdicao) ||
     palpitesFechadosPorPrazo ||
     (!usaPrazoReal && status === "encerrado") ||
-    Boolean(salvandoPalpite);
+    Boolean(salvandoPalpite) ||
+    Boolean(pagamentoPendente);
 
   const faixa = faixaPontuacao(pontuacaoBolao);
 

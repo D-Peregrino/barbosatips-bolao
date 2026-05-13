@@ -8,7 +8,7 @@ const MSG_EMAIL_NAO_ENCONTRADO = "E-mail não encontrado no bolão";
 const MSG_SENHA_INCORRETA = "Senha incorreta";
 
 export type LoginBolaoResult =
-  | { ok: true; inscricao_id: string; nome: string; email: string }
+  | { ok: true; inscricao_id: string; nome: string; email: string; pago: boolean }
   | { ok: false; error: string };
 
 function normalizarEmail(email: string): string {
@@ -51,6 +51,8 @@ export async function loginBolaoParticipante(
       inscricao_id: randomUUID(),
       nome: apelido,
       email: emailNorm,
+      /** Modo mock: libera palpites sem depender do painel admin. */
+      pago: true,
     };
   }
 
@@ -66,7 +68,7 @@ export async function loginBolaoParticipante(
   try {
     const { data: row, error } = await admin
       .from("inscricoes_bolao")
-      .select("id, nome, email")
+      .select("id, nome, email, pago")
       .eq("email", emailNorm)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -86,11 +88,13 @@ export async function loginBolaoParticipante(
     }
 
     const nome = String(row.nome ?? "").trim() || emailNorm.split("@")[0] || "Participante";
+    const pago = (row as { pago?: unknown }).pago === true;
     return {
       ok: true,
       inscricao_id: String(row.id),
       nome,
       email: String(row.email).trim().toLowerCase(),
+      pago,
     };
   } catch (e) {
     console.error(e);

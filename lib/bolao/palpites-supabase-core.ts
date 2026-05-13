@@ -8,6 +8,7 @@ import {
   copa2026PalpitesAbertosParaJogo,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import {
+  MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO,
   MSG_PALPITES_ENCERRADOS_JOGO,
   type SalvarPalpitesBolaoResult,
   type VerificarPalpitesBolaoResult,
@@ -132,7 +133,7 @@ async function validarInscricaoIdParaEmail(
   inscricaoId: string,
   emailNorm: string,
 ): Promise<
-  | { ok: true; id: string; palpites_confirmados_at: string | null }
+  | { ok: true; id: string; palpites_confirmados_at: string | null; pago: boolean }
   | { ok: false; error: string }
 > {
   const idTrim = inscricaoId.trim();
@@ -142,7 +143,7 @@ async function validarInscricaoIdParaEmail(
 
   const { data: insc, error: errInsc } = await admin
     .from("inscricoes_bolao")
-    .select("id, email, palpites_confirmados_at")
+    .select("id, email, palpites_confirmados_at, pago")
     .eq("id", idTrim)
     .maybeSingle();
 
@@ -165,11 +166,15 @@ async function validarInscricaoIdParaEmail(
     };
   }
 
+  const pagoRaw = (insc as { pago?: unknown }).pago;
+  const pago = pagoRaw === true;
+
   return {
     ok: true,
     id: String(insc.id),
     palpites_confirmados_at: (insc as { palpites_confirmados_at?: string | null })
       .palpites_confirmados_at ?? null,
+    pago,
   };
 }
 
@@ -218,6 +223,7 @@ export async function verificarECarregarPalpitesBolaoWithClient(
       ok: true,
       placares,
       confirmado: Boolean(inscRes.palpites_confirmados_at),
+      pago: inscRes.pago,
       palpitePersistidoPorJogo,
     };
   } catch (e) {
@@ -261,6 +267,13 @@ export async function salvarPalpitesBolaoWithClient(
       return {
         ok: false,
         error: "Os palpites já foram confirmados e não podem mais ser alterados.",
+      };
+    }
+
+    if (!inscRes.pago) {
+      return {
+        ok: false,
+        error: `${MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO} Não é possível salvar palpites até o pagamento ser confirmado.`,
       };
     }
 

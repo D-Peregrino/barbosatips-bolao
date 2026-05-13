@@ -31,6 +31,7 @@ export default function BolaoLoginPage() {
             inscricao_id: res.inscricao_id,
             nome: res.nome,
             email: res.email,
+            pago: res.pago,
           }),
         );
       } catch (e) {

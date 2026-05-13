@@ -6,7 +6,10 @@ import {
   salvarPalpitesBolao,
   verificarECarregarPalpitesBolao,
 } from "@/app/bolao/palpites/actions";
-import { MSG_PALPITES_ENCERRADOS_JOGO } from "@/app/bolao/palpites/utils";
+import {
+  MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO,
+  MSG_PALPITES_ENCERRADOS_JOGO,
+} from "@/app/bolao/palpites/utils";
 import {
   Copa2026PalpiteCard,
   type PontuacaoPalpiteCard,
@@ -23,6 +26,7 @@ import {
   copa2026PalpitesTextoTempoRestante,
   copa2026PontuacaoPalpite,
 } from "@/lib/mocks/copa2026-groupstage.mock";
+import { LINK_MERCADO_PAGO_PLACEHOLDER } from "@/lib/bolao/mercado-pago-bolao";
 
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
 const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
@@ -96,6 +100,7 @@ function lerParticipanteLocal(): {
   inscricao_id: string;
   nome: string;
   email: string;
+  pago?: boolean;
 } | null {
   try {
     const bruto = localStorage.getItem(BOLAO_PARTICIPANTE_LS);
@@ -104,12 +109,15 @@ function lerParticipanteLocal(): {
       inscricao_id?: unknown;
       nome?: unknown;
       email?: unknown;
+      pago?: unknown;
     };
     const inscricao_id = String(p.inscricao_id ?? "").trim();
     const nome = String(p.nome ?? "").trim();
     const email = String(p.email ?? "").trim().toLowerCase();
     if (!inscricao_id || !nome || !email || !email.includes("@")) return null;
-    return { inscricao_id, nome, email };
+    const pago =
+      p.pago === true || p.pago === false ? Boolean(p.pago) : undefined;
+    return { inscricao_id, nome, email, pago };
   } catch {
     return null;
   }
@@ -128,6 +136,7 @@ export default function BolaoPalpitesPage() {
     inscricao_id: string;
     nome: string;
     email: string;
+    pago?: boolean;
   } | null>(null);
 
   const [palpites, setPalpites] = useState<Record<string, CelulaPalpite>>({});
@@ -226,8 +235,7 @@ export default function BolaoPalpitesPage() {
         return;
       }
 
-      setPalpites(montarPalpitesAPartirDoServidor(res));
-      setConfirmado(res.confirmado);
+      aplicarRespostaServidor(res);
       setHydrated(true);
     }
 
@@ -305,6 +313,7 @@ export default function BolaoPalpitesPage() {
       ok: true;
       placares: Record<string, { casa: string; fora: string }>;
       confirmado: boolean;
+      pago: boolean;
       palpitePersistidoPorJogo: Record<string, boolean>;
     }) => {
       setPalpites((prev) => {
@@ -319,6 +328,24 @@ export default function BolaoPalpitesPage() {
         return out;
       });
       setConfirmado(res.confirmado);
+      setParticipante((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, pago: res.pago };
+        try {
+          localStorage.setItem(
+            BOLAO_PARTICIPANTE_LS,
+            JSON.stringify({
+              inscricao_id: next.inscricao_id,
+              nome: next.nome,
+              email: next.email,
+              pago: next.pago,
+            }),
+          );
+        } catch {
+          // ignore
+        }
+        return next;
+      });
     },
     [],
   );
@@ -327,10 +354,20 @@ export default function BolaoPalpitesPage() {
     async (jogo: JogoCopa2026Resolvido) => {
       const jogoId = String(jogo?.id ?? "");
 
+      if (!participante) {
+        setErro("Sessão inválida ou expirada. Faça login novamente.");
+        return;
+      }
+
       if (
         copa2026DevPalpiteBloqueioAtivo() &&
         jogoId === COPA2026_DEV_PALPITE_BLOQUEIO_ID
       ) {
+        return;
+      }
+
+      if (participante?.pago === false) {
+        setErro(MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO);
         return;
       }
 
@@ -344,7 +381,7 @@ export default function BolaoPalpitesPage() {
         return;
       }
 
-      if (!participante?.inscricao_id?.trim()) {
+      if (!participante.inscricao_id.trim()) {
         setErro("Sessão inválida ou expirada. Faça login novamente.");
         return;
       }
@@ -463,6 +500,11 @@ export default function BolaoPalpitesPage() {
 
     if (!participante.inscricao_id.trim()) {
       setErro("Sessão inválida ou expirada. Faça login novamente.");
+      return;
+    }
+
+    if (participante.pago === false) {
+      setErro(MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO);
       return;
     }
 
@@ -620,6 +662,27 @@ export default function BolaoPalpitesPage() {
                     {participante.email}
                   </span>
                 </p>
+                {hydrated && participante.pago === false ? (
+                  <div
+                    className="mt-3 rounded-lg border border-amber-500/40 bg-amber-950/30 px-3 py-2.5 sm:px-4 sm:py-3"
+                    role="status"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-amber-300">
+                      Pagamento pendente
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-amber-100/90">
+                      {MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO}
+                    </p>
+                    <a
+                      href={LINK_MERCADO_PAGO_PLACEHOLDER}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-[#C9A227]/60 bg-gradient-to-r from-[#e8c96b]/90 via-[#d4af37]/90 to-[#b8922b]/90 px-4 py-2.5 text-center text-[11px] font-black uppercase tracking-[0.1em] text-black shadow-sm transition hover:brightness-105 sm:text-xs"
+                    >
+                      Pagar inscrição
+                    </a>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleSair}
@@ -736,6 +799,7 @@ export default function BolaoPalpitesPage() {
                             }}
                             salvoFlash={Boolean(salvoFlash[jogo.id])}
                             bloquearEdicao={confirmado}
+                            pagamentoPendente={participante?.pago === false}
                             salvandoPalpite={salvandoJogoId === jogo.id}
                             prazoPalpites={{
                               encerrado: !aberto,
@@ -761,7 +825,12 @@ export default function BolaoPalpitesPage() {
                 <div className="mt-4 border-t-2 border-yellow-500/40 pt-3">
                   <button
                     type="button"
-                    disabled={!hydrated || confirmandoTodos || confirmado}
+                    disabled={
+                      !hydrated ||
+                      confirmandoTodos ||
+                      confirmado ||
+                      participante?.pago === false
+                    }
                     onClick={() => void confirmarTodos()}
                     className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
                   >
