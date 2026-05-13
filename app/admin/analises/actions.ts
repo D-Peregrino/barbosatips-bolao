@@ -12,6 +12,23 @@ import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase
 import type { AnaliseStatus } from "@/lib/analises/types";
 import { sanitizeAnaliseHtml } from "@/lib/analises/sanitize-html";
 
+const CAPA_MAX_BYTES = 5 * 1024 * 1024;
+const CAPA_ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+function extensaoCapaPorNome(nome: string): "jpg" | "png" | "webp" | null {
+  const n = nome.trim().toLowerCase();
+  if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "jpg";
+  if (n.endsWith(".png")) return "png";
+  if (n.endsWith(".webp")) return "webp";
+  return null;
+}
+
+function mimeCapaPorExt(ext: "jpg" | "png" | "webp"): string {
+  if (ext === "jpg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  return "image/webp";
+}
+
 async function guardAdminAnalises(): Promise<
   { ok: true } | { ok: false; error: string }
 > {
@@ -24,6 +41,74 @@ async function guardAdminAnalises(): Promise<
     return { ok: false, error: "Sessão inválida ou expirada." };
   }
   return { ok: true };
+}
+
+export async function uploadImagemCapaAnaliseAction(
+  formData: FormData,
+): Promise<
+  { ok: true; publicUrl: string } | { ok: false; error: string }
+> {
+  const g = await guardAdminAnalises();
+  if (!g.ok) return g;
+
+  if (shouldSkipLiveSupabase()) {
+    return { ok: false, error: "Supabase não configurado neste ambiente." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Selecione um arquivo de imagem." };
+  }
+
+  if (file.size > CAPA_MAX_BYTES) {
+    return { ok: false, error: "Arquivo muito grande (máximo 5 MB)." };
+  }
+
+  let contentType = (file.type || "").trim().toLowerCase();
+  if (!CAPA_ALLOWED_MIMES.includes(contentType as (typeof CAPA_ALLOWED_MIMES)[number])) {
+    const ext = extensaoCapaPorNome(file.name);
+    if (ext) contentType = mimeCapaPorExt(ext);
+  }
+
+  if (!CAPA_ALLOWED_MIMES.includes(contentType as (typeof CAPA_ALLOWED_MIMES)[number])) {
+    return {
+      ok: false,
+      error: "Formato não aceito. Use JPG, PNG ou WebP.",
+    };
+  }
+
+  const ext =
+    contentType === "image/jpeg"
+      ? "jpg"
+      : contentType === "image/png"
+        ? "png"
+        : "webp";
+  const path = `capas/${crypto.randomUUID()}.${ext}`;
+
+  try {
+    const admin = createAdminClient();
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: upErr } = await admin.storage
+      .from("analises")
+      .upload(path, buffer, {
+        contentType,
+        upsert: false,
+      });
+
+    if (upErr) {
+      return { ok: false, error: upErr.message || "Falha no upload." };
+    }
+
+    const { data } = admin.storage.from("analises").getPublicUrl(path);
+    const publicUrl = data?.publicUrl?.trim();
+    if (!publicUrl) {
+      return { ok: false, error: "Não foi possível obter a URL pública." };
+    }
+    return { ok: true, publicUrl };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg || "Falha no upload." };
+  }
 }
 
 function normalizarSlug(raw: string): string {

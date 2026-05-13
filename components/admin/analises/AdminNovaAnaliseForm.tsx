@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { criarAnaliseAction } from "@/app/admin/analises/actions";
+import {
+  criarAnaliseAction,
+  uploadImagemCapaAnaliseAction,
+} from "@/app/admin/analises/actions";
 import { EditorialTiptapEditor } from "@/components/admin/analises/EditorialTiptapEditor";
 
 const labels =
@@ -28,6 +31,8 @@ export function AdminNovaAnaliseForm() {
   const [resumo, setResumo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [imagemCapa, setImagemCapa] = useState("");
+  const [uploadCapaPending, setUploadCapaPending] = useState(false);
+  const [uploadCapaErro, setUploadCapaErro] = useState("");
   const [status, setStatus] = useState<"rascunho" | "publicado">("rascunho");
 
   function handleSubmit(e: React.FormEvent) {
@@ -171,19 +176,79 @@ export function AdminNovaAnaliseForm() {
             disabled={pending}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="imagem_capa" className={labels}>
-            URL da imagem de capa
-          </label>
-          <input
-            id="imagem_capa"
-            type="url"
-            className={input}
-            value={imagemCapa}
-            onChange={(e) => setImagemCapa(e.target.value)}
-            placeholder="https://..."
-            disabled={pending}
-          />
+        <div className="sm:col-span-2 space-y-3">
+          <div>
+            <label htmlFor="imagem_capa" className={labels}>
+              Imagem capa
+            </label>
+            <p className="mb-2 text-xs text-zinc-500">
+              Cole uma URL ou envie JPG, PNG ou WebP (até 5 MB). A URL pública
+              fica salva em <span className="font-mono text-zinc-400">imagem_capa</span>.
+            </p>
+            <input
+              id="imagem_capa"
+              type="text"
+              className={input}
+              value={imagemCapa}
+              onChange={(e) => setImagemCapa(e.target.value)}
+              placeholder="https://… ou envie um arquivo abaixo"
+              disabled={pending || uploadCapaPending}
+              autoComplete="off"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#3d3420]/90 bg-[#0c0e12] px-4 py-2 text-sm font-medium text-[#E8D48B] transition hover:border-[#C9A227]/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                className="sr-only"
+                disabled={pending || uploadCapaPending}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  setUploadCapaErro("");
+                  setUploadCapaPending(true);
+                  const fd = new FormData();
+                  fd.set("file", f);
+                  const res = await uploadImagemCapaAnaliseAction(fd);
+                  setUploadCapaPending(false);
+                  if (!res.ok) {
+                    setUploadCapaErro(res.error);
+                    return;
+                  }
+                  setImagemCapa(res.publicUrl);
+                }}
+              />
+              {uploadCapaPending ? "Enviando…" : "Enviar arquivo"}
+            </label>
+            {imagemCapa.trim() ? (
+              <button
+                type="button"
+                className="text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+                disabled={pending || uploadCapaPending}
+                onClick={() => {
+                  setImagemCapa("");
+                  setUploadCapaErro("");
+                }}
+              >
+                Limpar capa
+              </button>
+            ) : null}
+          </div>
+          {uploadCapaErro ? (
+            <p className="text-sm text-red-300">{uploadCapaErro}</p>
+          ) : null}
+          {imagemCapa.trim() ? (
+            <div className="overflow-hidden rounded-xl border border-[#3d3420]/90 bg-[#050608] p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- URL arbitrária no admin */}
+              <img
+                src={imagemCapa.trim()}
+                alt="Pré-visualização da capa"
+                className="mx-auto max-h-48 w-auto max-w-full object-contain"
+              />
+            </div>
+          ) : null}
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="status" className={labels}>
