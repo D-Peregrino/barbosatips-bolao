@@ -29,6 +29,9 @@ type PalpiteBolaoRow = {
   placar_casa: number | null;
   placar_fora: number | null;
   created_at: string | null;
+  /** Preenchido quando a API retorna embed `inscricoes_bolao(...)`. */
+  inscricao_nome: string | null;
+  inscricao_email: string | null;
 };
 
 const HEADERS_REST = {
@@ -73,6 +76,40 @@ function formatarDataHoraPalpite(iso: string | null): string {
   } catch {
     return iso;
   }
+}
+
+function extrairInscricaoEmbed(
+  row: Record<string, unknown>,
+): { nome: string | null; email: string | null } {
+  const raw = row.inscricoes_bolao;
+  if (!raw || typeof raw !== "object") {
+    return { nome: null, email: null };
+  }
+  const o = raw as Record<string, unknown>;
+  const nome = o.nome;
+  const email = o.email;
+  return {
+    nome:
+      nome === undefined || nome === null ? null : String(nome).trim() || null,
+    email:
+      email === undefined || email === null
+        ? null
+        : String(email).trim() || null,
+  };
+}
+
+/** Garante ordem mais recente primeiro (PostgREST + fallback). */
+function ordenarPalpitesPorCreatedAtDesc(rows: PalpiteBolaoRow[]): PalpiteBolaoRow[] {
+  return [...rows].sort((a, b) => {
+    const ta = a.created_at ? Date.parse(a.created_at) : NaN;
+    const tb = b.created_at ? Date.parse(b.created_at) : NaN;
+    if (!Number.isNaN(ta) && !Number.isNaN(tb) && ta !== tb) {
+      return tb - ta;
+    }
+    if (!Number.isNaN(ta) && Number.isNaN(tb)) return -1;
+    if (Number.isNaN(ta) && !Number.isNaN(tb)) return 1;
+    return String(b.id).localeCompare(String(a.id));
+  });
 }
 
 /** Converte qualquer linha do PostgREST para o formato usado na tabela. */
@@ -268,6 +305,8 @@ export default function AdminBolaoPage() {
     setPalpitesErro("");
 
     const candidatos = [
+      "palpites_bolao?select=id,inscricao_id,jogo_id,placar_casa,placar_fora,created_at,inscricoes_bolao(nome,email)&order=created_at.desc.nullslast",
+      "palpites_bolao?select=id,inscricao_id,jogo_id,placar_casa,placar_fora,created_at,inscricoes_bolao(nome,email)&order=created_at.desc",
       "palpites_bolao?select=id,inscricao_id,jogo_id,placar_casa,placar_fora,created_at&order=created_at.desc.nullslast",
       "palpites_bolao?select=id,inscricao_id,jogo_id,placar_casa,placar_fora,created_at&order=created_at.desc",
       "palpites_bolao?select=*&order=created_at.desc",
@@ -324,6 +363,7 @@ export default function AdminBolaoPage() {
           }
           const c = row.placar_casa;
           const f = row.placar_fora;
+          const { nome: embNome, email: embEmail } = extrairInscricaoEmbed(row);
           normalizados.push({
             id: String(id),
             inscricao_id: String(inscricao_id),
@@ -334,10 +374,12 @@ export default function AdminBolaoPage() {
               row.created_at === undefined || row.created_at === null
                 ? null
                 : String(row.created_at),
+            inscricao_nome: embNome,
+            inscricao_email: embEmail,
           });
         }
 
-        setPalpites(normalizados);
+        setPalpites(ordenarPalpitesPorCreatedAtDesc(normalizados));
         setPalpitesCarregando(false);
         return;
       }
@@ -859,10 +901,12 @@ export default function AdminBolaoPage() {
             <span className="h-8 w-1 rounded-full bg-gradient-to-b from-[#F7E7B5] to-[#9a7628]" />
             <div>
               <h2 className="font-serif text-lg font-bold text-white sm:text-xl">
-                Palpites recebidos
+                Palpites Recebidos
               </h2>
               <p className="text-xs text-zinc-500">
-                Placares enviados em /bolao/palpites (Copa 2026 · fase de grupos)
+                Dados de <code className="text-[#C9A227]/90">palpites_bolao</code>{" "}
+                ligados a <code className="text-[#C9A227]/90">inscricoes_bolao</code>{" "}
+                (ordenado por envio, mais recente primeiro)
               </p>
             </div>
           </div>
@@ -887,10 +931,10 @@ export default function AdminBolaoPage() {
                     Jogo
                   </th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
-                    Placar
+                    Placar do palpite
                   </th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a806f] sm:px-6">
-                    Registrado
+                    Data/hora do envio
                   </th>
                 </tr>
               </thead>
@@ -910,6 +954,12 @@ export default function AdminBolaoPage() {
                 ) : (
                   palpites.map((p, idx) => {
                     const ins = inscritoPorId.get(p.inscricao_id);
+                    const nome =
+                      p.inscricao_nome ?? (ins?.nome?.trim() ? ins.nome : null) ?? "—";
+                    const email =
+                      p.inscricao_email ??
+                      (ins?.email?.trim() ? ins.email : null) ??
+                      "—";
                     const alternada = idx % 2 === 0;
                     const placarTxt = `${p.placar_casa ?? "—"} × ${p.placar_fora ?? "—"}`;
                     return (
@@ -922,10 +972,10 @@ export default function AdminBolaoPage() {
                         }
                       >
                         <td className="max-w-[140px] truncate px-4 py-3 align-top font-medium text-zinc-100 sm:px-6">
-                          {ins?.nome ?? "—"}
+                          {nome}
                         </td>
                         <td className="max-w-[200px] truncate px-4 py-3 align-top text-zinc-400 sm:px-6">
-                          {ins?.email ?? "—"}
+                          {email}
                         </td>
                         <td className="max-w-[280px] px-4 py-3 align-top text-xs text-zinc-300 sm:px-6">
                           <span className="font-mono text-[10px] text-zinc-600">{p.jogo_id}</span>
