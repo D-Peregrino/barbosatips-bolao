@@ -377,98 +377,105 @@ export default function BolaoPalpitesPage() {
     async (jogo: JogoCopa2026Resolvido) => {
       console.log("CLICOU SALVAR PALPITE", jogo.id);
 
-      if (!participante) {
-        setErro("Participante não encontrado. Faça login novamente.");
-        return;
-      }
+      const jogoId = String(jogo?.id ?? "");
+      setSucessoSalvos(false);
+      setPalpiteSalvoDbMsg("");
+      setSalvandoJogoId(jogoId);
 
-      const jogoId = jogo.id;
-      const atual = placaresRef.current[jogoId] ?? { casa: "", fora: "" };
+      try {
+        const atual = placaresRef.current[jogoId] ?? { casa: "", fora: "" };
+        const sc = sanitizarPlacar(atual.casa);
+        const sf = sanitizarPlacar(atual.fora);
+        const vazio = sc.length === 0 && sf.length === 0;
 
-      const vazio =
-        sanitizarPlacar(atual.casa).length === 0 &&
-        sanitizarPlacar(atual.fora).length === 0;
-
-      if (!vazio && !placarFormularioCompleto(atual)) {
-        setErro(MSG_PLACAR_INCOMPLETO);
-        return;
-      }
-
-      if (!copa2026PalpitesAbertosParaJogo(jogoId)) {
-        setErro(MSG_PALPITES_ENCERRADOS_JOGO);
-        return;
-      }
-
-      if (usarSupabase) {
-        setErro("");
-        setSucessoSalvos(false);
-        setPalpiteSalvoDbMsg("");
-        setSalvandoJogoId(jogoId);
-
-        try {
-          const res = await fetch("/api/bolao/palpites", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: participante.email,
-              jogoId,
-              placares: placaresRef.current,
-            }),
-          });
-
-          let data: { ok?: boolean; error?: string } = {};
-          try {
-            data = (await res.json()) as { ok?: boolean; error?: string };
-          } catch {
-            data = {};
-          }
-
-          if (!res.ok || !data.ok) {
-            setErro(data.error ?? "Falha ao salvar o palpite.");
-            return;
-          }
-
-          if (vazio) {
-            setPlacares((prev) => {
-              const next = { ...prev, [jogoId]: { casa: "", fora: "" } };
-              placaresRef.current = next;
-              return next;
-            });
-          }
-
-          setPalpiteSalvoServidor((prev) => ({
-            ...prev,
-            [jogoId]:
-              !vazio &&
-              placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
-          }));
-
-          dispararPalpiteSalvoDbMsg();
-          dispararFlashSalvo(jogoId);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          setErro(msg || "Falha de rede ao salvar.");
-        } finally {
-          setSalvandoJogoId(null);
+        if (!participante) {
+          console.error("SALVAR PALPITE: participante ausente");
+          setErro("Participante não encontrado. Faça login novamente.");
         }
 
-        return;
+        if (!vazio && !placarFormularioCompleto(atual)) {
+          console.error("SALVAR PALPITE: placar incompleto", { jogoId, atual });
+          setErro(MSG_PLACAR_INCOMPLETO);
+        }
+
+        const rawC = vazio ? null : Number.parseInt(sc, 10);
+        const rawF = vazio ? null : Number.parseInt(sf, 10);
+        const placar_casa =
+          rawC !== null && Number.isFinite(rawC) ? rawC : null;
+        const placar_fora =
+          rawF !== null && Number.isFinite(rawF) ? rawF : null;
+
+        const payload = {
+          email: participante?.email ?? "",
+          jogo_id: jogoId,
+          placar_casa,
+          placar_fora,
+        };
+
+        console.log("ANTES DO FETCH", payload);
+
+        const response = await fetch("/api/bolao/palpites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        console.log("DEPOIS DO FETCH", response.status);
+
+        let data: { ok?: boolean; error?: string } = {};
+        try {
+          data = (await response.json()) as { ok?: boolean; error?: string };
+        } catch (parseErr) {
+          console.error("SALVAR PALPITE: falha ao ler JSON da resposta", parseErr);
+          data = {};
+        }
+
+        if (!response.ok) {
+          console.error("SALVAR PALPITE: HTTP", response.status, data);
+          setErro(data.error ?? "Falha ao salvar o palpite.");
+          return;
+        }
+
+        if (data.ok === false) {
+          console.error("SALVAR PALPITE: corpo com ok false", data);
+          setErro(data.error ?? "Falha ao salvar o palpite.");
+          return;
+        }
+
+        setErro("");
+        dispararPalpiteSalvoDbMsg();
+
+        if (vazio) {
+          setPlacares((prev) => {
+            const next = { ...prev, [jogoId]: { casa: "", fora: "" } };
+            placaresRef.current = next;
+            return next;
+          });
+        }
+
+        setPalpiteSalvoServidor((prev) => ({
+          ...prev,
+          [jogoId]:
+            !vazio &&
+            placar_casa !== null &&
+            placar_fora !== null,
+        }));
+
+        dispararFlashSalvo(jogoId);
+
+        if (!usarSupabase) {
+          setPlacares((prev) => {
+            persistirLocal(prev, confirmado);
+            return prev;
+          });
+        }
+      } catch (e) {
+        console.error("SALVAR PALPITE: exceção", e);
+        const msg = e instanceof Error ? e.message : String(e);
+        setErro(msg || "Falha ao salvar o palpite.");
+      } finally {
+        setSalvandoJogoId(null);
       }
-
-      setErro("");
-      setPlacares((prev) => {
-        persistirLocal(prev, confirmado);
-        return prev;
-      });
-
-      setPalpiteSalvoServidor((prev) => ({
-        ...prev,
-        [jogoId]:
-          !vazio &&
-          placarFormularioCompleto(placaresRef.current[jogoId] ?? atual),
-      }));
-
-      dispararFlashSalvo(jogoId);
     },
     [
       confirmado,
@@ -642,12 +649,12 @@ export default function BolaoPalpitesPage() {
               role="status"
               aria-live="polite"
               className={`mb-3 overflow-hidden transition-all duration-300 ${
-                usarSupabase && palpiteSalvoDbMsg
+                palpiteSalvoDbMsg
                   ? "max-h-16 opacity-100"
                   : "max-h-0 opacity-0"
               }`}
             >
-              {usarSupabase && palpiteSalvoDbMsg ? (
+              {palpiteSalvoDbMsg ? (
                 <div className="rounded border border-emerald-500/40 bg-emerald-950/35 px-2 py-2 text-center">
                   <p className="text-[11px] font-black uppercase tracking-wide text-emerald-400">
                     {palpiteSalvoDbMsg}
@@ -729,7 +736,17 @@ export default function BolaoPalpitesPage() {
                             placarCasa={placar.casa}
                             placarVisitante={placar.fora}
                             onPlacarChange={onPlacarChange}
-                            onSalvarPalpite={(_jogoId) => void salvarPalpite(jogo)}
+                            onSalvarPalpite={(jogo) => {
+                              void salvarPalpite(jogo).catch((err) => {
+                                console.error("SALVAR PALPITE: rejeição async", err);
+                                setErro(
+                                  err instanceof Error
+                                    ? err.message
+                                    : String(err),
+                                );
+                              });
+                            }}
+                            ignorarPrazoNoBotaoSalvar
                             salvoFlash={Boolean(salvoFlash[jogo.id])}
                             bloquearEdicao={false}
                             salvandoPalpite={salvandoJogoId === jogo.id}

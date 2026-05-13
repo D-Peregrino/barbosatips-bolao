@@ -706,7 +706,7 @@ export default function BolaoPalpitesPage() {
                             placarCasa={placar.casa}
                             placarVisitante={placar.fora}
                             onPlacarChange={onPlacarChange}
-                            onSalvarPalpite={(id) => void onSalvarPalpite(id)}
+                            onSalvarPalpite={(jogo) => void onSalvarPalpite(jogo.id)}
                             salvoFlash={Boolean(salvoFlash[jogo.id])}
                             bloquearEdicao={bloquearCards}
                             salvandoPalpite={salvandoJogoId === jogo.id}

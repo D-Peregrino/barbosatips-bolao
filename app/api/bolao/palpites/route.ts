@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
-import { salvarPalpitesBolao } from "@/app/bolao/palpites/actions";
+import { createClient } from "@supabase/supabase-js";
+import { salvarPalpitesBolaoWithClient } from "@/lib/bolao/palpites-supabase-core";
 
 type PlacaresBody = Record<string, { casa: string; fora: string }>;
+
+const MSG_VARIAVEIS = "Variáveis do Supabase não configuradas.";
+
+function strPlacar(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const n = Math.trunc(v);
+    if (n < 0 || n > 99) return "";
+    return String(n);
+  }
+  return String(v).replace(/\D/g, "").slice(0, 2);
+}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -14,6 +27,8 @@ export async function POST(request: Request) {
     );
   }
 
+  console.log("API PALPITES RECEBEU", body);
+
   if (!body || typeof body !== "object") {
     return NextResponse.json(
       { ok: false as const, error: "Corpo da requisição inválido." },
@@ -23,8 +38,7 @@ export async function POST(request: Request) {
 
   const o = body as Record<string, unknown>;
   const email = String(o.email ?? "").trim();
-  const jogoId = String(o.jogoId ?? "").trim();
-  const placares = o.placares;
+  const jogoId = String(o.jogo_id ?? o.jogoId ?? "").trim();
 
   if (!email || !email.includes("@")) {
     return NextResponse.json(
@@ -40,34 +54,46 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!placares || typeof placares !== "object" || Array.isArray(placares)) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !anon) {
     return NextResponse.json(
-      { ok: false as const, error: "Placares inválidos." },
+      { ok: false as const, error: MSG_VARIAVEIS },
       { status: 400 },
     );
   }
 
-  const placaresNorm: PlacaresBody = {};
-  for (const [k, v] of Object.entries(placares as Record<string, unknown>)) {
-    if (!v || typeof v !== "object" || Array.isArray(v)) continue;
-    const pv = v as Record<string, unknown>;
-    placaresNorm[k] = {
-      casa: String(pv.casa ?? ""),
-      fora: String(pv.fora ?? ""),
-    };
-  }
+  const placaresNorm: PlacaresBody = {
+    [jogoId]: {
+      casa: strPlacar(o.placar_casa),
+      fora: strPlacar(o.placar_fora),
+    },
+  };
 
-  const result = await salvarPalpitesBolao(email, placaresNorm, {
-    confirmar: false,
-    apenasJogoId: jogoId,
+  const client = createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  if (!result.ok) {
+  try {
+    const result = await salvarPalpitesBolaoWithClient(client, email, placaresNorm, {
+      confirmar: false,
+      apenasJogoId: jogoId,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false as const, error: result.error },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json({ ok: true as const });
+  } catch (error) {
+    console.error("ERRO SUPABASE", error);
+    const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { ok: false as const, error: result.error },
-      { status: 400 },
+      { ok: false as const, error: msg || "Falha ao salvar." },
+      { status: 500 },
     );
   }
-
-  return NextResponse.json({ ok: true as const });
 }

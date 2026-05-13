@@ -54,9 +54,11 @@ export interface Copa2026PalpiteCardProps {
   placarCasa: string;
   placarVisitante: string;
   onPlacarChange: (jogoId: string, campo: "casa" | "fora", valor: string) => void;
-  onSalvarPalpite: (jogoId: string) => void;
+  onSalvarPalpite: (jogo: JogoCopa2026Resolvido) => void;
   salvoFlash: boolean;
   bloquearEdicao?: boolean;
+  /** Em /bolao/palpites: o botão Salvar só fica indisponível enquanto grava; prazo/API validam. */
+  ignorarPrazoNoBotaoSalvar?: boolean;
   salvandoPalpite?: boolean;
   prazoPalpites?: {
     encerrado: boolean;
@@ -104,6 +106,7 @@ export function Copa2026PalpiteCard({
   onSalvarPalpite,
   salvoFlash,
   bloquearEdicao,
+  ignorarPrazoNoBotaoSalvar,
   salvandoPalpite,
   prazoPalpites,
   palpiteSalvoNoServidor,
@@ -129,11 +132,12 @@ export function Copa2026PalpiteCard({
     Boolean(bloquearEdicao) ||
     palpitesFechadosPorPrazo ||
     (!usaPrazoReal && status === "encerrado");
-  /** Botão salvar: só prazo real, status legado sem prazo, ou salvando — nunca só por confirmado. */
-  const salvarDesabilitado =
-    palpitesFechadosPorPrazo ||
-    (!usaPrazoReal && status === "encerrado") ||
-    Boolean(salvandoPalpite);
+  /** Botão salvar: por padrão respeita prazo/status; em palpites só bloqueia durante salvamento. */
+  const salvarDesabilitado = ignorarPrazoNoBotaoSalvar
+    ? Boolean(salvandoPalpite)
+    : palpitesFechadosPorPrazo ||
+      (!usaPrazoReal && status === "encerrado") ||
+      Boolean(salvandoPalpite);
 
   const faixa = faixaPontuacao(pontuacaoBolao);
 
@@ -301,7 +305,7 @@ export function Copa2026PalpiteCard({
           <button
             type="button"
             disabled={salvarDesabilitado}
-            onClick={() => onSalvarPalpite(id)}
+            onClick={() => onSalvarPalpite(jogo)}
             className="rounded-md bg-yellow-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black shadow-sm transition-opacity hover:bg-yellow-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 lg:px-5 lg:py-2 lg:text-xs xl:text-sm"
           >
             {salvandoPalpite ? "Salvando…" : "Salvar Palpite"}
