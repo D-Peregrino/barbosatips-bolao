@@ -9,6 +9,10 @@ import {
   verifyAdminBolaoCookieValue,
 } from "@/lib/admin/bolao-cookie";
 
+/**
+ * Login do painel `/admin/bolao`: apenas comparação com `process.env.ADMIN_BOLAO_PASSWORD`
+ * (configure na Vercel em Settings → Environment Variables). Sem senha fixa no código.
+ */
 export async function loginAdminBolaoAction(
   password: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -16,7 +20,7 @@ export async function loginAdminBolaoAction(
   if (!expected) {
     return {
       ok: false,
-      error: "Configure ADMIN_BOLAO_PASSWORD no servidor.",
+      error: "Senha do admin não configurada.",
     };
   }
   if (password !== expected) {
@@ -26,7 +30,7 @@ export async function loginAdminBolaoAction(
   if (!secret) {
     return {
       ok: false,
-      error: "Configure ADMIN_BOLAO_PASSWORD ou ADMIN_BOLAO_SESSION_SECRET.",
+      error: "Senha do admin não configurada.",
     };
   }
   const value = await createAdminBolaoCookieValue(secret);

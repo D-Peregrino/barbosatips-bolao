@@ -14,8 +14,10 @@ import {
 } from "@/lib/mocks/copa2026-groupstage.mock";
 import { createClient } from "@/lib/supabase/client";
 import {
+  carregarResultadosSalvosBolao,
   salvarJogoOverrideAdmin,
   salvarResultadoOficialBolao,
+  type BolaoResultadoOficialRow,
 } from "@/app/admin/bolao/actions";
 import { logoutAdminBolaoAction } from "@/app/admin/bolao/auth-actions";
 
@@ -34,12 +36,7 @@ type PalpiteBolaoRow = {
   inscricao_nome: string | null;
 };
 
-type ResultadoRow = {
-  jogo_id: string;
-  placar_casa_real: number;
-  placar_fora_real: number;
-  status?: string | null;
-};
+type ResultadoRow = BolaoResultadoOficialRow;
 
 type JogoDraft = {
   dataISO: string;
@@ -165,7 +162,14 @@ function mapPalpiteRow(row: Record<string, unknown>): PalpiteBolaoRow {
   };
 }
 
-export function AdminBolaoPanel() {
+type AdminBolaoPanelProps = {
+  /** Resultados já lidos no servidor (SSR); o cliente chama `carregarResultadosSalvos` no mount. */
+  initialResultados?: BolaoResultadoOficialRow[];
+};
+
+export function AdminBolaoPanel({
+  initialResultados = [],
+}: AdminBolaoPanelProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   /** Só a linha em gravação fica “travada”; evita painel inteiro escuro. */
   const [salvandoJogoId, setSalvandoJogoId] = useState<string | null>(null);
@@ -177,12 +181,14 @@ export function AdminBolaoPanel() {
   const [inscritos, setInscritos] = useState<Inscrito[]>([]);
   const [palpites, setPalpites] = useState<PalpiteBolaoRow[]>([]);
   const [overrides, setOverrides] = useState<BolaoJogoOverrideRow[]>([]);
-  const [resultados, setResultados] = useState<ResultadoRow[]>([]);
+  const [resultados, setResultados] = useState<ResultadoRow[]>(
+    () => initialResultados,
+  );
   const [jogos, setJogos] = useState<JogoPainel[]>(() =>
-    buildListaJogos([], [], null).jogos,
+    buildListaJogos([], initialResultados, null).jogos,
   );
   const [drafts, setDrafts] = useState<Record<string, JogoDraft>>(() =>
-    buildListaJogos([], [], null).drafts,
+    buildListaJogos([], initialResultados, null).drafts,
   );
 
   const overridesRef = useRef(overrides);
@@ -205,44 +211,38 @@ export function AdminBolaoPanel() {
   }, [toastMsg]);
 
   /**
-   * Recarrega `bolao_resultados_teste` e reconstrói jogos/drafts.
+   * Recarrega `bolao_resultados_teste` via server action (service role) e reconstrói jogos/drafts.
    * `linhaGarantida`: mescla por cima do fetch (evita lista vazia / lag logo após upsert).
+   * Retorna `null` se ok, ou mensagem de erro.
    */
   const carregarResultadosSalvos = useCallback(
-    async (linhaGarantida?: ResultadoRow | null): Promise<ResultadoRow[] | null> => {
-      let sb: ReturnType<typeof createClient>;
-      try {
-        sb = createClient();
-      } catch (e) {
-        console.error("ERRO AO CARREGAR RESULTADOS", e);
-        return null;
+    async (
+      linhaGarantida?: ResultadoRow | null,
+      opts?: { resetDrafts?: boolean },
+    ): Promise<string | null> => {
+      const resSrv = await carregarResultadosSalvosBolao();
+      if (!resSrv.ok) {
+        console.error("ERRO AO CARREGAR RESULTADOS", resSrv.error);
+        return resSrv.error;
       }
 
-      const resRes = await sb
-        .from("bolao_resultados_teste")
-        .select("jogo_id,placar_casa_real,placar_fora_real,status");
-
-      if (resRes.error) {
-        console.error("ERRO AO CARREGAR RESULTADOS", resRes.error);
-        return null;
-      }
-
-      const resNext = normalizarResultadoRows(resRes.data as unknown[]);
+      const resNext = normalizarResultadoRows(resSrv.rows as unknown[]);
       const merged = linhaGarantida
         ? mergeResultadosList(resNext, [linhaGarantida])
         : resNext;
 
       setResultados(merged);
+      const prevDrafts = opts?.resetDrafts ? null : draftsRef.current;
       const built = buildListaJogos(
         overridesRef.current,
         merged,
-        draftsRef.current,
+        prevDrafts,
       );
       setJogos(built.jogos);
       setDrafts(built.drafts);
       draftsRef.current = built.drafts;
       resultadosRef.current = merged;
-      return merged;
+      return null;
     },
     [],
   );
@@ -302,7 +302,7 @@ export function AdminBolaoPanel() {
       return;
     }
 
-    const [insRes, palRes, ovRes, resRes] = await Promise.all([
+    const [insRes, palRes, ovRes] = await Promise.all([
       sb
         .from("inscricoes_bolao")
         .select("id,nome,email")
@@ -314,9 +314,6 @@ export function AdminBolaoPanel() {
         )
         .order("created_at", { ascending: false }),
       sb.from("bolao_jogo_admin_override").select("*"),
-      sb
-        .from("bolao_resultados_teste")
-        .select("jogo_id,placar_casa_real,placar_fora_real,status"),
     ]);
 
     if (insRes.error) {
@@ -333,10 +330,6 @@ export function AdminBolaoPanel() {
       );
       return;
     }
-    if (resRes.error) {
-      setLoadError(resRes.error.message);
-      return;
-    }
 
     const insRows = (insRes.data ?? []) as Record<string, unknown>[];
     const inscritosNext: Inscrito[] = insRows.map((r) => ({
@@ -349,16 +342,18 @@ export function AdminBolaoPanel() {
     const palpitesNext = palRows.map(mapPalpiteRow);
 
     const ovNext = (ovRes.data ?? []) as BolaoJogoOverrideRow[];
-    const resNext = normalizarResultadoRows(resRes.data as unknown[]);
 
     setInscritos(inscritosNext);
     setPalpites(palpitesNext);
     setOverrides(ovNext);
-    setResultados(resNext);
-    const built = buildListaJogos(ovNext, resNext, null);
-    setJogos(built.jogos);
-    setDrafts(built.drafts);
-  }, []);
+    overridesRef.current = ovNext;
+
+    const errRes = await carregarResultadosSalvos(null, { resetDrafts: true });
+    if (errRes) {
+      setLoadError(errRes);
+      return;
+    }
+  }, [carregarResultadosSalvos]);
 
   useEffect(() => {
     void reload();

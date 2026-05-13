@@ -33,7 +33,7 @@ async function guardAdminBolao(): Promise<
   if (!secret) {
     return {
       ok: false,
-      error: "Sessão admin não configurada (ADMIN_BOLAO_PASSWORD).",
+      error: "Senha do admin não configurada.",
     };
   }
   const token = cookies().get(ADMIN_BOLAO_COOKIE)?.value;
@@ -46,6 +46,76 @@ async function guardAdminBolao(): Promise<
 export type SalvarResultadoBolaoResponse =
   | { ok: true; data: Record<string, unknown> }
   | { ok: false; error: string };
+
+/** Linha de `public.bolao_resultados_teste` (fonte oficial do ranking no admin). */
+export type BolaoResultadoOficialRow = {
+  jogo_id: string;
+  placar_casa_real: number;
+  placar_fora_real: number;
+  status?: string | null;
+};
+
+function normalizeBolaoResultadoRowsFromDb(
+  raw: unknown[] | null | undefined,
+): BolaoResultadoOficialRow[] {
+  const out: BolaoResultadoOficialRow[] = [];
+  for (const row of raw ?? []) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const jogoId = String(r.jogo_id ?? "").trim();
+    if (!jogoId) continue;
+    const casa = Number(r.placar_casa_real);
+    const fora = Number(r.placar_fora_real);
+    if (!Number.isInteger(casa) || !Number.isInteger(fora)) continue;
+    if (casa < 0 || casa > 99 || fora < 0 || fora > 99) continue;
+    const st = r.status;
+    out.push({
+      jogo_id: jogoId,
+      placar_casa_real: casa,
+      placar_fora_real: fora,
+      status:
+        st === undefined || st === null ? undefined : String(st).trim() || undefined,
+    });
+  }
+  return out;
+}
+
+export type CarregarResultadosSalvosBolaoResponse =
+  | { ok: true; rows: BolaoResultadoOficialRow[] }
+  | { ok: false; error: string };
+
+/**
+ * Lê todas as linhas de `public.bolao_resultados_teste` com service role
+ * (mesma credencial do upsert), após validar sessão admin. Usado no SSR e no cliente
+ * para o ranking e os inputs não dependerem só do anon/RLS no browser.
+ */
+export async function carregarResultadosSalvosBolao(): Promise<CarregarResultadosSalvosBolaoResponse> {
+  const g = await guardAdminBolao();
+  if (!g.ok) return g;
+
+  const admin = createServiceClient();
+  if (!admin) {
+    return {
+      ok: false,
+      error:
+        "Servidor sem credenciais Supabase (URL ou SUPABASE_SERVICE_ROLE_KEY).",
+    };
+  }
+
+  const { data, error } = await admin
+    .schema("public")
+    .from("bolao_resultados_teste")
+    .select("jogo_id,placar_casa_real,placar_fora_real,status");
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message || "Falha ao ler resultados no Supabase.",
+    };
+  }
+
+  return { ok: true, rows: normalizeBolaoResultadoRowsFromDb(data as unknown[]) };
+}
 
 /**
  * Upsert em `public.bolao_resultados_teste` (PK / conflito: `jogo_id`).
@@ -91,8 +161,6 @@ export async function salvarResultadoOficialBolao(input: {
   };
 
   try {
-    console.log("ANTES DO UPSERT", payload);
-
     const { data, error } = await admin
       .schema("public")
       .from("bolao_resultados_teste")
@@ -101,8 +169,6 @@ export async function salvarResultadoOficialBolao(input: {
       })
       .select()
       .single();
-
-    console.log("DEPOIS DO UPSERT", data);
 
     if (error) {
       console.error("ERRO AO SALVAR RESULTADO", error);

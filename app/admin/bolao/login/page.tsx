@@ -13,6 +13,10 @@ export const metadata = {
 };
 
 export default async function AdminBolaoLoginPage() {
+  const senhaAdminConfigurada = Boolean(
+    process.env.ADMIN_BOLAO_PASSWORD?.trim(),
+  );
+
   const secret = adminBolaoSessionSecret();
   if (secret) {
     const token = cookies().get(ADMIN_BOLAO_COOKIE)?.value;
@@ -23,7 +27,7 @@ export default async function AdminBolaoLoginPage() {
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#050608]" />}>
-      <AdminBolaoLoginClient />
+      <AdminBolaoLoginClient senhaAdminConfigurada={senhaAdminConfigurada} />
     </Suspense>
   );
 }

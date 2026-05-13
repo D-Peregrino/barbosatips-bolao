@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { AdminBolaoPanel } from "@/components/admin/bolao/AdminBolaoPanel";
+import { carregarResultadosSalvosBolao } from "@/app/admin/bolao/actions";
 
 /**
- * Painel `/admin/bolao` (cliente: `AdminBolaoPanel`).
- * Após salvar resultado: estado local com retorno do upsert (`flushSync`), depois
- * `carregarResultadosSalvos()` e `carregarRanking()`; toast “Resultado salvo” só após isso.
- * Sem `location.reload()`.
+ * Painel `/admin/bolao`: resultados oficiais vêm de `public.bolao_resultados_teste`
+ * (SSR + `carregarResultadosSalvos` no cliente com a mesma server action / service role).
  */
 
 export const metadata: Metadata = {
@@ -13,6 +12,11 @@ export const metadata: Metadata = {
   description: "Painel administrativo do bolão BarbosaTips.",
 };
 
-export default function AdminBolaoPage() {
-  return <AdminBolaoPanel />;
+export const dynamic = "force-dynamic";
+
+export default async function AdminBolaoPage() {
+  const res = await carregarResultadosSalvosBolao();
+  const initialResultados = res.ok ? res.rows : [];
+
+  return <AdminBolaoPanel initialResultados={initialResultados} />;
 }
