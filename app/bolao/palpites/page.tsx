@@ -6,10 +6,7 @@ import {
   salvarPalpitesBolao,
   verificarECarregarPalpitesBolao,
 } from "@/app/bolao/palpites/actions";
-import {
-  MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO,
-  MSG_PALPITES_ENCERRADOS_JOGO,
-} from "@/app/bolao/palpites/utils";
+import { MSG_PALPITES_ENCERRADOS_JOGO } from "@/app/bolao/palpites/utils";
 import {
   Copa2026PalpiteCard,
   type PontuacaoPalpiteCard,
@@ -33,6 +30,9 @@ const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
 const MSG_PALPITE_SALVO_DB = "Palpite salvo no banco de dados.";
 const MSG_PLACAR_INCOMPLETO =
   "Informe o placar do mandante e do visitante antes de salvar.";
+
+const MSG_AVISO_PAGAMENTO_PALPITES =
+  "Pagamento pendente. Finalize sua inscrição para liberar os palpites.";
 
 const BOLAO_PARTICIPANTE_LS = "barbosatips:bolao:participante";
 
@@ -212,6 +212,49 @@ export default function BolaoPalpitesPage() {
     };
   }, [pathname, router]);
 
+  const aplicarRespostaServidor = useCallback(
+    (res: {
+      ok: true;
+      placares: Record<string, { casa: string; fora: string }>;
+      confirmado: boolean;
+      pago: boolean;
+      palpitePersistidoPorJogo: Record<string, boolean>;
+    }) => {
+      setPalpites((prev) => {
+        const base = montarPalpitesAPartirDoServidor(res);
+        const out: Record<string, CelulaPalpite> = { ...base };
+        for (const j of COPA2026_JOGOS) {
+          const lac = prev[j.id];
+          if (lac && !lac.existeNoBanco && !base[j.id]) {
+            out[j.id] = { ...lac, existeNoBanco: false };
+          }
+        }
+        return out;
+      });
+      setConfirmado(res.confirmado);
+      setParticipante((prev) => {
+        if (!prev) return prev;
+        if (prev.pago === res.pago) return prev;
+        const next = { ...prev, pago: res.pago };
+        try {
+          localStorage.setItem(
+            BOLAO_PARTICIPANTE_LS,
+            JSON.stringify({
+              inscricao_id: next.inscricao_id,
+              nome: next.nome,
+              email: next.email,
+              pago: next.pago,
+            }),
+          );
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     if (sessaoBolao !== "logado" || !participante) return;
 
@@ -244,7 +287,7 @@ export default function BolaoPalpitesPage() {
     return () => {
       cancelado = true;
     };
-  }, [sessaoBolao, participante]);
+  }, [sessaoBolao, participante?.email, participante?.inscricao_id, aplicarRespostaServidor]);
 
   const dispararFlashSalvo = useCallback((jogoId: string) => {
     const prev = flashTimers.current[jogoId];
@@ -308,48 +351,6 @@ export default function BolaoPalpitesPage() {
     [relogio],
   );
 
-  const aplicarRespostaServidor = useCallback(
-    (res: {
-      ok: true;
-      placares: Record<string, { casa: string; fora: string }>;
-      confirmado: boolean;
-      pago: boolean;
-      palpitePersistidoPorJogo: Record<string, boolean>;
-    }) => {
-      setPalpites((prev) => {
-        const base = montarPalpitesAPartirDoServidor(res);
-        const out: Record<string, CelulaPalpite> = { ...base };
-        for (const j of COPA2026_JOGOS) {
-          const lac = prev[j.id];
-          if (lac && !lac.existeNoBanco && !base[j.id]) {
-            out[j.id] = { ...lac, existeNoBanco: false };
-          }
-        }
-        return out;
-      });
-      setConfirmado(res.confirmado);
-      setParticipante((prev) => {
-        if (!prev) return prev;
-        const next = { ...prev, pago: res.pago };
-        try {
-          localStorage.setItem(
-            BOLAO_PARTICIPANTE_LS,
-            JSON.stringify({
-              inscricao_id: next.inscricao_id,
-              nome: next.nome,
-              email: next.email,
-              pago: next.pago,
-            }),
-          );
-        } catch {
-          // ignore
-        }
-        return next;
-      });
-    },
-    [],
-  );
-
   const salvarPalpite = useCallback(
     async (jogo: JogoCopa2026Resolvido) => {
       const jogoId = String(jogo?.id ?? "");
@@ -367,7 +368,7 @@ export default function BolaoPalpitesPage() {
       }
 
       if (participante?.pago === false) {
-        setErro(MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO);
+        setErro(MSG_AVISO_PAGAMENTO_PALPITES);
         return;
       }
 
@@ -504,7 +505,7 @@ export default function BolaoPalpitesPage() {
     }
 
     if (participante.pago === false) {
-      setErro(MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO);
+      setErro(MSG_AVISO_PAGAMENTO_PALPITES);
       return;
     }
 
@@ -667,11 +668,8 @@ export default function BolaoPalpitesPage() {
                     className="mt-3 rounded-lg border border-amber-500/40 bg-amber-950/30 px-3 py-2.5 sm:px-4 sm:py-3"
                     role="status"
                   >
-                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-amber-300">
-                      Pagamento pendente
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-amber-100/90">
-                      {MSG_BOLAO_CONFIRME_PAGAMENTO_INSCRICAO}
+                    <p className="text-sm font-semibold leading-snug text-amber-100">
+                      {MSG_AVISO_PAGAMENTO_PALPITES}
                     </p>
                     <a
                       href={LINK_MERCADO_PAGO_PLACEHOLDER}
