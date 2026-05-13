@@ -23,7 +23,6 @@ import {
   copa2026PalpitesTextoTempoRestante,
   copa2026PontuacaoPalpite,
 } from "@/lib/mocks/copa2026-groupstage.mock";
-import { isSupabaseMock } from "@/lib/supabase/is-mock";
 
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
 const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
@@ -121,7 +120,6 @@ type SessaoBolao = "checking" | "sem_sessao" | "logado";
 export default function BolaoPalpitesPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const usarSupabase = useMemo(() => !isSupabaseMock(), []);
 
   const [sessaoBolao, setSessaoBolao] = useState<SessaoBolao>("checking");
   const sessaoBolaoRef = useRef<SessaoBolao>("checking");
@@ -218,11 +216,6 @@ export default function BolaoPalpitesPage() {
       setErro("");
       setHydrated(false);
 
-      if (!usarSupabase) {
-        setHydrated(true);
-        return;
-      }
-
       const res = await verificarECarregarPalpitesBolao(emailBolao, inscricaoIdBolao);
       if (cancelado) return;
 
@@ -243,7 +236,7 @@ export default function BolaoPalpitesPage() {
     return () => {
       cancelado = true;
     };
-  }, [sessaoBolao, participante, usarSupabase]);
+  }, [sessaoBolao, participante]);
 
   const dispararFlashSalvo = useCallback((jogoId: string) => {
     const prev = flashTimers.current[jogoId];
@@ -341,11 +334,6 @@ export default function BolaoPalpitesPage() {
         return;
       }
 
-      if (!usarSupabase) {
-        setErro("Palpites exigem Supabase configurado (modo mock).");
-        return;
-      }
-
       if (confirmado) {
         setErro("Os palpites já foram confirmados e não podem mais ser alterados.");
         return;
@@ -407,12 +395,32 @@ export default function BolaoPalpitesPage() {
         }
 
         if (!response.ok || data.ok === false) {
-          setErro(data.error ?? "Falha ao salvar o palpite.");
+          const msgErro =
+            (typeof data.error === "string" && data.error.trim()) ||
+            `Erro HTTP ${response.status}`;
+          setErro(msgErro);
           return;
         }
 
         setErro("");
         dispararPalpiteSalvoDbMsg();
+
+        if (!vazio) {
+          setPalpites((prev) => ({
+            ...prev,
+            [jogoId]: {
+              placar_casa: sc,
+              placar_fora: sf,
+              existeNoBanco: true,
+            },
+          }));
+        } else {
+          setPalpites((prev) => {
+            const next = { ...prev };
+            delete next[jogoId];
+            return next;
+          });
+        }
 
         const rec = await verificarECarregarPalpitesBolao(
           participante.email,
@@ -438,7 +446,6 @@ export default function BolaoPalpitesPage() {
       participante,
       palpites,
       relogio,
-      usarSupabase,
     ],
   );
 
@@ -456,11 +463,6 @@ export default function BolaoPalpitesPage() {
 
     if (!participante.inscricao_id.trim()) {
       setErro("Sessão inválida ou expirada. Faça login novamente.");
-      return;
-    }
-
-    if (!usarSupabase) {
-      setErro("Palpites exigem Supabase configurado (modo mock).");
       return;
     }
 
@@ -533,7 +535,6 @@ export default function BolaoPalpitesPage() {
     participante,
     palpites,
     relogio,
-    usarSupabase,
   ]);
 
   if (sessaoBolao === "checking") {
@@ -629,12 +630,6 @@ export default function BolaoPalpitesPage() {
               </div>
             ) : null}
 
-            {!usarSupabase ? (
-              <p className="mb-2 rounded border border-amber-500/35 bg-amber-950/25 px-2 py-2 text-xs text-amber-200">
-                Modo mock ativo: palpites só funcionam com Supabase configurado.
-              </p>
-            ) : null}
-
             {erro ? (
               <p className="mb-2 rounded border border-red-500/35 bg-red-950/30 px-2 py-2 text-xs text-red-300">
                 {erro}
@@ -661,12 +656,12 @@ export default function BolaoPalpitesPage() {
               role="status"
               aria-live="polite"
               className={`mb-3 overflow-hidden transition-all duration-300 ${
-                usarSupabase && sucessoSalvos
+                sucessoSalvos
                   ? "max-h-16 opacity-100"
                   : "max-h-0 opacity-0"
               }`}
             >
-              {usarSupabase && sucessoSalvos && (
+              {sucessoSalvos && (
                 <div className="rounded border border-emerald-500/40 bg-emerald-950/35 px-2 py-2 text-center">
                   <p className="text-[11px] font-black uppercase tracking-wide text-emerald-400">
                     {MSG_SALVOS_SUPABASE}
@@ -766,12 +761,7 @@ export default function BolaoPalpitesPage() {
                 <div className="mt-4 border-t-2 border-yellow-500/40 pt-3">
                   <button
                     type="button"
-                    disabled={
-                      !hydrated ||
-                      !usarSupabase ||
-                      confirmandoTodos ||
-                      confirmado
-                    }
+                    disabled={!hydrated || confirmandoTodos || confirmado}
                     onClick={() => void confirmarTodos()}
                     className="w-full rounded bg-yellow-500 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-black shadow-[0_0_20px_rgba(234,179,8,0.15)] transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
                   >

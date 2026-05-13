@@ -22,8 +22,16 @@ function strPlacar(v: unknown): string {
   return String(v).replace(/\D/g, "").slice(0, 2);
 }
 
+function supabaseUrl(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+    process.env.SUPABASE_URL?.trim() ||
+    undefined
+  );
+}
+
 function createBolaoServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const url = supabaseUrl();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) return null;
   return createClient(url, key, {

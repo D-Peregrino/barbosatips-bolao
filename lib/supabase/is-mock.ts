@@ -1,11 +1,13 @@
 /**
- * Modo local sem Supabase:
- * - NEXT_PUBLIC_SUPABASE_MOCK=true, ou
- * - sem NEXT_PUBLIC_SUPABASE_URL, ou
- * - sem nenhuma chave utilizável (anon pública OU service role no servidor).
+ * Modo mock explícito: `NEXT_PUBLIC_SUPABASE_MOCK=true`.
  *
- * Com URL + (ANON_KEY ou SERVICE_ROLE_KEY), o projeto trata como backend configurado.
- * `NEXT_PUBLIC_SUPABASE_MOCK=false` força modo real (desde que URL exista).
+ * No **navegador**, não inferimos mock por falta de `NEXT_PUBLIC_SUPABASE_URL`
+ * no bundle (build sem a var gera falso “mock” em produção). Quem valida
+ * credenciais no bolão é a API / server actions.
+ *
+ * No **servidor** (SSR, Server Actions, Route Handlers), mantém a inferência:
+ * sem URL configurável ou sem chave utilizável → mock para fluxos que
+ * precisam evitar chamadas reais em dev.
  */
 function env(name: "MOCK" | "URL" | "ANON"): string | undefined {
   const prefix = "NEXT_PUBLIC_SUPABASE_";
@@ -21,11 +23,24 @@ function serviceRoleKey(): string | undefined {
     : undefined;
 }
 
+function supabaseUrl(): string | undefined {
+  if (typeof process === "undefined") return undefined;
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+    process.env.SUPABASE_URL?.trim() ||
+    undefined
+  );
+}
+
 export function isSupabaseMock(): boolean {
   if (env("MOCK") === "true") return true;
   if (env("MOCK") === "false") return false;
 
-  const url = env("URL")?.trim();
+  if (typeof window !== "undefined") {
+    return false;
+  }
+
+  const url = supabaseUrl();
   const anon = env("ANON")?.trim();
   const service = serviceRoleKey();
 
