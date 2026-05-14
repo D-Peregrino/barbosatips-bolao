@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Trophy } from "lucide-react";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
+import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
+import { siteConfig } from "@/config/site";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { pontuacaoPalpiteContraResultado } from "@/lib/bolao/pontuacao-palpite";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
@@ -106,7 +109,7 @@ function mapPalpiteRowRanking(row: Record<string, unknown>): PalpiteBolaoRow | n
 function mapInscrito(row: Record<string, unknown>): InscritoRow | null {
   const id = String(row.id ?? "").trim();
   if (!id) return null;
-  const nome = String(row.nome ?? "").trim() || "—";
+  const nome = String(row.nome ?? "").trim() || "Participante";
   return { id, nome };
 }
 
@@ -195,14 +198,17 @@ async function carregarRankingBolao(): Promise<
   | { ok: false; erro: string }
 > {
   if (shouldSkipLiveSupabase()) {
-    return { ok: false, erro: "Ranking indisponível no ambiente atual." };
+    return {
+      ok: false,
+      erro: "O ranking não está disponível neste momento. Volta mais tarde.",
+    };
   }
 
   const sb = createRankingSupabaseServer();
   if (!sb) {
     return {
       ok: false,
-      erro: "Configure Supabase (URL e SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_ANON_KEY).",
+      erro: "O ranking não está disponível neste momento. Volta mais tarde.",
     };
   }
 
@@ -224,14 +230,20 @@ async function carregarRankingBolao(): Promise<
   if (insRes.error) {
     return {
       ok: false,
-      erro: insRes.error.message || "Erro ao carregar participantes.",
+      erro: "Não conseguimos mostrar o ranking agora. Tenta novamente dentro de alguns minutos.",
     };
   }
   if (palRes.error) {
-    return { ok: false, erro: palRes.error.message || "Erro ao carregar palpites." };
+    return {
+      ok: false,
+      erro: "Não conseguimos mostrar o ranking agora. Tenta novamente dentro de alguns minutos.",
+    };
   }
   if (resRes.error) {
-    return { ok: false, erro: resRes.error.message || "Erro ao carregar resultados." };
+    return {
+      ok: false,
+      erro: "Não conseguimos mostrar o ranking agora. Tenta novamente dentro de alguns minutos.",
+    };
   }
 
   const inscritos = ((insRes.data ?? []) as Record<string, unknown>[])
@@ -243,11 +255,6 @@ async function carregarRankingBolao(): Promise<
     .filter((x): x is PalpiteBolaoRow => x != null);
 
   const resultados = normalizarResultadoRows(resRes.data as unknown[]);
-
-  console.log("RANKING PUBLICO PALPITES", palpites);
-  console.log("RANKING PUBLICO RESULTADOS", resultados);
-  console.log("IDS PALPITES", palpites.map((p) => p.jogo_id));
-  console.log("IDS RESULTADOS", resultados.map((r) => r.jogo_id));
 
   const { linhas, temResultadosOficiais } = calcularRankingComoAdmin(
     inscritos,
@@ -296,12 +303,20 @@ export default async function RankingPage() {
           </div>
 
         {!data.ok ? (
-          <p
-            className="mt-8 max-w-xl rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-            role="alert"
-          >
-            {data.erro}
-          </p>
+          <PortalEmptyState
+            icon={Trophy}
+            title="Ranking indisponível"
+            description={data.erro}
+            primaryHref="/picks"
+            primaryLabel="Ver picks"
+            secondaryHref="/comunidade"
+            secondaryLabel="Entrar na comunidade"
+            tertiaryHref={siteConfig.hub.youtubeCanalUrl}
+            tertiaryLabel="Assistir no YouTube"
+            quaternaryHref="/bolao"
+            quaternaryLabel="Participar do bolão"
+            className="mt-8 text-left sm:text-center"
+          />
         ) : (
           <>
             {!data.temResultadosOficiais ? (
@@ -310,7 +325,9 @@ export default async function RankingPage() {
                 style={{ borderColor: "rgba(245, 158, 11, 0.15)" }}
               >
                 <p className="text-sm leading-relaxed text-zinc-300">
-                  Ranking será liberado após os primeiros resultados.
+                  O ranking ordenado por pontos aparece assim que existirem jogos com resultado
+                  oficial e palpites válidos. Até lá, podes acompanhar o bolão e as picks no resto
+                  do site.
                 </p>
               </div>
             ) : null}
@@ -355,9 +372,20 @@ export default async function RankingPage() {
                 </div>
               </section>
             ) : (
-              <p className="mt-10 max-w-xl text-sm text-zinc-500">
-                Ainda não há participantes inscritos no bolão.
-              </p>
+              <PortalEmptyState
+                icon={Trophy}
+                title="Ainda não há participantes no ranking"
+                description="Quando as primeiras inscrições estiverem activas, os nomes aparecem aqui. Garante a tua vaga no bolão e segue a comunidade para avisos."
+                primaryHref="/bolao"
+                primaryLabel="Participar do bolão"
+                secondaryHref="/comunidade"
+                secondaryLabel="Entrar na comunidade"
+                tertiaryHref={siteConfig.hub.youtubeCanalUrl}
+                tertiaryLabel="Assistir no YouTube"
+                quaternaryHref="/picks"
+                quaternaryLabel="Ver picks"
+                className="mt-10 text-left sm:text-center"
+              />
             )}
           </>
         )}
@@ -367,19 +395,19 @@ export default async function RankingPage() {
             href="/bolao"
             className="inline-flex items-center justify-center rounded-lg border border-[#3d3420] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-amber-500/40 hover:text-amber-300"
           >
-            Bolão
+            Participar do bolão
           </Link>
           <Link
-            href="/tips"
+            href="/picks"
             className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2.5 text-sm font-semibold text-[#0a0a0a] transition-opacity hover:opacity-90"
           >
-            Tips do dia
+            Ver picks
           </Link>
           <Link
-            href="/analises"
+            href="/comunidade"
             className="inline-flex items-center justify-center rounded-lg border border-[#3d3420] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-amber-500/40 hover:text-amber-300"
           >
-            Análises
+            Entrar na comunidade
           </Link>
         </div>
 

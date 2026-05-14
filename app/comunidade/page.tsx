@@ -92,7 +92,7 @@ export default function ComunidadePage() {
           </h1>
           <p className="relative mt-4 max-w-2xl text-sm leading-relaxed text-zinc-500 sm:text-base">
             Canal e grupo no Telegram, análises no YouTube e redes sociais — tudo ligado ao mesmo
-            rigor esportivo. A newsletter continua aqui; o bolão e pagamentos mantêm-se como estão.
+            rigor esportivo. A newsletter continua aqui; o bolão mantém-se como está.
           </p>
           <div className="relative mt-8 flex flex-wrap gap-3">
             <a
@@ -102,7 +102,7 @@ export default function ComunidadePage() {
               className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-6 text-sm font-bold text-white shadow-lg shadow-[#229ED9]/20 transition hover:brightness-110"
             >
               <Send className="h-4 w-4" aria-hidden />
-              Canal Telegram
+              Entrar na comunidade
             </a>
             <a
               href={hub.youtubeCanalUrl}
@@ -111,7 +111,7 @@ export default function ComunidadePage() {
               className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-950/35 px-6 text-sm font-bold text-red-50 transition hover:border-red-400/55"
             >
               <Youtube className="h-4 w-4" aria-hidden />
-              YouTube
+              Assistir no YouTube
             </a>
             <Link
               href="/newsletter"
@@ -179,7 +179,7 @@ export default function ComunidadePage() {
               <h2 className="font-display text-xl font-bold text-white">Lista de email</h2>
             </div>
             <p className="mb-6 text-sm text-zinc-500">
-              Segmentação por desporto — o mesmo motor de leads, sem mexer no login.
+              Escolhe os desportos que mais te interessam — sem obrigar conta no site.
             </p>
             <LeadCaptureForm source="comunidade" variant="full" />
           </section>
@@ -191,9 +191,8 @@ export default function ComunidadePage() {
               </p>
               <p className="mt-2 font-display text-lg font-bold text-white">Grupo Telegram</p>
               <p className="mt-2 text-sm text-zinc-500">
-                Troca de ideias e avisos da comunidade — substitui o link de convite em{" "}
-                <span className="font-mono text-xs text-zinc-600">config/site.ts</span> quando
-                tiveres o URL real.
+                Troca de ideias e avisos da equipa — convites e regras são partilhados no próprio
+                Telegram.
               </p>
             </div>
             <a

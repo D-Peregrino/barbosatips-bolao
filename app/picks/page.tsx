@@ -92,12 +92,16 @@ export default async function PicksPage() {
           {picks.length === 0 ? (
             <PortalEmptyState
               icon={Zap}
-              title="Radar de picks calmo"
-              description="Ainda não há linhas rápidas publicadas. Entra no Telegram para não perder o próximo flash ou vê o desempenho histórico na área de performance."
-              primaryHref="/comunidade"
-              primaryLabel="Comunidade & alertas"
-              secondaryHref="/performance"
-              secondaryLabel="Ver performance"
+              title="Ainda não há picks por aqui"
+              description="Quando a equipa publicar linhas rápidas, elas aparecem nesta grelha. Entretanto, podes refrescar esta página, seguir a comunidade, ver o canal no YouTube ou entrar no bolão."
+              primaryHref="/picks"
+              primaryLabel="Ver picks"
+              secondaryHref="/comunidade"
+              secondaryLabel="Entrar na comunidade"
+              tertiaryHref={siteConfig.hub.youtubeCanalUrl}
+              tertiaryLabel="Assistir no YouTube"
+              quaternaryHref="/bolao"
+              quaternaryLabel="Participar do bolão"
             />
           ) : (
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

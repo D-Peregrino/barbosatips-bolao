@@ -22,3 +22,23 @@ export function betaVipPageHref(): string {
     ? "/comunidade"
     : "/vip";
 }
+
+/** Texto do botão quando o destino é o hub (beta oculta `/vip`). */
+export function betaVipHubCtaLabel(): string {
+  return siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.hideVipNav
+    ? "Hub BarbosaTips"
+    : "Programa VIP";
+}
+
+/** Rótulo em CTAs de conteúdo bloqueado (login) vs página VIP. */
+export function betaVipUpsellLabel(): string {
+  return siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.lockedContentUpsellToLogin
+    ? "Entrar"
+    : "Programa VIP";
+}
+
+export function betaPremiumUpsellLabel(): string {
+  return siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.lockedContentUpsellToLogin
+    ? "Entrar"
+    : "Premium";
+}

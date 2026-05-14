@@ -23,12 +23,16 @@ export function AnalisesPortal({
     return (
       <PortalEmptyState
         icon={Newspaper}
-        title="Portal editorial a abrir"
-        description="Ainda não há análises publicadas neste ambiente. Segue o Telegram para o primeiro alerta ou explora as picks rápidas enquanto a equipa editorial publica."
+        title="Análises em breve"
+        description="Ainda não há prognósticos publicados nesta secção. Explora as picks rápidas, segue a comunidade no Telegram ou assiste às leituras em vídeo no YouTube."
         primaryHref="/picks"
-        primaryLabel="Ver picks rápidas"
+        primaryLabel="Ver picks"
         secondaryHref="/comunidade"
-        secondaryLabel="Junta-te à comunidade"
+        secondaryLabel="Entrar na comunidade"
+        tertiaryHref={siteConfig.hub.youtubeCanalUrl}
+        tertiaryLabel="Assistir no YouTube"
+        quaternaryHref="/bolao"
+        quaternaryLabel="Participar do bolão"
       />
     );
   }

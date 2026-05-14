@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Activity } from "lucide-react";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PerformanceDashboard } from "@/components/performance/PerformanceDashboard";
+import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { siteConfig } from "@/config/site";
 import { computePerformanceModel } from "@/lib/picks/performance-compute";
@@ -42,6 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PerformancePage() {
   const picks = await listarQuickPicksPerformance();
   const model = computePerformanceModel(picks);
+  const semDados = model.totalPicks === 0;
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -72,25 +75,43 @@ export default async function PerformancePage() {
               Desempenho <span className="text-gold-gradient">público</span>
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-              Totais, taxa, ROI (1u: green = odd−1, red = −1, void = 0), sequências e gráficos —
-              recalculados em cada visita a partir de <strong className="text-zinc-300">quick_picks</strong>.
+              {semDados ? (
+                <>
+                  Aqui vais ver totais, taxa de acerto, sequências e gráficos à medida que as picks
+                  públicas forem encerrando com resultado. Volta mais tarde ou segue os canais para
+                  não perderes o arranque.
+                </>
+              ) : (
+                <>
+                  Totais, taxa de acerto, ROI estimado (1 unidade por pick: vitória usa a odd,
+                  derrota −1, sem resultado 0), sequências e gráficos — atualizados em cada visita a
+                  partir das picks publicadas no portal.
+                </>
+              )}
             </p>
-            {model.totalPicks === 0 ? (
-              <p
-                className="mt-6 max-w-xl rounded-xl border border-amber-500/25 bg-amber-950/20 px-4 py-3 text-sm text-amber-100/90"
-                role="status"
-              >
-                Sem dados de picks neste ambiente ou ainda não há registos em{" "}
-                <code className="rounded bg-black/40 px-1.5 py-0.5 text-xs">quick_picks</code>.
-              </p>
-            ) : null}
           </header>
 
           <div className="lg:hidden">
             <AdSlot variant="mobile-inline" intent="sponsor" />
           </div>
 
-          <PerformanceDashboard model={model} />
+          {semDados ? (
+            <PortalEmptyState
+              icon={Activity}
+              title="Métricas ainda sem histórico"
+              description="Assim que existirem picks encerradas no portal, este painel mostra taxa, ROI e tendências de forma transparente. Entretanto, vê as picks em aberto, segue a comunidade ou entra no bolão."
+              primaryHref="/picks"
+              primaryLabel="Ver picks"
+              secondaryHref="/comunidade"
+              secondaryLabel="Entrar na comunidade"
+              tertiaryHref={siteConfig.hub.youtubeCanalUrl}
+              tertiaryLabel="Assistir no YouTube"
+              quaternaryHref="/bolao"
+              quaternaryLabel="Participar do bolão"
+            />
+          ) : (
+            <PerformanceDashboard model={model} />
+          )}
 
           <PortalSocialCtaBand className="mt-10" />
         </div>

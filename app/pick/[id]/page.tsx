@@ -18,7 +18,12 @@ import { iconeEsporte, rotuloEsporte } from "@/lib/picks/rotulo-esporte";
 import { listarQuickPicksParaSitemap, obterQuickPickPorId } from "@/lib/picks/queries";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { viewerPodeVerPremium } from "@/lib/premium/types";
-import { betaPremiumHref, betaVipHref } from "@/lib/beta/cta-hrefs";
+import {
+  betaPremiumHref,
+  betaPremiumUpsellLabel,
+  betaVipHref,
+  betaVipUpsellLabel,
+} from "@/lib/beta/cta-hrefs";
 
 type Props = { params: { id: string } };
 
@@ -156,10 +161,10 @@ export default async function PickPublicPage({ params }: Props) {
                     </p>
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-bold">
                       <Link href={betaVipHref()} className="text-gold-300 underline-offset-2 hover:underline">
-                        Programa VIP
+                        {betaVipUpsellLabel()}
                       </Link>
                       <Link href={betaPremiumHref()} className="text-amber-300 underline-offset-2 hover:underline">
-                        Premium
+                        {betaPremiumUpsellLabel()}
                       </Link>
                     </div>
                   </div>

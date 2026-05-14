@@ -296,7 +296,7 @@ export function PerformanceCharts({
         </figcaption>
         {diarioTrintaDias.every((d) => d.greens + d.reds + d.voids === 0) ? (
           <p className="py-14 text-center text-sm text-zinc-500">
-            Sem resultados registados nesta janela de 30 dias.
+            Neste período ainda não há resultados encerrados para mostrar no gráfico.
           </p>
         ) : (
           <Last30DaysBars data={diarioTrintaDias} />

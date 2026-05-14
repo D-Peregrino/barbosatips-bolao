@@ -8,7 +8,12 @@ import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 import { PremiumPickLockCorner } from "@/components/premium/PremiumPickLockCorner";
 import { VipBadge } from "@/components/premium/VipBadge";
 import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
-import { betaPremiumHref, betaVipHref } from "@/lib/beta/cta-hrefs";
+import {
+  betaPremiumHref,
+  betaPremiumUpsellLabel,
+  betaVipHref,
+  betaVipUpsellLabel,
+} from "@/lib/beta/cta-hrefs";
 
 function formatarHorario(iso: string): string {
   if (!iso) return "—";
@@ -293,13 +298,13 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
           <PremiumLockBadge />
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] font-bold uppercase tracking-wide">
             <Link href={betaVipHref()} className="text-gold-200 underline-offset-2 hover:underline">
-              Programa VIP
+              {betaVipUpsellLabel()}
             </Link>
             <span className="text-zinc-600" aria-hidden>
               ·
             </span>
             <Link href={betaPremiumHref()} className="text-amber-300 underline-offset-2 hover:underline">
-              Premium
+              {betaPremiumUpsellLabel()}
             </Link>
           </div>
         </div>

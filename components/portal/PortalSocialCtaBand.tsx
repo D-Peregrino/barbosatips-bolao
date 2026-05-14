@@ -58,7 +58,7 @@ export function PortalSocialCtaBand({ className, kicker }: Props) {
             className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2.5 rounded-xl bg-[#229ED9] px-6 text-sm font-extrabold text-white shadow-[0_16px_44px_-16px_rgba(34,158,217,0.55)] transition hover:brightness-110 sm:min-w-[200px]"
           >
             <Send className="h-5 w-5 shrink-0" strokeWidth={2.4} aria-hidden />
-            Entrar no Telegram
+            Entrar na comunidade
           </a>
           <a
             href={hub.youtubeCanalUrl}
@@ -67,13 +67,13 @@ export function PortalSocialCtaBand({ className, kicker }: Props) {
             className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2.5 rounded-xl border-2 border-red-500/45 bg-red-950/35 px-6 text-sm font-extrabold text-red-50 transition hover:border-red-400/70 hover:bg-red-950/50 sm:min-w-[200px]"
           >
             <Youtube className="h-5 w-5 shrink-0" strokeWidth={2.4} aria-hidden />
-            Subscrever YouTube
+            Assistir no YouTube
           </a>
           <Link
             href="/comunidade"
             className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gold-400/30 bg-black/40 px-5 text-sm font-semibold text-gold-100 transition hover:border-gold-300/50 sm:px-6"
           >
-            Ver hub completo
+            Ver hub BarbosaTips
           </Link>
         </div>
       </div>

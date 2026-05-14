@@ -9,6 +9,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 type Card = {
   title: string;
@@ -89,6 +90,12 @@ const CARDS: Card[] = [
   },
 ];
 
+function adminCardsVisiveis(): Card[] {
+  if (!siteConfig.betaLaunch.enabled) return CARDS;
+  const ocultas = new Set<string>([...siteConfig.betaLaunch.redirectToHomePrefixes]);
+  return CARDS.filter((c) => !ocultas.has(c.href));
+}
+
 type Props = {
   searchParams: Record<string, string | string[] | undefined>;
 };
@@ -122,7 +129,7 @@ export default function AdminDashboardPage({ searchParams }: Props) {
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {CARDS.map((c) => (
+        {adminCardsVisiveis().map((c) => (
           <li key={c.href}>
             <Link
               href={c.href}

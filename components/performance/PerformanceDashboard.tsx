@@ -55,7 +55,7 @@ function BreakdownTable({
   if (rows.length === 0) {
     return (
       <div className="commercial-card-elevated p-8 text-center text-sm text-zinc-500">
-        Sem dados para {title.toLowerCase()}.
+        Ainda não há picks encerradas com resultado para mostrar nesta secção.
       </div>
     );
   }
@@ -309,8 +309,8 @@ export function PerformanceDashboard({ model }: { model: PerformanceModel }) {
               Últimos resultados
             </h2>
             <p className="text-xs text-zinc-500">
-              Ordenados do mais recente ao mais antigo · atualizam quando o estado em{" "}
-              <code className="rounded bg-black/40 px-1 text-[10px]">quick_picks</code> muda.
+              Ordenados do mais recente ao mais antigo — atualizam quando as picks encerram com
+              resultado.
             </p>
           </div>
         </div>
@@ -335,10 +335,8 @@ export function PerformanceDashboard({ model }: { model: PerformanceModel }) {
       </div>
 
       <p className="text-center text-[11px] leading-relaxed text-zinc-600">
-        Todas as métricas são <strong className="text-zinc-400">recalculadas no servidor</strong> a
-        partir das <code className="rounded bg-black/30 px-1">quick_picks</code> — quando um
-        resultado muda para green, red ou void, taxa, ROI, streaks e gráficos refletem o novo
-        estado nesta página.
+        As métricas refletem o estado actual das picks públicas — quando um resultado passa a
+        vitória, derrota ou sem efeito, taxa, ROI, sequências e gráficos actualizam-se nesta página.
       </p>
     </div>
   );

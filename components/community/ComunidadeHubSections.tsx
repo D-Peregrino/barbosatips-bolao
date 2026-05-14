@@ -29,8 +29,8 @@ export async function ComunidadeYoutubeSection() {
             Análises em <span className="text-gold-gradient">vídeo</span>
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-            Embeds responsivos, shorts em destaque e feed dos últimos uploads — sem API paga; com
-            RSS do canal quando configurares o ID UC no site config.
+            Vídeos completos e destaques do canal — o mesmo rigor BarbosaTips, agora em formato
+            audiovisual.
           </p>
         </div>
         <a
@@ -39,7 +39,7 @@ export async function ComunidadeYoutubeSection() {
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-xl border border-red-500/35 bg-red-950/30 px-5 py-2.5 text-sm font-bold text-red-100 transition hover:border-red-400/50"
         >
-          Abrir canal
+          Assistir no YouTube
         </a>
       </header>
 
@@ -62,10 +62,9 @@ export async function ComunidadeYoutubeSection() {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-zinc-600/50 bg-zinc-950/40 px-6 py-12 text-center">
-          <p className="text-sm font-medium text-zinc-400">
-            Configura <span className="font-mono text-gold-200">hub.youtubeChannelRssId</span>{" "}
-            (ID UC…) ou <span className="font-mono text-gold-200">hub.youtubeFallbackVideoIds</span>{" "}
-            em <span className="text-zinc-300">config/site.ts</span> para mostrar embeds aqui.
+          <p className="text-sm font-medium leading-relaxed text-zinc-400">
+            Os vídeos em destaque aparecem aqui assim que o canal tiver conteúdo listado. Entretanto,
+            abre o YouTube para ver análises completas e atualizações.
           </p>
           <a
             href={hub.youtubeCanalUrl}
@@ -73,7 +72,7 @@ export async function ComunidadeYoutubeSection() {
             rel="noopener noreferrer"
             className="mt-4 inline-block text-sm font-semibold text-red-300 underline-offset-2 hover:underline"
           >
-            Ver canal no YouTube →
+            Assistir no YouTube →
           </a>
         </div>
       )}
@@ -95,8 +94,7 @@ export async function ComunidadeYoutubeSection() {
       ) : null}
 
       <p className="text-center text-xs text-zinc-600">
-        Queres shorts em destaque? Adiciona os IDs em{" "}
-        <span className="font-mono text-zinc-500">hub.youtubeShortVideoIds</span>.
+        Novos shorts e cortes passam também pelo canal oficial no YouTube.
       </p>
     </section>
   );
@@ -120,23 +118,25 @@ export function ComunidadeRoadmapSection() {
       </p>
       <ul className="mt-6 grid gap-3 sm:grid-cols-3">
         <li className="rounded-xl border border-white/8 bg-black/30 px-4 py-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">VIP</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Destaques</p>
           <p className="mt-1 text-sm font-semibold text-zinc-200">
-            {roadmap.vipComunidade ? "Comunidade VIP" : "—"}
+            {roadmap.vipComunidade ? "Canais prioritários" : "Em breve"}
           </p>
-          <p className="mt-1 text-xs text-zinc-600">Área dedicada e benefícios alinhados ao premium.</p>
+          <p className="mt-1 text-xs text-zinc-600">
+            Avisos e conteúdos reservados à comunidade mais próxima do projeto.
+          </p>
         </li>
         <li className="rounded-xl border border-white/8 bg-black/30 px-4 py-4">
           <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Membros</p>
           <p className="mt-1 text-sm font-semibold text-zinc-200">
-            {roadmap.membrosDestaque ? "Membros em destaque" : "—"}
+            {roadmap.membrosDestaque ? "Membros em destaque" : "Em breve"}
           </p>
           <p className="mt-1 text-xs text-zinc-600">Reconhecimento e perks para quem apoia o projeto.</p>
         </li>
         <li className="rounded-xl border border-white/8 bg-black/30 px-4 py-4">
           <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Lives</p>
           <p className="mt-1 text-sm font-semibold text-zinc-200">
-            {roadmap.livesProgramadas ? "Lives programadas" : "—"}
+            {roadmap.livesProgramadas ? "Lives programadas" : "Em breve"}
           </p>
           <p className="mt-1 text-xs text-zinc-600">Calendário e avisos integrados ao hub.</p>
         </li>

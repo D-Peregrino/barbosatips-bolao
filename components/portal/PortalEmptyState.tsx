@@ -11,6 +11,12 @@ export type PortalEmptyStateProps = {
   primaryLabel?: string;
   secondaryHref?: string;
   secondaryLabel?: string;
+  /** CTA extra (ex.: YouTube). `http`/`https` abre em novo separador. */
+  tertiaryHref?: string;
+  tertiaryLabel?: string;
+  /** CTA extra interna (ex.: bolão). */
+  quaternaryHref?: string;
+  quaternaryLabel?: string;
 };
 
 /**
@@ -25,7 +31,13 @@ export function PortalEmptyState({
   primaryLabel,
   secondaryHref,
   secondaryLabel,
+  tertiaryHref,
+  tertiaryLabel,
+  quaternaryHref,
+  quaternaryLabel,
 }: PortalEmptyStateProps) {
+  const tertiaryExternal = tertiaryHref?.startsWith("http") ?? false;
+
   return (
     <div
       className={cn(
@@ -45,8 +57,11 @@ export function PortalEmptyState({
           {title}
         </h3>
         <p className="mt-3 text-sm leading-relaxed text-stone-300 sm:text-[15px]">{description}</p>
-        {(primaryHref && primaryLabel) || (secondaryHref && secondaryLabel) ? (
-          <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+        {(primaryHref && primaryLabel) ||
+        (secondaryHref && secondaryLabel) ||
+        (tertiaryHref && tertiaryLabel) ||
+        (quaternaryHref && quaternaryLabel) ? (
+          <div className="mt-8 flex w-full flex-col flex-wrap items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             {primaryHref && primaryLabel ? (
               <Link
                 href={primaryHref}
@@ -61,6 +76,33 @@ export function PortalEmptyState({
                 className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-6 text-sm font-semibold text-stone-100 transition hover:border-gold-400/30 hover:text-white sm:max-w-[220px]"
               >
                 {secondaryLabel}
+              </Link>
+            ) : null}
+            {tertiaryHref && tertiaryLabel ? (
+              tertiaryExternal ? (
+                <a
+                  href={tertiaryHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-red-500/40 bg-red-950/30 px-6 text-sm font-semibold text-red-50 transition hover:border-red-400/60 sm:max-w-[220px]"
+                >
+                  {tertiaryLabel}
+                </a>
+              ) : (
+                <Link
+                  href={tertiaryHref}
+                  className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-6 text-sm font-semibold text-stone-100 transition hover:border-gold-400/30 hover:text-white sm:max-w-[220px]"
+                >
+                  {tertiaryLabel}
+                </Link>
+              )
+            ) : null}
+            {quaternaryHref && quaternaryLabel ? (
+              <Link
+                href={quaternaryHref}
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-amber-500/35 bg-amber-950/25 px-6 text-sm font-semibold text-amber-100 transition hover:border-amber-400/50 sm:max-w-[220px]"
+              >
+                {quaternaryLabel}
               </Link>
             ) : null}
           </div>

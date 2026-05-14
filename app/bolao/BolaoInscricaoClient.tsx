@@ -3,6 +3,20 @@
 import { useState } from "react";
 import { inscreverBolaoCopa2026 } from "@/app/bolao/inscricao/actions";
 
+function mensagemInscricaoAmigavel(erro: string): string {
+  const t = erro.toLowerCase();
+  if (t.includes("duplicate") || t.includes("unique") || t.includes("already")) {
+    return "Este e-mail já está inscrito. Usa «Já sou inscrito» para entrar e enviar palpites.";
+  }
+  if (t.includes("network") || t.includes("failed to fetch")) {
+    return "Ligação instável. Verifica a internet e tenta novamente.";
+  }
+  if (t.includes("e-mail") || t.includes("email") || t.includes("invalid")) {
+    return "Verifica o nome e o e-mail e tenta de novo.";
+  }
+  return "Não foi possível concluir a inscrição. Verifica os dados ou tenta mais tarde.";
+}
+
 export default function BolaoInscricaoClient() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -119,7 +133,7 @@ export default function BolaoInscricaoClient() {
                 className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200"
                 role="alert"
               >
-                <pre className="whitespace-pre-wrap font-sans">{erro}</pre>
+                <p className="leading-relaxed">{mensagemInscricaoAmigavel(erro)}</p>
               </div>
             ) : null}
 
@@ -130,8 +144,8 @@ export default function BolaoInscricaoClient() {
               >
                 <p className="font-semibold">Inscrição realizada com sucesso.</p>
                 <p className="mt-2 text-xs leading-relaxed text-emerald-100/90">
-                  Agora faça login com o mesmo e-mail para acessar os palpites. Por
-                  enquanto, use o próprio e-mail como senha.
+                  Usa o mesmo e-mail na página de entrada do bolão para enviar os teus palpites —
+                  segue as instruções no ecrã seguinte.
                 </p>
                 <a
                   href="/bolao/login"

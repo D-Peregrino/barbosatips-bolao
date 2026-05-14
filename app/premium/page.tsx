@@ -3,15 +3,15 @@ import Link from "next/link";
 import { CreditCard, Lock, Sparkles, Zap, Shield, Crown } from "lucide-react";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
-import { betaVipPageHref } from "@/lib/beta/cta-hrefs";
-import { PLACEHOLDER_PLANS, SUBSCRIPTION_STATE_SOURCE } from "@/lib/billing/billing-roadmap";
+import { betaVipHubCtaLabel, betaVipPageHref } from "@/lib/beta/cta-hrefs";
+import { PLACEHOLDER_PLANS } from "@/lib/billing/billing-roadmap";
 
 const base = siteConfig.url.replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: `Premium | ${siteConfig.shortTitle}`,
   description:
-    "BarbosaTips Premium — camadas público, premium e VIP exclusivo, pré-visualizações e planos futuros (Mercado Pago / Stripe).",
+    "BarbosaTips Premium — camadas público, premium e conteúdo exclusivo, pré-visualizações e planos futuros (Mercado Pago / Stripe).",
   alternates: { canonical: `${base}/premium` },
   robots: { index: true, follow: true },
 };
@@ -60,8 +60,8 @@ export default function PremiumPage() {
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-zinc-400">
             Três camadas editoriais: <strong className="text-zinc-200">público</strong>,{" "}
             <strong className="text-zinc-200">premium</strong> (reservado) e{" "}
-            <strong className="text-zinc-200">VIP exclusivo</strong> (marcador em tags / notas
-            internas). Pagamentos recorrentes serão ligados aqui — ainda sem cobrança automática.
+            <strong className="text-zinc-200">conteúdo exclusivo</strong> para quem apoia o projeto.
+            Pagamentos recorrentes serão ligados aqui — ainda sem cobrança automática.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
@@ -69,7 +69,7 @@ export default function PremiumPage() {
               className="inline-flex items-center gap-2 rounded-2xl border border-gold-400/40 bg-gold-400/[0.08] px-6 py-3 text-sm font-bold text-gold-100 transition hover:border-gold-300/55 hover:bg-gold-400/12"
             >
               <Crown className="h-4 w-4 text-gold-300" aria-hidden />
-              Programa VIP
+              {betaVipHubCtaLabel()}
             </Link>
             <Link
               href="/dashboard"
@@ -89,12 +89,12 @@ export default function PremiumPage() {
             <TierCard
               title="Premium"
               subtitle="Assinatura"
-              body="Análises e picks com is_premium na base de dados — pré-visualização e corpo parcialmente bloqueado até desbloquear."
+              body="Análises e picks reservados a assinantes — pré-visualização gratuita e leitura integral após desbloquear."
             />
             <TierCard
-              title="Exclusivo VIP"
-              subtitle="Subconjunto premium"
-              body="Marcado com tags exclusivo ou vip-exclusivo nas análises, ou o mesmo marcador na justificativa das picks. Controlo de acesso idêntico ao premium."
+              title="Exclusivo"
+              subtitle="Dentro do premium"
+              body="Marcas editoriais especiais para leitores mais próximos do projeto — mesmo rigor, fila editorial mais restrita."
             />
           </div>
         </section>
@@ -125,13 +125,11 @@ export default function PremiumPage() {
         >
           <div className="mx-auto mb-8 inline-flex items-center gap-2 text-amber-200/90">
             <CreditCard className="h-5 w-5" strokeWidth={1.8} aria-hidden />
-            <h2 className="font-display text-2xl font-bold text-white">Planos (placeholder)</h2>
+            <h2 className="font-display text-2xl font-bold text-white">Planos futuros</h2>
           </div>
           <p className="mx-auto max-w-lg text-sm text-zinc-500">
-            Estrutura para Mercado Pago e Stripe — preços em definição. O estado de assinatura
-            continuará a ser espelhado em{" "}
-            <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-400">{SUBSCRIPTION_STATE_SOURCE}</code>{" "}
-            até existir tabela dedicada de subscrições.
+            Estrutura para Mercado Pago e Stripe — preços em definição. O estado da assinatura
+            continuará visível na área da tua conta até existir uma página dedicada de subscrições.
           </p>
           <ul className="mx-auto mt-10 grid max-w-4xl gap-5 text-left sm:grid-cols-2">
             {PLACEHOLDER_PLANS.map((plan) => (
@@ -163,7 +161,7 @@ export default function PremiumPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-8 py-3.5 text-sm font-bold text-white shadow-lg transition hover:brightness-110"
             >
-              Telegram VIP
+              Telegram oficial
             </a>
             <Link
               href="/contato"

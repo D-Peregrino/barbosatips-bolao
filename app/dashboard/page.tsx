@@ -8,7 +8,7 @@ import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { dashboardPlanSnapshot } from "@/lib/premium/dashboard-plan-copy";
 import { PLACEHOLDER_PLANS } from "@/lib/billing/billing-roadmap";
-import { betaVipPageHref } from "@/lib/beta/cta-hrefs";
+import { betaVipHubCtaLabel, betaVipPageHref } from "@/lib/beta/cta-hrefs";
 
 export const dynamic = "force-dynamic";
 
@@ -138,8 +138,8 @@ export default async function DashboardPage() {
             className="commercial-card-elevated group border border-gold-400/20 p-6 transition duration-300 hover:-translate-y-0.5 hover:border-gold-400/40"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-gold-400/90">Comercial</p>
-            <h2 className="mt-2 font-display text-xl font-bold text-white">Programa VIP</h2>
-            <p className="mt-2 text-sm text-zinc-500">Benefícios, ROI público de referência e CTAs.</p>
+            <h2 className="mt-2 font-display text-xl font-bold text-white">{betaVipHubCtaLabel()}</h2>
+            <p className="mt-2 text-sm text-zinc-500">Canais oficiais, avisos e benefícios alinhados ao projeto.</p>
             <span className="mt-4 inline-flex text-xs font-bold text-gold-300 group-hover:underline">
               Ver página →
             </span>
