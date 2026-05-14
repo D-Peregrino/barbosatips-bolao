@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 
 const NAV_LINKS = [
-  { href: "/tips",     label: "Tips" },
-  { href: "/picks",    label: "Picks" },
+  { href: "/tips", label: "Tips" },
+  { href: "/picks", label: "Picks" },
+  { href: "/performance", label: "Performance" },
   { href: "/analises", label: "Análises" },
   { href: "/premium",  label: "Premium" },
   { href: "/bolao",    label: "Bolão" },

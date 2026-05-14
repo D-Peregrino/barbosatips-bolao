@@ -100,3 +100,31 @@ export async function listarQuickPicksPremium(limit: number): Promise<QuickPickR
     return [];
   }
 }
+
+const PERF_LIMIT = 2500;
+
+/**
+ * Todas as quick_picks (até cap) para o dashboard público de performance.
+ * Inclui premium — estatísticas agregadas, sem paywall de conteúdo editorial.
+ */
+export async function listarQuickPicksPerformance(): Promise<QuickPickRow[]> {
+  if (shouldSkipLiveSupabase()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("quick_picks")
+      .select(COLUNAS)
+      .order("horario_jogo", { ascending: false })
+      .limit(PERF_LIMIT);
+
+    if (error) {
+      console.error("quick_picks performance", error);
+      return [];
+    }
+
+    return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
