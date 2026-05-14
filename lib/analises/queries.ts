@@ -40,7 +40,7 @@ export async function listarAnalisesPublicadas(): Promise<AnaliseRow[]> {
       .from("analises")
       .select(COLUNAS)
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(2000);
 
     if (error) {
       console.error("analises listarPublicadas", error);

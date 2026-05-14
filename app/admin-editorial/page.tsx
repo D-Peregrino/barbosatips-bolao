@@ -12,6 +12,10 @@ type Props = {
   searchParams: Record<string, string | string[] | undefined>;
 };
 
+function statusPublicadoUi(status: string): boolean {
+  return status?.toLowerCase().trim() === "publicado";
+}
+
 export default async function AdminEditorialPage({ searchParams }: Props) {
   const g = searchParams?.gravado;
   const gravado = g === "1" || (Array.isArray(g) && g[0] === "1");
@@ -22,6 +26,7 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
     typeof s === "string" ? s : Array.isArray(s) ? s[0] ?? "" : "";
 
   const lista = await listarTodasAnalisesAdmin();
+  console.log("ADMIN ANALISES", lista);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] px-4 py-10 text-white">
@@ -70,9 +75,9 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
           Admin Editorial BarbosaTips
         </h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Formulários simples; grava na tabela{" "}
-          <code className="text-zinc-300">analises</code> (service role no
-          servidor).
+          Lista todas as linhas da tabela{" "}
+          <code className="text-zinc-300">analises</code> (qualquer estado), por{" "}
+          <code className="text-zinc-300">created_at</code> decrescente.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -124,7 +129,7 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                         {row.slug}
                       </td>
                       <td className="px-4 py-3">
-                        {row.status === "publicado" ? (
+                        {statusPublicadoUi(row.status) ? (
                           <span className="text-emerald-400">Publicado</span>
                         ) : (
                           <span className="text-amber-300">Rascunho</span>

@@ -1,15 +1,12 @@
-import { cache } from "react";
 import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { listarAnalisesPublicadas } from "@/lib/analises/queries";
 import { AnalisesPortal } from "@/components/analises/portal/AnalisesPortal";
 
-const listarAnalisesCached = cache(async () => listarAnalisesPublicadas());
-
-export const revalidate = siteConfig.revalidate.analises;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const lista = await listarAnalisesCached();
+  const lista = await listarAnalisesPublicadas();
   const n = lista.length;
   const primary = lista[0];
 
@@ -53,7 +50,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AnalisesPage() {
-  const data = await listarAnalisesCached();
+  const data = await listarAnalisesPublicadas();
+  console.log("PUBLIC ANALISES", data);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#030201] pb-20 pt-8 text-zinc-100 sm:pt-10">

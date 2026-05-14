@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
+import { statusPublicadoNormalizado } from "@/lib/analises/queries";
 import type { AnaliseRow } from "@/lib/analises/types";
 
 const COLUNAS =
@@ -18,10 +19,7 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     resumo: String(r.resumo ?? ""),
     conteudo: String(r.conteudo ?? ""),
     imagem_capa: String(r.imagem_capa ?? ""),
-    status:
-      String(r.status ?? "").toLowerCase().trim() === "publicado"
-        ? "publicado"
-        : "rascunho",
+    status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
     created_at: String(r.created_at ?? ""),
   };
 }
@@ -33,7 +31,8 @@ export async function listarTodasAnalisesAdmin(): Promise<AnaliseRow[]> {
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(2000);
 
     if (error) {
       console.error("admin analises list", error);
