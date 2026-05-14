@@ -1,8 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
-import { loginAdminAnalisesAction } from "@/app/admin/analises/auth-actions";
+import { Suspense } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
+import { loginAdminAnalisesFormAction } from "@/app/admin/analises/auth-actions";
+import { LOGIN_ANALISES_FORM_INITIAL } from "@/lib/admin/analises-login-form-state";
 
 const MSG_ENV =
   "Configure ADMIN_ANALISES_PASSWORD no ambiente (ex.: Vercel ou .env.local).";
@@ -11,36 +13,36 @@ type Props = {
   senhaAdminConfigurada: boolean;
 };
 
-export function AdminAnalisesLoginClient({ senhaAdminConfigurada }: Props) {
-  const router = useRouter();
+function SubmitButton({
+  disabledForm,
+}: {
+  disabledForm: boolean;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending || disabledForm}
+      className="w-full rounded-xl bg-gradient-to-r from-[#b8860b] to-[#d4af37] py-3 text-sm font-semibold text-[#0a0a0a] shadow-[0_12px_40px_-12px_rgba(212,175,55,.55)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {pending ? "Entrando…" : "Entrar"}
+    </button>
+  );
+}
+
+function AdminAnalisesLoginForm({ senhaAdminConfigurada }: Props) {
   const searchParams = useSearchParams();
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [state, formAction] = useFormState(
+    loginAdminAnalisesFormAction,
+    LOGIN_ANALISES_FORM_INITIAL,
+  );
 
   const erroUrl = searchParams.get("erro");
   const avisoMiddleware =
     erroUrl === "config" ? MSG_ENV : null;
   const avisoEnv = !senhaAdminConfigurada ? MSG_ENV : null;
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErro("");
-    if (!senhaAdminConfigurada) {
-      setErro(MSG_ENV);
-      return;
-    }
-    startTransition(async () => {
-      const res = await loginAdminAnalisesAction(senha);
-      if (!res.ok) {
-        setErro(res.error);
-        return;
-      }
-      router.push("/admin/analises");
-    });
-  }
-
   const bloqueado = !senhaAdminConfigurada;
+  const erroForm = state.error;
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] text-white">
@@ -77,7 +79,7 @@ export function AdminAnalisesLoginClient({ senhaAdminConfigurada }: Props) {
             </p>
           ) : null}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form action={formAction} className="space-y-5">
             <div>
               <label
                 htmlFor="admin-analises-senha"
@@ -87,32 +89,36 @@ export function AdminAnalisesLoginClient({ senhaAdminConfigurada }: Props) {
               </label>
               <input
                 id="admin-analises-senha"
+                name="password"
                 type="password"
                 autoComplete="current-password"
-                value={senha}
-                onChange={(ev) => setSenha(ev.target.value)}
+                required
                 className="w-full rounded-xl border border-[#3d3420]/90 bg-[#050608] px-4 py-3 text-sm text-white outline-none ring-0 transition placeholder:text-zinc-600 focus:border-[#C9A227]/60 disabled:opacity-50"
                 placeholder="••••••••"
-                disabled={pending || bloqueado}
+                disabled={bloqueado}
               />
             </div>
 
-            {erro ? (
+            {erroForm ? (
               <p className="text-sm text-red-400" role="alert">
-                {erro}
+                {erroForm}
               </p>
             ) : null}
 
-            <button
-              type="submit"
-              disabled={pending || !senha.trim() || bloqueado}
-              className="w-full rounded-xl bg-gradient-to-r from-[#b8860b] to-[#d4af37] py-3 text-sm font-semibold text-[#0a0a0a] shadow-[0_12px_40px_-12px_rgba(212,175,55,.55)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {pending ? "Entrando…" : "Entrar"}
-            </button>
+            <SubmitButton disabledForm={bloqueado} />
           </form>
         </section>
       </main>
     </div>
+  );
+}
+
+export function AdminAnalisesLoginClient(props: Props) {
+  return (
+    <Suspense
+      fallback={<div className="min-h-[calc(100vh-64px)] bg-[#050608]" />}
+    >
+      <AdminAnalisesLoginForm {...props} />
+    </Suspense>
   );
 }

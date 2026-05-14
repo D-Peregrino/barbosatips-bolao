@@ -1,11 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  ADMIN_ANALISES_COOKIE,
-  adminAnalisesSessionSecret,
-  verifyAdminAnalisesCookieValue,
-} from "@/lib/admin/analises-cookie";
-import {
   ADMIN_BOLAO_COOKIE,
   adminBolaoSessionSecret,
   verifyAdminBolaoCookieValue,
@@ -39,23 +34,6 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get(ADMIN_BOLAO_COOKIE)?.value;
     if (!(await verifyAdminBolaoCookieValue(token, secret))) {
       return NextResponse.redirect(new URL("/admin/bolao/login", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  if (path.startsWith("/admin/analises")) {
-    if (path.startsWith("/admin/analises/login")) {
-      return NextResponse.next();
-    }
-    const secretAn = adminAnalisesSessionSecret();
-    if (!secretAn) {
-      return NextResponse.redirect(
-        new URL("/admin/analises/login?erro=config", request.url),
-      );
-    }
-    const tokenAn = request.cookies.get(ADMIN_ANALISES_COOKIE)?.value;
-    if (!(await verifyAdminAnalisesCookieValue(tokenAn, secretAn))) {
-      return NextResponse.redirect(new URL("/admin/analises/login", request.url));
     }
     return NextResponse.next();
   }

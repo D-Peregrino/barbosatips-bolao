@@ -1,11 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import {
-  ADMIN_ANALISES_COOKIE,
-  adminAnalisesSessionSecret,
-  verifyAdminAnalisesCookieValue,
-} from "@/lib/admin/analises-cookie";
 import { listarTodasAnalisesAdmin } from "@/lib/analises/admin-queries";
 import { logoutAdminAnalisesAction } from "@/app/admin/analises/auth-actions";
 import { oddParaNumero } from "@/lib/analises/types";
@@ -15,12 +8,6 @@ export const metadata = {
 };
 
 export default async function AdminAnalisesDashboardPage() {
-  const secret = adminAnalisesSessionSecret();
-  const token = cookies().get(ADMIN_ANALISES_COOKIE)?.value;
-  if (!secret || !(await verifyAdminAnalisesCookieValue(token, secret))) {
-    redirect("/admin/analises/login");
-  }
-
   const rows = await listarTodasAnalisesAdmin();
 
   return (

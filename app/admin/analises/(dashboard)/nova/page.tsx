@@ -1,11 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import {
-  ADMIN_ANALISES_COOKIE,
-  adminAnalisesSessionSecret,
-  verifyAdminAnalisesCookieValue,
-} from "@/lib/admin/analises-cookie";
 import { AdminNovaAnaliseForm } from "@/components/admin/analises/AdminNovaAnaliseForm";
 
 export const metadata = {
@@ -13,12 +6,6 @@ export const metadata = {
 };
 
 export default async function AdminNovaAnalisePage() {
-  const secret = adminAnalisesSessionSecret();
-  const token = cookies().get(ADMIN_ANALISES_COOKIE)?.value;
-  if (!secret || !(await verifyAdminAnalisesCookieValue(token, secret))) {
-    redirect("/admin/analises/login");
-  }
-
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] text-white">
       <div
