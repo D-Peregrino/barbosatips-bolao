@@ -49,6 +49,8 @@ export async function salvarNovaAnaliseEditorialAction(
   }
 
   const campeonato = String(formData.get("campeonato") ?? "").trim();
+  const categoria = String(formData.get("categoria") ?? "").trim();
+  const tags = String(formData.get("tags") ?? "").trim();
   const timeCasa = String(formData.get("time_casa") ?? "").trim();
   const timeFora = String(formData.get("time_fora") ?? "").trim();
   const resumo = String(formData.get("resumo") ?? "").trim();
@@ -65,6 +67,8 @@ export async function salvarNovaAnaliseEditorialAction(
     slug,
     titulo,
     campeonato,
+    categoria,
+    tags,
     time_casa: timeCasa,
     time_fora: timeFora,
     odd,
@@ -112,6 +116,8 @@ export async function atualizarAnaliseEditorialAction(
   }
 
   const campeonato = String(formData.get("campeonato") ?? "").trim();
+  const categoria = String(formData.get("categoria") ?? "").trim();
+  const tags = String(formData.get("tags") ?? "").trim();
   const timeCasa = String(formData.get("time_casa") ?? "").trim();
   const timeFora = String(formData.get("time_fora") ?? "").trim();
   const resumo = String(formData.get("resumo") ?? "").trim();
@@ -152,6 +158,8 @@ export async function atualizarAnaliseEditorialAction(
       slug,
       titulo,
       campeonato,
+      categoria,
+      tags,
       time_casa: timeCasa,
       time_fora: timeFora,
       odd,

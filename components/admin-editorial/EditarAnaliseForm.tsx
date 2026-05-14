@@ -87,6 +87,32 @@ export function EditarAnaliseForm({ initial }: Props) {
           />
         </div>
         <div>
+          <label htmlFor="categoria" className={label}>
+            Categoria
+          </label>
+          <input
+            id="categoria"
+            name="categoria"
+            className={input}
+            placeholder="ex.: Futebol, NBA, Valor"
+            autoComplete="off"
+            defaultValue={initial.categoria}
+          />
+        </div>
+        <div>
+          <label htmlFor="tags" className={label}>
+            Tags
+          </label>
+          <input
+            id="tags"
+            name="tags"
+            className={input}
+            placeholder="futebol, over, correct score, valor"
+            autoComplete="off"
+            defaultValue={initial.tags}
+          />
+        </div>
+        <div>
           <label htmlFor="time_casa" className={label}>
             Time casa
           </label>

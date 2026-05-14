@@ -11,7 +11,7 @@ import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-a
 type Props = { params: { slug: string } };
 
 const COLUNAS =
-  "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
 
 function paraStatus(raw: unknown): AnaliseStatus {
   return String(raw ?? "").toLowerCase().trim() === "publicado"
@@ -24,6 +24,8 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
     titulo: String(r.titulo ?? ""),
+    categoria: String(r.categoria ?? ""),
+    tags: String(r.tags ?? ""),
     campeonato: String(r.campeonato ?? ""),
     time_casa: String(r.time_casa ?? ""),
     time_fora: String(r.time_fora ?? ""),

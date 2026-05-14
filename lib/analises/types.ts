@@ -4,6 +4,8 @@ export type AnaliseRow = {
   id: string;
   slug: string;
   titulo: string;
+  categoria: string;
+  tags: string;
   campeonato: string;
   time_casa: string;
   time_fora: string;

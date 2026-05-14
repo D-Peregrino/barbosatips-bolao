@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
+import { AnaliseCategoriaTags } from "@/components/analises/portal/AnaliseCategoriaTags";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
 
 type Props = { analise: AnaliseRow };
@@ -17,6 +18,10 @@ export function AnaliseCardGrid({ analise }: Props) {
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C9A227]/90">
           {analise.campeonato || "Campeonato"}
         </p>
+        <AnaliseCategoriaTags
+          categoria={analise.categoria}
+          tags={analise.tags}
+        />
         <p className="text-xs font-semibold text-zinc-300">
           {analise.time_casa}{" "}
           <span className="text-zinc-600" aria-hidden>

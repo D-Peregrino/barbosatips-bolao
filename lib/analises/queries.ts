@@ -12,6 +12,8 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
     titulo: String(r.titulo ?? ""),
+    categoria: String(r.categoria ?? ""),
+    tags: String(r.tags ?? ""),
     campeonato: String(r.campeonato ?? ""),
     time_casa: String(r.time_casa ?? ""),
     time_fora: String(r.time_fora ?? ""),
@@ -26,7 +28,7 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
 }
 
 const COLUNAS =
-  "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
 
 /**
  * Lista análises visíveis em /analises: status normalizado === "publicado".

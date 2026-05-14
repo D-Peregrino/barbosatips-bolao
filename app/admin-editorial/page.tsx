@@ -18,6 +18,8 @@ type AnaliseListaAdmin = {
   slug: string;
   status: string;
   campeonato: string;
+  categoria: string;
+  tags: string;
   created_at: string;
 };
 
@@ -28,6 +30,8 @@ function mapRow(r: Record<string, unknown>): AnaliseListaAdmin {
     slug: String(r.slug ?? ""),
     status: String(r.status ?? ""),
     campeonato: String(r.campeonato ?? ""),
+    categoria: String(r.categoria ?? ""),
+    tags: String(r.tags ?? ""),
     created_at: String(r.created_at ?? ""),
   };
 }
@@ -162,13 +166,15 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-[#3d3420]/90">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[960px] text-left text-sm">
                 <thead className="bg-[#14120e] text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   <tr>
                     <th className="px-4 py-3">Título</th>
                     <th className="px-4 py-3">Slug</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Campeonato</th>
+                    <th className="px-4 py-3">Categoria</th>
+                    <th className="px-4 py-3">Tags</th>
                     <th className="px-4 py-3">Criado em</th>
                     <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
@@ -188,8 +194,14 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                       <td className="px-4 py-3 text-zinc-300">
                         {row.status.trim() ? row.status : "—"}
                       </td>
-                      <td className="max-w-[160px] truncate px-4 py-3 text-zinc-400">
+                      <td className="max-w-[140px] truncate px-4 py-3 text-zinc-400">
                         {row.campeonato.trim() ? row.campeonato : "—"}
+                      </td>
+                      <td className="max-w-[120px] truncate px-4 py-3 text-[#C9A227]/90">
+                        {row.categoria.trim() ? row.categoria : "—"}
+                      </td>
+                      <td className="max-w-[180px] truncate px-4 py-3 text-xs text-zinc-500">
+                        {row.tags.trim() ? row.tags : "—"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
                         {formatarData(row.created_at)}

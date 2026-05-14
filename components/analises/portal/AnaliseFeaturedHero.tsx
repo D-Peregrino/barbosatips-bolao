@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
+import { AnaliseCategoriaTags } from "@/components/analises/portal/AnaliseCategoriaTags";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
 
 type Props = { analise: AnaliseRow };
@@ -26,6 +27,13 @@ export function AnaliseFeaturedHero({ analise }: Props) {
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#C9A227]">
               Destaque · {analise.campeonato || "Campeonato"}
             </p>
+            <div className="mt-2">
+              <AnaliseCategoriaTags
+                categoria={analise.categoria}
+                tags={analise.tags}
+                variant="hero"
+              />
+            </div>
             <h2 className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-[1.85rem] lg:leading-snug">
               {analise.titulo}
             </h2>
