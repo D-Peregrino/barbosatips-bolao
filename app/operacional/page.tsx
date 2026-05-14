@@ -82,6 +82,13 @@ export default async function OperacionalPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
+              href="/analytics"
+              className="inline-flex items-center gap-2 rounded-xl border border-violet-600/35 bg-violet-950/30 px-4 py-2 text-sm font-semibold text-violet-100 transition hover:border-violet-400/45"
+            >
+              Analytics
+              <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
+            </Link>
+            <Link
               href="/admin-picks"
               className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/25 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-400/45"
             >

@@ -70,6 +70,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Analytics / inteligência — mesmo modelo (sem login). */
+  if (path.startsWith("/analytics")) {
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
