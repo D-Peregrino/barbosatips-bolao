@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { BreakdownRow, PerformanceModel } from "@/lib/picks/performance-compute";
+import type { BreakdownRow, PerformanceModel, UltimoResultado } from "@/lib/picks/performance-compute";
 import { PerformanceCharts } from "@/components/performance/PerformanceCharts";
 import { cn } from "@/lib/utils";
 
@@ -65,14 +65,14 @@ function BreakdownTable({
       <div className="border-b border-amber-500/15 bg-black/30 px-5 py-4">
         <h3 className="font-display text-lg font-bold text-white">{title}</h3>
         <p className="mt-1 text-xs text-zinc-500">
-          Apenas picks encerradas · taxa = greens ÷ (greens + reds).
+          Picks encerradas · ROI 1u: green = odd−1, red = −1, void = 0.
         </p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-zinc-800/90 bg-zinc-950/80 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
             <tr>
-              {showIcon ? <th className="px-4 py-3 w-12" /> : null}
+              {showIcon ? <th className="w-12 px-4 py-3" /> : null}
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3 text-right">Total</th>
               <th className="px-4 py-3 text-right text-emerald-400/90">Greens</th>
@@ -115,42 +115,161 @@ function BreakdownTable({
   );
 }
 
+function badgeResultado(r: UltimoResultado): { label: string; className: string } {
+  if (r.resultado === "green")
+    return {
+      label: "GREEN",
+      className: "border-emerald-500/45 bg-emerald-500/15 text-emerald-200",
+    };
+  if (r.resultado === "red")
+    return { label: "RED", className: "border-red-500/45 bg-red-500/15 text-red-200" };
+  return { label: "VOID", className: "border-slate-500/45 bg-slate-700/30 text-slate-200" };
+}
+
+function UltimosResultados({ items }: { items: UltimoResultado[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="commercial-card-elevated p-8 text-center text-sm text-zinc-500">
+        Ainda não há resultados encerrados para listar.
+      </div>
+    );
+  }
+
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((r) => {
+        const b = badgeResultado(r);
+        const d = new Date(r.ts);
+        const quando = Number.isNaN(d.getTime())
+          ? "—"
+          : d.toLocaleString("pt-BR", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "America/Sao_Paulo",
+            });
+        return (
+          <li key={r.id}>
+            <div
+              className={cn(
+                "flex h-full flex-col rounded-2xl border border-white/[0.06] bg-gradient-to-br p-4 transition duration-300",
+                "from-zinc-900/55 via-black/70 to-zinc-950/90",
+                "hover:border-amber-500/25 hover:shadow-[0_0_28px_-10px_rgba(245,158,11,0.18)]",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span
+                  className={cn(
+                    "rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide",
+                    b.className,
+                  )}
+                >
+                  {b.label}
+                </span>
+                <span className="shrink-0 font-display text-sm font-bold tabular-nums text-amber-300">
+                  @{r.odd.toFixed(2)}
+                </span>
+              </div>
+              <p className="mt-2 font-display text-sm font-bold leading-snug text-white">
+                {r.jogo}
+              </p>
+              <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{r.mercado}</p>
+              <div className="mt-auto flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-[10px] text-zinc-500">
+                <span>{r.esporteLabel}</span>
+                <span className="tabular-nums text-zinc-600">{quando}</span>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function PerformanceDashboard({ model }: { model: PerformanceModel }) {
   const fmtPct = (v: number | null) => (v != null ? `${v}%` : "—");
   const fmtRoi = (v: number | null) =>
     v != null ? `${v > 0 ? "+" : ""}${v}%` : "—";
   const fmtOdd = (v: number | null) => (v != null ? String(v) : "—");
 
+  const seqLabel =
+    model.sequenciaAtualTipo === "green"
+      ? `${model.sequenciaAtual} green${model.sequenciaAtual !== 1 ? "s" : ""} seguidos`
+      : model.sequenciaAtualTipo === "red"
+        ? `${model.sequenciaAtual} red${model.sequenciaAtual !== 1 ? "s" : ""} seguidos`
+        : "—";
+
   return (
     <div className="space-y-12">
+      <div className="flex flex-wrap items-center gap-2">
+        {model.hotStreak ? (
+          <span className="inline-flex items-center rounded-full border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200 shadow-[0_0_24px_-6px_rgba(52,211,153,0.35)]">
+            Hot streak
+          </span>
+        ) : null}
+        {model.coldStreak ? (
+          <span className="inline-flex items-center rounded-full border border-red-500/50 bg-red-500/12 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-red-200 shadow-[0_0_24px_-6px_rgba(248,113,113,0.25)]">
+            Cold streak
+          </span>
+        ) : null}
+        {!model.hotStreak && !model.coldStreak && model.totalPicks > 0 ? (
+          <span className="text-xs text-zinc-500">
+            Sequência atual abaixo dos limiares de destaque (≥3 para badge).
+          </span>
+        ) : null}
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Kpi label="Total de picks" value={String(model.totalPicks)} hint={`${model.ativas} ativas · ${model.encerradas} encerradas`} accent="neutral" />
+        <Kpi
+          label="Total de picks"
+          value={String(model.totalPicks)}
+          hint={`${model.ativas} ativas · ${model.encerradas} encerradas`}
+          accent="neutral"
+        />
         <Kpi label="Greens" value={String(model.greens)} accent="green" />
         <Kpi label="Reds" value={String(model.reds)} accent="red" />
-        <Kpi label="Voids" value={String(model.voids)} hint="Neutro no ROI (1u)" accent="neutral" />
+        <Kpi
+          label="Voids"
+          value={String(model.voids)}
+          hint="Lucro 0u no modelo ROI"
+          accent="neutral"
+        />
         <Kpi
           label="Taxa de acerto"
           value={fmtPct(model.taxaAcertoPct)}
-          hint={`Amostra: ${model.apostasComResultado} picks (green+red)`}
+          hint={`Amostra: ${model.apostasComResultado} (green+red)`}
           accent="gold"
         />
         <Kpi
           label="ROI estimado"
           value={fmtRoi(model.roiEstimadoPct)}
-          hint="1 unidade por pick · void não entra na amostra"
+          hint="Média por aposta green/red · void = 0"
           accent="gold"
         />
         <Kpi label="Odd média" value={fmtOdd(model.oddMedia)} hint="Encerradas com resultado" accent="neutral" />
         <Kpi
-          label="Melhor sequência green"
+          label="Sequência atual"
+          value={seqLabel}
+          hint="Do resultado mais recente (void não conta)"
+          accent={
+            model.sequenciaAtualTipo === "red"
+              ? "red"
+              : model.sequenciaAtualTipo === "green"
+                ? "green"
+                : "neutral"
+          }
+        />
+        <Kpi
+          label="Maior sequência green"
           value={String(model.melhorSequenciaGreen)}
-          hint="Máx. greens seguidos (void não quebra)"
+          hint="Recorde histórico"
           accent="green"
         />
         <Kpi
-          label="Pior sequência red"
-          value={String(model.piorSequenciaRed)}
-          hint="Máx. reds seguidos"
+          label="Maior sequência red"
+          value={String(model.maiorSequenciaRed)}
+          hint="Recorde histórico"
           accent="red"
         />
       </div>
@@ -180,21 +299,46 @@ export function PerformanceDashboard({ model }: { model: PerformanceModel }) {
         </Link>
       </div>
 
+      <section aria-labelledby="ultimos-resultados-heading">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2
+              id="ultimos-resultados-heading"
+              className="font-display text-xl font-bold text-white sm:text-2xl"
+            >
+              Últimos resultados
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Ordenados do mais recente ao mais antigo · atualizam quando o estado em{" "}
+              <code className="rounded bg-black/40 px-1 text-[10px]">quick_picks</code> muda.
+            </p>
+          </div>
+        </div>
+        <UltimosResultados items={model.ultimosResultados} />
+      </section>
+
       <PerformanceCharts
         serieGreensReds={model.serieGreensReds}
         serieRoi={model.serieRoi}
         semanal={model.semanal}
+        diarioTrintaDias={model.diarioTrintaDias}
       />
 
       <div className="grid gap-8 lg:grid-cols-1">
-        <BreakdownTable title="Performance por esporte" rows={model.porEsporte} showIcon />
-        <BreakdownTable title="Performance por mercado" rows={model.porMercado} showIcon={false} />
+        <BreakdownTable title="Desempenho por esporte" rows={model.porEsporte} showIcon />
+        <BreakdownTable
+          title="Desempenho por competição (categoria)"
+          rows={model.porCampeonato}
+          showIcon
+        />
+        <BreakdownTable title="Desempenho por mercado" rows={model.porMercado} showIcon={false} />
       </div>
 
       <p className="text-center text-[11px] leading-relaxed text-zinc-600">
-        Métricas baseadas em <strong className="text-zinc-400">quick_picks</strong> públicas e
-        premium agregadas. ROI é estimativa pedagógica (stake fixo 1u); resultados reais dependem
-        da tua gestão de banca.
+        Todas as métricas são <strong className="text-zinc-400">recalculadas no servidor</strong> a
+        partir das <code className="rounded bg-black/30 px-1">quick_picks</code> — quando um
+        resultado muda para green, red ou void, taxa, ROI, streaks e gráficos refletem o novo
+        estado nesta página.
       </p>
     </div>
   );

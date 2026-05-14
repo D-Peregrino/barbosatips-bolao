@@ -8,7 +8,7 @@ import { listarQuickPicksPerformance } from "@/lib/picks/queries";
 
 const base = siteConfig.url.replace(/\/$/, "");
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: `Performance · ${siteConfig.shortTitle}`,
@@ -59,9 +59,8 @@ export default async function PerformancePage() {
               Desempenho <span className="text-gold-gradient">público</span>
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-              Transparência estilo transmissão esportiva: totais, taxa, ROI estimado com stake de
-              1u, sequências e leitura por esporte e mercado — alimentado pelas tuas{" "}
-              <strong className="text-zinc-300">quick_picks</strong>.
+              Totais, taxa, ROI (1u: green = odd−1, red = −1, void = 0), sequências e gráficos —
+              recalculados em cada visita a partir de <strong className="text-zinc-300">quick_picks</strong>.
             </p>
             {model.totalPicks === 0 ? (
               <p

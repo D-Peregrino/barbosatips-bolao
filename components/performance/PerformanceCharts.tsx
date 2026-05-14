@@ -1,6 +1,6 @@
 "use client";
 
-import type { PontoAcumulado, PontoRoi, SemanaBar } from "@/lib/picks/performance-compute";
+import type { Dia30, PontoAcumulado, PontoRoi, SemanaBar } from "@/lib/picks/performance-compute";
 
 const W = 920;
 const H = 260;
@@ -70,11 +70,11 @@ function WeeklyBars({ data }: { data: SemanaBar[] }) {
       aria-label="Desempenho semanal: greens e reds por semana"
     >
       <defs>
-        <linearGradient id="barG" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="wk-barG" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#34d399" stopOpacity="0.95" />
           <stop offset="100%" stopColor="#059669" stopOpacity="0.85" />
         </linearGradient>
-        <linearGradient id="barR" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="wk-barR" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#f87171" stopOpacity="0.95" />
           <stop offset="100%" stopColor="#b91c1c" stopOpacity="0.85" />
         </linearGradient>
@@ -108,7 +108,7 @@ function WeeklyBars({ data }: { data: SemanaBar[] }) {
               width={wGreen}
               height={Math.max(hG, 0)}
               rx={3}
-              fill="url(#barG)"
+              fill="url(#wk-barG)"
               className="transition-opacity hover:opacity-90"
             />
             <rect
@@ -117,7 +117,7 @@ function WeeklyBars({ data }: { data: SemanaBar[] }) {
               width={wRed}
               height={Math.max(hR, 0)}
               rx={3}
-              fill="url(#barR)"
+              fill="url(#wk-barR)"
               className="transition-opacity hover:opacity-90"
             />
             <rect
@@ -147,16 +147,120 @@ function WeeklyBars({ data }: { data: SemanaBar[] }) {
   );
 }
 
+function Last30DaysBars({ data }: { data: Dia30[] }) {
+  const Wb = 920;
+  const Hb = 240;
+  const padL = 40;
+  const padR = 16;
+  const padT = 20;
+  const padB = 36;
+  const innerW = Wb - padL - padR;
+  const innerH = Hb - padT - padB;
+  const n = data.length || 1;
+  const maxH = Math.max(
+    1,
+    ...data.map((d) => d.greens + d.reds + d.voids),
+  );
+  const gap = 2;
+  const barSlot = (innerW - gap * (n - 1)) / n;
+  const wG = barSlot * 0.34;
+  const wR = barSlot * 0.34;
+  const wV = Math.max(barSlot - wG - wR - 6, 2);
+
+  return (
+    <svg
+      viewBox={`0 0 ${Wb} ${Hb}`}
+      className="h-auto w-full max-w-full"
+      role="img"
+      aria-label="Últimos 30 dias: greens, reds e voids por dia"
+    >
+      <defs>
+        <linearGradient id="d30-barG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#34d399" stopOpacity="0.92" />
+          <stop offset="100%" stopColor="#047857" stopOpacity="0.88" />
+        </linearGradient>
+        <linearGradient id="d30-barR" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f87171" stopOpacity="0.92" />
+          <stop offset="100%" stopColor="#991b1b" stopOpacity="0.88" />
+        </linearGradient>
+      </defs>
+      {[0, 0.5, 1].map((t) => {
+        const y = padT + innerH * (1 - t);
+        return (
+          <line
+            key={t}
+            x1={padL}
+            x2={Wb - padR}
+            y1={y}
+            y2={y}
+            stroke="rgba(255,255,255,0.05)"
+          />
+        );
+      })}
+      {data.map((d, i) => {
+        const x0 = padL + i * (barSlot + gap);
+        const baseY = padT + innerH;
+        const hG = (d.greens / maxH) * innerH;
+        const hR = (d.reds / maxH) * innerH;
+        const hV = (d.voids / maxH) * innerH;
+        const showLabel = n <= 18 || i % Math.ceil(n / 12) === 0 || i === n - 1;
+        return (
+          <g key={d.key}>
+            <rect
+              x={x0}
+              y={baseY - hG}
+              width={wG}
+              height={Math.max(hG, 0)}
+              rx={2}
+              fill="url(#d30-barG)"
+            />
+            <rect
+              x={x0 + wG + 1}
+              y={baseY - hR}
+              width={wR}
+              height={Math.max(hR, 0)}
+              rx={2}
+              fill="url(#d30-barR)"
+            />
+            <rect
+              x={x0 + wG + wR + 3}
+              y={baseY - hV}
+              width={wV}
+              height={Math.max(hV, 0)}
+              rx={1.5}
+              fill="rgba(148,163,184,0.32)"
+            />
+            {showLabel ? (
+              <text
+                x={x0 + barSlot / 2}
+                y={Hb - 8}
+                textAnchor="middle"
+                fill="rgba(161,161,170,0.85)"
+                fontSize={7}
+                fontWeight={600}
+              >
+                {d.label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export type PerformanceChartsProps = {
   serieGreensReds: PontoAcumulado[];
   serieRoi: PontoRoi[];
   semanal: SemanaBar[];
+  diarioTrintaDias: Dia30[];
 };
 
 export function PerformanceCharts({
   serieGreensReds,
   serieRoi,
   semanal,
+  diarioTrintaDias,
 }: PerformanceChartsProps) {
   const maxY =
     serieGreensReds.length > 0
@@ -174,6 +278,31 @@ export function PerformanceCharts({
 
   return (
     <div className="space-y-10">
+      <figure className="commercial-card-elevated overflow-hidden p-4 sm:p-6">
+        <figcaption className="mb-4 flex flex-col gap-1 border-b border-amber-500/15 pb-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className="font-display text-lg font-bold text-white">
+              Últimos 30 dias
+            </h3>
+            <p className="text-xs text-zinc-500">
+              Volume diário de resultados (encerradas) · fuso America/Sao_Paulo.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+            <span className="text-emerald-400">Green</span>
+            <span className="text-red-400">Red</span>
+            <span className="text-slate-400">Void</span>
+          </div>
+        </figcaption>
+        {diarioTrintaDias.every((d) => d.greens + d.reds + d.voids === 0) ? (
+          <p className="py-14 text-center text-sm text-zinc-500">
+            Sem resultados registados nesta janela de 30 dias.
+          </p>
+        ) : (
+          <Last30DaysBars data={diarioTrintaDias} />
+        )}
+      </figure>
+
       <div className="grid gap-8 lg:grid-cols-2">
         <figure className="commercial-card-elevated overflow-hidden p-4 sm:p-6">
           <figcaption className="mb-4 flex flex-col gap-1 border-b border-amber-500/15 pb-3 sm:flex-row sm:items-end sm:justify-between">
@@ -261,7 +390,7 @@ export function PerformanceCharts({
               Linha de lucro (ROI em 1u)
             </h3>
             <p className="text-xs text-zinc-500">
-              Lucro acumulado por unidade apostada (green: odd−1 · red: −1).
+              Green: odd−1 · Red: −1 · Void: 0 (não altera acumulado nesta curva).
             </p>
           </figcaption>
           {serieRoi.length === 0 ? (
