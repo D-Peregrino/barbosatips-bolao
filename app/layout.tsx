@@ -14,7 +14,7 @@ import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { IsolatedClientMount } from "@/components/ops/IsolatedClientMount";
 import { BetaLaunchRibbon } from "@/components/portal/BetaLaunchRibbon";
-import { AppProviders } from "@/components/providers/AppProviders";
+import { Providers } from "./providers";
 import {
   BRAND_APPLE_TOUCH_PNG,
   BRAND_FAVICON_ICO,
@@ -142,7 +142,7 @@ export default function RootLayout({
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
     >
       <body className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]">
-        <AppProviders>
+        <Providers>
           <ProductionScripts />
           <ProductionGtmNoScript />
           <SiteWideJsonLd />
@@ -166,7 +166,7 @@ export default function RootLayout({
           <IsolatedClientMount scope="lead_intelligence_mount">
             <LeadIntelligenceMount />
           </IsolatedClientMount>
-        </AppProviders>
+        </Providers>
       </body>
     </html>
   );

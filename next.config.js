@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -155,7 +157,7 @@ const nextConfig = {
   experimental: {
     instrumentationHook: true,
     // Otimização de pacotes para bundle menor
-    optimizePackageImports: ["lucide-react", "date-fns"],
+    optimizePackageImports: ["lucide-react", "date-fns", "@tanstack/react-query"],
     // Capas de análise até 5 MB (Supabase Storage)
     serverActions: {
       bodySizeLimit: "6mb",
@@ -163,6 +165,21 @@ const nextConfig = {
   },
 
   compress: true,
+
+  /**
+   * Garante uma única cópia física de `@tanstack/react-query` no bundle.
+   * Duas cópias quebram o React Context → "No QueryClient set, use QueryClientProvider".
+   */
+  webpack: (config) => {
+    const rq = path.resolve(__dirname, "node_modules/@tanstack/react-query");
+    const qc = path.resolve(__dirname, "node_modules/@tanstack/query-core");
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@tanstack/react-query": rq,
+      "@tanstack/query-core": qc,
+    };
+    return config;
+  },
 };
 
 module.exports = nextConfig;
