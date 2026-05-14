@@ -35,6 +35,7 @@ const MORE_NAV = [
   { href: "/premium", label: "Premium" },
   { href: "/ranking", label: "Ranking" },
   { href: "/guias", label: "Guias" },
+  { href: "/comunidade", label: "Comunidade" },
   { href: "/newsletter", label: "Newsletter" },
 ] as const;
 
@@ -121,7 +122,7 @@ export function Navbar() {
                   href={href}
                   className={cn(
                     "relative whitespace-nowrap rounded-lg px-2 py-2 text-[12px] font-semibold tracking-wide transition-colors duration-200 lg:px-3 lg:text-[13px]",
-                    active ? "text-gold-100" : "text-zinc-300 hover:text-cream",
+                    active ? "text-gold-100" : "text-zinc-200 hover:text-cream",
                   )}
                 >
                   {active ? (
@@ -142,7 +143,7 @@ export function Navbar() {
                   "flex items-center gap-0.5 rounded-lg px-2 py-2 text-[12px] font-semibold tracking-wide transition-colors duration-200 lg:px-3 lg:text-[13px]",
                   maisHighlighted || moreOpen
                     ? "text-gold-100"
-                    : "text-zinc-300 hover:text-cream",
+                    : "text-zinc-200 hover:text-cream",
                 )}
                 aria-expanded={moreOpen}
                 aria-haspopup="true"

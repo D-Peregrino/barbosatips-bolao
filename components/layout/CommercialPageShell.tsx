@@ -37,7 +37,7 @@ export function CommercialPageShell({
   return (
     <div className={cn("relative w-full", className)}>
       <div className="mx-auto w-full max-w-[1540px] px-3 sm:px-5 lg:px-6">
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,132px)_minmax(0,1fr)_minmax(0,132px)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,152px)_minmax(0,1fr)_minmax(0,152px)]">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,140px)_minmax(0,1fr)_minmax(0,140px)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,160px)_minmax(0,1fr)_minmax(0,160px)]">
           <div className="hidden lg:flex lg:sticky lg:top-24 lg:flex-col lg:gap-4">
             {left}
           </div>

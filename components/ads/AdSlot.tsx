@@ -24,7 +24,7 @@ const copy = {
 } as const;
 
 const baseFrame =
-  "relative flex flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-gold-400/18 bg-gradient-to-br from-pitch-900/90 via-pitch-950 to-[var(--color-void)] text-center shadow-[inset_0_1px_0_rgba(232,207,122,0.06)]";
+  "relative flex flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-gold-400/22 bg-gradient-to-br from-pitch-900/95 via-pitch-950 to-[var(--color-void)] text-center shadow-[inset_0_1px_0_rgba(232,207,122,0.08)]";
 
 function Watermark() {
   return (
@@ -61,7 +61,7 @@ export function AdSlot({
         <span className="relative z-[1] text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300/95">
           {primary}
         </span>
-        <span className="relative z-[1] max-w-[7rem] text-[9px] leading-snug text-stone-500">
+        <span className="relative z-[1] max-w-[7rem] text-[9px] leading-snug text-stone-400">
           {secondary}
         </span>
         <div
@@ -84,15 +84,15 @@ export function AdSlot({
         aria-label={`${primary} · ${secondary}`}
       >
         <Watermark />
-        <span className="relative z-[1] rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-200">
+        <span className="relative z-[1] rounded-full border border-emerald-400/40 bg-emerald-500/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-100">
           Patrocínio
         </span>
         <div className="relative z-[1] flex flex-1 flex-col items-center justify-center gap-1">
-          <BrandShield size="sm" className="opacity-50" decorative />
-          <span className="text-xs font-semibold text-cream-muted">{primary}</span>
-          <span className="text-[11px] text-stone-500">{secondary}</span>
+          <BrandShield size="sm" className="opacity-55" decorative />
+          <span className="text-xs font-semibold text-stone-200">{primary}</span>
+          <span className="text-[11px] text-stone-400">{secondary}</span>
         </div>
-        <span className="relative z-[1] rounded-full border border-gold-400/30 bg-gold-400/8 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold-200">
+        <span className="relative z-[1] rounded-full border border-gold-400/35 bg-gold-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold-100">
           Ads
         </span>
       </div>
@@ -132,7 +132,7 @@ export function AdSlot({
       aria-label={`${primary} · ${secondary}`}
     >
       <Watermark />
-      <span className="relative z-[1] flex items-center gap-2 text-left text-[11px] font-semibold leading-tight text-cream-muted">
+      <span className="relative z-[1] flex items-center gap-2 text-left text-[11px] font-semibold leading-tight text-stone-200">
         <BrandShield size="xs" className="opacity-50" decorative />
         {primary}
       </span>

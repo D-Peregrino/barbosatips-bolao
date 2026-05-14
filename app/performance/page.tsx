@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PerformanceDashboard } from "@/components/performance/PerformanceDashboard";
+import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { siteConfig } from "@/config/site";
 import { computePerformanceModel } from "@/lib/picks/performance-compute";
 import { listarQuickPicksPerformance } from "@/lib/picks/queries";
@@ -90,6 +91,8 @@ export default async function PerformancePage() {
           </div>
 
           <PerformanceDashboard model={model} />
+
+          <PortalSocialCtaBand className="mt-10" />
         </div>
       </CommercialPageShell>
     </div>

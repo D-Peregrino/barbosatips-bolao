@@ -27,6 +27,33 @@ function HighlightColumn({ title, icon, children }: ColProps) {
   );
 }
 
+function ColumnEmpty({
+  title,
+  body,
+  href,
+  cta,
+}: {
+  title: string;
+  body: string;
+  href: string;
+  cta: string;
+}) {
+  return (
+    <li className="list-none">
+      <div className="rounded-xl border border-dashed border-gold-400/18 bg-black/30 px-4 py-8 text-center">
+        <p className="text-[13px] font-semibold leading-snug text-stone-100">{title}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-stone-400">{body}</p>
+        <Link
+          href={href}
+          className="mt-4 inline-flex min-h-[40px] items-center justify-center text-xs font-extrabold uppercase tracking-wide text-gold-300 underline-offset-4 hover:underline"
+        >
+          {cta} →
+        </Link>
+      </div>
+    </li>
+  );
+}
+
 function PickLine({ pick }: { pick: QuickPickRow }) {
   const badge =
     pick.status === "ativo"
@@ -40,7 +67,7 @@ function PickLine({ pick }: { pick: QuickPickRow }) {
   return (
     <li>
       <Link
-        href="/picks"
+        href={`/pick/${encodeURIComponent(pick.id)}`}
         className="group block rounded-xl border border-transparent px-2 py-2 transition hover:border-gold-400/20 hover:bg-white/[0.03]"
       >
         <div className="flex items-start justify-between gap-2">
@@ -121,7 +148,12 @@ export function HomeHighlightsGrid({
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <HighlightColumn title="Análises recentes" icon={<Newspaper className="h-4 w-4" aria-hidden />}>
           {analises.length === 0 ? (
-            <li className="text-sm text-stone-500">Sem análises ainda.</li>
+            <ColumnEmpty
+              title="Editorial a aquecer"
+              body="Novos prognósticos entram assim que a equipa publicar — o radar enche depressa."
+              href="/analises"
+              cta="Ver arquivo"
+            />
           ) : (
             analises.map((a) => <AnaliseLine key={a.id} a={a} />)
           )}
@@ -129,7 +161,12 @@ export function HomeHighlightsGrid({
 
         <HighlightColumn title="Picks quentes" icon={<Flame className="h-4 w-4" aria-hidden />}>
           {picksQuentes.length === 0 ? (
-            <li className="text-sm text-stone-500">Sem picks recentes.</li>
+            <ColumnEmpty
+              title="Linhas em preparação"
+              body="Quando houver picks ativas, aparecem aqui com odd e mercado."
+              href="/picks"
+              cta="Abrir picks"
+            />
           ) : (
             picksQuentes.map((p) => <PickLine key={p.id} pick={p} />)
           )}
@@ -137,7 +174,12 @@ export function HomeHighlightsGrid({
 
         <HighlightColumn title="Melhores greens" icon={<Trophy className="h-4 w-4" aria-hidden />}>
           {melhoresGreens.length === 0 ? (
-            <li className="text-sm text-stone-500">Sem greens encerrados.</li>
+            <ColumnEmpty
+              title="Sem greens fechados"
+              body="Assim que picks encerrarem em verde, este quadro brilha."
+              href="/performance"
+              cta="Ver performance"
+            />
           ) : (
             melhoresGreens.map((p) => <PickLine key={p.id} pick={p} />)
           )}
@@ -145,7 +187,12 @@ export function HomeHighlightsGrid({
 
         <HighlightColumn title="Trending" icon={<TrendingUp className="h-4 w-4" aria-hidden />}>
           {trending.length === 0 ? (
-            <li className="text-sm text-stone-500">Sem trending.</li>
+            <ColumnEmpty
+              title="Trending calmo"
+              body="Movimento de mercado e confiança alta — volta daqui a pouco."
+              href="/comunidade"
+              cta="Comunidade"
+            />
           ) : (
             trending.map((p) => <PickLine key={p.id} pick={p} />)
           )}

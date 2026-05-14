@@ -1,5 +1,8 @@
 import { TipCard } from "@/components/tips/TipCard";
 import type { TipCardData } from "@/components/tips/TipCard";
+import { AdSlot } from "@/components/ads/AdSlot";
+import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
+import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 
 const TIPS_MOCK: TipCardData[] = [
   {
@@ -30,22 +33,48 @@ const TIPS_MOCK: TipCardData[] = [
 
 export default function TipsPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <h1 className="mb-3 text-4xl font-bold text-yellow-400">
-          Tips do Dia
-        </h1>
+    <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_75%_50%_at_50%_-18%,rgba(201,162,39,.12),transparent_52%)]"
+        aria-hidden
+      />
 
-        <p className="mb-8 text-zinc-400">
-          Análises esportivas com odds, confiança e status.
-        </p>
+      <CommercialPageShell>
+        <div className="w-full min-w-0 space-y-8">
+          <div className="lg:hidden">
+            <AdSlot variant="banner-horizontal" intent="ads" />
+          </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {TIPS_MOCK.map((tip) => (
-            <TipCard key={tip.id} tip={tip} />
-          ))}
+          <header className="commercial-card-elevated max-w-3xl border-b border-gold-400/12 p-6 pb-8 sm:p-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold-400/95">
+              Stake · Confiança · Status
+            </p>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              Tips do <span className="text-gold-gradient">dia</span>
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-stone-300 sm:text-base">
+              Cartões com odd sugerida, nível de confiança e resultado — mesmo visual premium do portal
+              BarbosaTips (dados de demonstração até ligação total ao feed editorial).
+            </p>
+          </header>
+
+          <div className="mb-2 lg:hidden">
+            <AdSlot variant="mobile-inline" intent="sponsor" />
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {TIPS_MOCK.map((tip) => (
+              <TipCard key={tip.id} tip={tip} />
+            ))}
+          </div>
+
+          <PortalSocialCtaBand kicker="Quando o feed editorial sincronizar, avisamos primeiro no Telegram." />
+
+          <div className="hidden sm:block">
+            <AdSlot variant="banner-horizontal" intent="sponsor" />
+          </div>
         </div>
-      </section>
-    </main>
+      </CommercialPageShell>
+    </div>
   );
 }

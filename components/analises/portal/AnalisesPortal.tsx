@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { Newspaper } from "lucide-react";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { AnaliseFeaturedHero } from "@/components/analises/portal/AnaliseFeaturedHero";
 import { AnaliseCardGrid } from "@/components/analises/portal/AnaliseCardGrid";
 import { AnalisesSidebar } from "@/components/analises/portal/AnalisesSidebar";
 import { AnalisesCommunityDeck } from "@/components/community/AnalisesCommunityDeck";
 import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
+import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 
 type Props = {
   analises: AnaliseRow[];
@@ -17,27 +19,15 @@ export function AnalisesPortal({
 }: Props) {
   if (analises.length === 0) {
     return (
-      <div className="rounded-3xl border border-[#3d3420]/60 bg-[#0c0b09]/90 px-6 py-16 text-center shadow-[0_24px_60px_-32px_rgba(0,0,0,.85)]">
-        <p className="text-lg font-display font-semibold text-zinc-300">
-          Prognósticos em breve
-        </p>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-500">
-          Ainda não há análises publicadas. Publique em{" "}
-          <Link
-            href="/admin-editorial/nova"
-            className="font-semibold text-[#C9A227] underline-offset-2 hover:underline"
-          >
-            /admin-editorial/nova
-          </Link>{" "}
-          com estado &quot;Publicado&quot;.
-        </p>
-        <Link
-          href="/"
-          className="mt-8 inline-block text-sm font-semibold text-[#E8D48B] underline-offset-4 hover:underline"
-        >
-          Voltar ao início
-        </Link>
-      </div>
+      <PortalEmptyState
+        icon={Newspaper}
+        title="Portal editorial a abrir"
+        description="Ainda não há análises publicadas neste ambiente. Segue o Telegram para o primeiro alerta ou explora as picks rápidas enquanto a equipa editorial publica."
+        primaryHref="/picks"
+        primaryLabel="Ver picks rápidas"
+        secondaryHref="/comunidade"
+        secondaryLabel="Junta-te à comunidade"
+      />
     );
   }
 
@@ -88,12 +78,17 @@ export function AnalisesPortal({
         ) : null}
       </div>
 
-      <div className="mt-12 min-w-0 xl:mt-0">
-        <AnalisesSidebar
-          itens={sidebarItens}
-          viewerCanViewPremium={viewerCanViewPremium}
-        />
-      </div>
+      <aside className="mt-12 min-w-0 space-y-8 xl:mt-0">
+        <AnalisesSidebar itens={sidebarItens} viewerCanViewPremium={viewerCanViewPremium} />
+        <div className="hidden xl:block">
+          <Link
+            href="/premium"
+            className="block rounded-xl border border-gold-400/20 bg-black/30 px-4 py-4 text-center text-sm font-semibold text-gold-100 transition hover:border-gold-400/35"
+          >
+            Programa Premium →
+          </Link>
+        </div>
+      </aside>
     </div>
   );
 }

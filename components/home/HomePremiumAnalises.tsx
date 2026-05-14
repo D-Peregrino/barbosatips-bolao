@@ -5,6 +5,7 @@ import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 import { rotuloEsporte, iconeEsporte } from "@/lib/picks/rotulo-esporte";
+import { PremiumSpotlightPlaceholders } from "@/components/portal/PremiumSpotlightPlaceholders";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -94,7 +95,9 @@ function CardPremium({
 }
 
 export function HomePremiumAnalises({ analises, viewerCanViewPremium }: Props) {
-  if (analises.length === 0) return null;
+  if (analises.length === 0) {
+    return <PremiumSpotlightPlaceholders />;
+  }
 
   return (
     <section

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { AnalisesPortal } from "@/components/analises/portal/AnalisesPortal";
+import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
 import { listarAnalisesPublicadas } from "@/lib/analises/queries";
@@ -113,6 +114,10 @@ export default async function AnalisesPage() {
             analises={data}
             viewerCanViewPremium={viewerPodeVerPremium(access)}
           />
+
+          <div className="mt-12">
+            <PortalSocialCtaBand />
+          </div>
 
           <div className="mt-10 lg:hidden">
             <AdSlot variant="banner-horizontal" intent="ads" />

@@ -13,6 +13,7 @@ import { PwaClientMount } from "@/components/pwa/PwaClientMount";
 import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { IsolatedClientMount } from "@/components/ops/IsolatedClientMount";
+import { BetaLaunchRibbon } from "@/components/portal/BetaLaunchRibbon";
 import {
   BRAND_APPLE_TOUCH_PNG,
   BRAND_FAVICON_ICO,
@@ -149,6 +150,7 @@ export default function RootLayout({
         </IsolatedClientMount>
 
         <main className="pt-[calc(4.5rem+5.5rem)] pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] transition-[padding] duration-300 ease-out md:pb-0">
+          <BetaLaunchRibbon />
           {children}
         </main>
 

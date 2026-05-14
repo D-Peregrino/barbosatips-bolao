@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Send } from "lucide-react";
+import { Send, Zap } from "lucide-react";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
@@ -13,6 +13,8 @@ import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
+import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
+import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 
 export const revalidate = siteConfig.revalidate.picks;
 
@@ -88,14 +90,15 @@ export default async function PicksPage() {
           {picks.length > 0 ? <PicksStatsBar stats={stats} /> : null}
 
           {picks.length === 0 ? (
-            <div className="commercial-card-elevated border border-dashed border-zinc-600/60 px-6 py-16 text-center">
-              <p className="font-display text-lg text-zinc-400">
-                Ainda não há picks publicadas.
-              </p>
-              <p className="mt-2 text-sm text-zinc-600">
-                Volte em breve ou acompanhe as análises completas em /analises.
-              </p>
-            </div>
+            <PortalEmptyState
+              icon={Zap}
+              title="Radar de picks calmo"
+              description="Ainda não há linhas rápidas publicadas. Entra no Telegram para não perder o próximo flash ou vê o desempenho histórico na área de performance."
+              primaryHref="/comunidade"
+              primaryLabel="Comunidade & alertas"
+              secondaryHref="/performance"
+              secondaryLabel="Ver performance"
+            />
           ) : (
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {picks.flatMap((p, i) => {
@@ -115,6 +118,8 @@ export default async function PicksPage() {
               })}
             </ul>
           )}
+
+          <PortalSocialCtaBand className="mt-10" />
 
           <div className="mt-10 lg:hidden">
             <AdSlot variant="banner-horizontal" intent="ads" />

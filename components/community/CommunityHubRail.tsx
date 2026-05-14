@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { Send, Youtube } from "lucide-react";
 import { siteConfig } from "@/config/site";
 
 /**
- * Widget discreto na coluna lateral (desktop) — Telegram + YouTube.
+ * Widget na coluna lateral (desktop) — Telegram + YouTube com hierarquia forte.
  */
 export function CommunityHubRail() {
   const { hub } = siteConfig;
@@ -10,37 +11,42 @@ export function CommunityHubRail() {
   return (
     <aside
       aria-label="Comunidade BarbosaTips"
-      className="rounded-2xl border border-[#3d3420]/70 bg-gradient-to-b from-[#12100c]/95 to-[#080706]/98 p-3 shadow-[0_20px_50px_-28px_rgba(0,0,0,.8)]"
+      className="rounded-2xl border border-gold-400/18 bg-gradient-to-b from-[#14110c]/98 to-[#080706]/98 p-4 shadow-[0_24px_56px_-28px_rgba(0,0,0,.88)]"
     >
-      <p className="text-center text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-        Hub
+      <p className="text-center text-[10px] font-extrabold uppercase tracking-[0.2em] text-gold-300/90">
+        Junta-te
       </p>
-      <div className="mt-3 flex flex-col gap-2">
+      <p className="mt-1 text-center text-[11px] leading-snug text-stone-300">
+        Alertas e vídeo — mesmo rigor BarbosaTips.
+      </p>
+      <div className="mt-4 flex flex-col gap-2.5">
         <a
           href={hub.telegramCanal}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 rounded-xl border border-[#229ED9]/25 bg-[#229ED9]/10 px-2 py-2.5 text-center transition hover:border-[#229ED9]/45 hover:bg-[#229ED9]/15"
+          className="flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border border-[#229ED9]/35 bg-[#229ED9]/12 px-2 py-2.5 text-center transition hover:border-[#229ED9]/55 hover:bg-[#229ED9]/18"
         >
-          <Send className="h-4 w-4 text-[#54b4e8]" strokeWidth={2} aria-hidden />
-          <span className="text-[10px] font-bold leading-tight text-zinc-200">Telegram</span>
+          <Send className="h-5 w-5 text-[#7dd3fc]" strokeWidth={2.2} aria-hidden />
+          <span className="text-[11px] font-extrabold leading-tight text-white">Telegram</span>
+          <span className="text-[9px] font-medium text-sky-200/90">Alertas</span>
         </a>
         <a
           href={hub.youtubeCanalUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 rounded-xl border border-red-500/20 bg-red-950/20 px-2 py-2.5 text-center transition hover:border-red-400/35 hover:bg-red-950/30"
+          className="flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border border-red-500/35 bg-red-950/25 px-2 py-2.5 text-center transition hover:border-red-400/50 hover:bg-red-950/35"
         >
-          <Youtube className="h-4 w-4 text-red-400" strokeWidth={2} aria-hidden />
-          <span className="text-[10px] font-bold leading-tight text-zinc-200">YouTube</span>
+          <Youtube className="h-5 w-5 text-red-300" strokeWidth={2.2} aria-hidden />
+          <span className="text-[11px] font-extrabold leading-tight text-white">YouTube</span>
+          <span className="text-[9px] font-medium text-red-200/85">Análises</span>
         </a>
       </div>
-      <a
+      <Link
         href="/comunidade"
-        className="mt-3 block text-center text-[9px] font-semibold text-[#C9A227]/90 underline-offset-2 hover:underline"
+        className="mt-4 block rounded-lg py-2 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-gold-200/95 underline-offset-2 hover:underline"
       >
-        Comunidade →
-      </a>
+        Hub comunidade →
+      </Link>
     </aside>
   );
 }

@@ -51,7 +51,7 @@ export function MobileBottomNav() {
       className="fixed bottom-0 left-0 right-0 z-[85] border-t border-gold-400/20 bg-[#080807]/96 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-12px_40px_-28px_rgba(0,0,0,0.75)] backdrop-blur-xl md:hidden"
       aria-label="Navegação principal mobile"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-0.5 pt-1">
+      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-1 pt-1.5">
         {ITEMS.map(({ href, label, labelAccent, linkTitle, icon: Icon, match }) => {
           const active = match(pathname);
           return (
@@ -60,14 +60,14 @@ export function MobileBottomNav() {
                 href={href}
                 title={linkTitle}
                 className={cn(
-                  "flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[10px] font-bold uppercase tracking-wide transition duration-200 active:scale-[0.97]",
-                  active ? "text-gold-100" : "text-zinc-300 hover:text-zinc-100",
+                  "flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition duration-200 active:scale-[0.97]",
+                  active ? "text-gold-100" : "text-zinc-200 hover:text-zinc-50",
                 )}
               >
                 <Icon
                   className={cn(
-                    "h-[22px] w-[22px] shrink-0 stroke-[2.1]",
-                    active ? "text-gold-300" : "text-zinc-400",
+                    "h-6 w-6 shrink-0 stroke-[2.1]",
+                    active ? "text-gold-300" : "text-zinc-300",
                   )}
                   aria-hidden
                 />
