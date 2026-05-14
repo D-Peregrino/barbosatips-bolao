@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { atualizarAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
+import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
 import type { AnaliseRow } from "@/lib/analises/types";
@@ -73,6 +74,23 @@ export function EditarAnaliseForm({ initial }: Props) {
             autoComplete="off"
             defaultValue={initial.slug}
           />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="esporte" className={label}>
+            Esporte (hub público)
+          </label>
+          <select
+            id="esporte"
+            name="esporte"
+            className={input}
+            defaultValue={initial.esporte || "futebol"}
+          >
+            {siteConfig.sports.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.icon} {s.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="campeonato" className={label}>

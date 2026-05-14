@@ -25,8 +25,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const leaguePages: MetadataRoute.Sitemap = siteConfig.leagues.futebol.map((l) => ({
+  const leaguePagesFutebol: MetadataRoute.Sitemap = siteConfig.leagues.futebol.map((l) => ({
     url: `${baseUrl}/futebol/${l.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "daily" as const,
+    priority: 0.75,
+  }));
+
+  const leaguePagesBasquete: MetadataRoute.Sitemap = siteConfig.leagues.basquete.map((l) => ({
+    url: `${baseUrl}/basquete/${l.slug}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,
     priority: 0.75,
@@ -40,5 +47,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
-  return [...staticPages, ...sportPages, ...leaguePages, ...analisePages];
+  return [...staticPages, ...sportPages, ...leaguePagesFutebol, ...leaguePagesBasquete, ...analisePages];
 }

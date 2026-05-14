@@ -1,6 +1,20 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseRow } from "@/lib/analises/types";
+import { siteConfig } from "@/config/site";
+import { textoMatchesLiga } from "@/lib/sport-routes";
+
+const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
+
+/** Fallback quando a coluna `esporte` ainda não existe ou está vazia (linhas antigas). */
+function inferEsporteFromCategoria(categoria: string): string {
+  const c = categoria.trim().toLowerCase();
+  if (!c) return "futebol";
+  for (const s of siteConfig.sports) {
+    if (c.includes(s.slug) || c.includes(s.label.toLowerCase())) return s.slug;
+  }
+  return "futebol";
+}
 
 /** Reconhece publicado com qualquer capitalização ou espaços extra. */
 export function statusPublicadoNormalizado(status: unknown): boolean {
@@ -14,10 +28,17 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     prem === "true" ||
     String(prem ?? "").toLowerCase() === "t";
 
+  let esporte = String(r.esporte ?? "").trim().toLowerCase();
+  if (!esporte || !SPORT_SLUG_SET.has(esporte)) {
+    esporte = inferEsporteFromCategoria(String(r.categoria ?? ""));
+  }
+  if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
+
   return {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
     titulo: String(r.titulo ?? ""),
+    esporte,
     categoria: String(r.categoria ?? ""),
     tags: String(r.tags ?? ""),
     campeonato: String(r.campeonato ?? ""),
@@ -35,7 +56,7 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
 }
 
 const COLUNAS =
-  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
+  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
 
 function aplicarFiltroGratis(
   rows: AnaliseRow[],
@@ -151,6 +172,60 @@ export async function listarUltimasAnalisesPublicadas(
     console.error(e);
     return [];
   }
+}
+
+/**
+ * Análises publicadas filtradas por esporte (coluna `esporte` no Supabase).
+ */
+export async function listarAnalisesPublicadasPorEsporte(
+  esporteSlug: string,
+  soGratis = false,
+): Promise<AnaliseRow[]> {
+  if (shouldSkipLiveSupabase()) return [];
+  const slug = String(esporteSlug ?? "").trim().toLowerCase();
+  if (!slug) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS)
+      .eq("esporte", slug)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (error) {
+      console.error("analises por esporte", error);
+      return [];
+    }
+
+    const mapped = (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado(
+          (row as Record<string, unknown>).status,
+        ),
+      )
+      .map((row) => mapRow(row as Record<string, unknown>));
+
+    return aplicarFiltroGratis(mapped, soGratis);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+/**
+ * Análises por esporte + competição (texto `campeonato` vs slug/label da liga).
+ */
+export async function listarAnalisesPublicadasPorEsporteELiga(
+  esporteSlug: string,
+  leagueSlug: string,
+  leagueLabel: string,
+  soGratis = false,
+): Promise<AnaliseRow[]> {
+  const base = await listarAnalisesPublicadasPorEsporte(esporteSlug, soGratis);
+  return base.filter((a) =>
+    textoMatchesLiga(a.campeonato, leagueSlug, leagueLabel),
+  );
 }
 
 const COLUNAS_SITEMAP = "slug,status,created_at" as const;

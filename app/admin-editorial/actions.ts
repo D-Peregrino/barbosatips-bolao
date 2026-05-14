@@ -7,6 +7,24 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseStatus } from "@/lib/analises/types";
 import { conteudoEditorialParaGravacao } from "@/lib/analises/sanitize-html";
+import { siteConfig } from "@/config/site";
+import { getLeaguesForSport } from "@/lib/sport-routes";
+
+const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
+
+function parseEsporteForm(formData: FormData): string {
+  const raw = String(formData.get("esporte") ?? "").trim().toLowerCase();
+  return SPORT_SLUG_SET.has(raw) ? raw : "futebol";
+}
+
+function revalidateSportHubs() {
+  for (const s of siteConfig.sports) {
+    revalidatePath(`/${s.slug}`);
+    for (const l of getLeaguesForSport(s.slug)) {
+      revalidatePath(`/${s.slug}/${l.slug}`);
+    }
+  }
+}
 
 function normalizarSlug(raw: string): string {
   return raw
@@ -48,6 +66,7 @@ export async function salvarNovaAnaliseEditorialAction(
     return { ok: false, error: "Slug inválido." };
   }
 
+  const esporte = parseEsporteForm(formData);
   const campeonato = String(formData.get("campeonato") ?? "").trim();
   const categoria = String(formData.get("categoria") ?? "").trim();
   const tags = String(formData.get("tags") ?? "").trim();
@@ -68,6 +87,7 @@ export async function salvarNovaAnaliseEditorialAction(
   const { error } = await admin.from("analises").insert({
     slug,
     titulo,
+    esporte,
     campeonato,
     categoria,
     tags,
@@ -93,6 +113,7 @@ export async function salvarNovaAnaliseEditorialAction(
   revalidatePath(`/analise/${slug}`);
   revalidatePath("/premium");
   revalidatePath("/");
+  revalidateSportHubs();
   redirect(
     `/admin-editorial?gravado=1&slug=${encodeURIComponent(slug)}`,
   );
@@ -120,6 +141,7 @@ export async function atualizarAnaliseEditorialAction(
     return { ok: false, error: "Slug inválido." };
   }
 
+  const esporte = parseEsporteForm(formData);
   const campeonato = String(formData.get("campeonato") ?? "").trim();
   const categoria = String(formData.get("categoria") ?? "").trim();
   const tags = String(formData.get("tags") ?? "").trim();
@@ -164,6 +186,7 @@ export async function atualizarAnaliseEditorialAction(
     .update({
       slug,
       titulo,
+      esporte,
       campeonato,
       categoria,
       tags,
@@ -190,6 +213,7 @@ export async function atualizarAnaliseEditorialAction(
   revalidatePath(`/analise/${slug}`);
   revalidatePath("/premium");
   revalidatePath("/");
+  revalidateSportHubs();
   if (slugAnterior && slugAnterior !== slug) {
     revalidatePath(`/analise/${slugAnterior}`);
   }

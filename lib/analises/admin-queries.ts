@@ -2,9 +2,21 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { statusPublicadoNormalizado } from "@/lib/analises/queries";
 import type { AnaliseRow } from "@/lib/analises/types";
+import { siteConfig } from "@/config/site";
+
+const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
+
+function inferEsporteFromCategoria(categoria: string): string {
+  const c = categoria.trim().toLowerCase();
+  if (!c) return "futebol";
+  for (const s of siteConfig.sports) {
+    if (c.includes(s.slug) || c.includes(s.label.toLowerCase())) return s.slug;
+  }
+  return "futebol";
+}
 
 const COLUNAS =
-  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
+  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
   const prem = r.is_premium;
@@ -13,10 +25,17 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     prem === "true" ||
     String(prem ?? "").toLowerCase() === "t";
 
+  let esporte = String(r.esporte ?? "").trim().toLowerCase();
+  if (!esporte || !SPORT_SLUG_SET.has(esporte)) {
+    esporte = inferEsporteFromCategoria(String(r.categoria ?? ""));
+  }
+  if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
+
   return {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
     titulo: String(r.titulo ?? ""),
+    esporte,
     categoria: String(r.categoria ?? ""),
     tags: String(r.tags ?? ""),
     campeonato: String(r.campeonato ?? ""),

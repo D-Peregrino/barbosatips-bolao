@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { salvarNovaAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
+import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
 
@@ -64,6 +65,21 @@ export function NovaAnaliseFormSimple() {
             required
             autoComplete="off"
           />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="esporte" className={label}>
+            Esporte (hub público)
+          </label>
+          <select id="esporte" name="esporte" className={input} defaultValue="futebol">
+            {siteConfig.sports.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.icon} {s.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[10px] text-zinc-600">
+            Usado em rotas como /futebol e /basquete/nba — alinha com o campo esporte das picks.
+          </p>
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="campeonato" className={label}>

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { QuickPickRow, QuickPickResultado, QuickPickStatus } from "@/lib/picks/types";
+import { textoMatchesLiga } from "@/lib/sport-routes";
 
 const COLUNAS =
   "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,is_premium,created_at" as const;
@@ -127,4 +128,49 @@ export async function listarQuickPicksPerformance(): Promise<QuickPickRow[]> {
     console.error(e);
     return [];
   }
+}
+
+/**
+ * Picks rápidas por esporte (índice Supabase em `esporte`).
+ */
+export async function listarQuickPicksPorEsporte(
+  esporteSlug: string,
+  soGratis = false,
+): Promise<QuickPickRow[]> {
+  if (shouldSkipLiveSupabase()) return [];
+  const slug = String(esporteSlug ?? "").trim().toLowerCase();
+  if (!slug) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("quick_picks")
+      .select(COLUNAS)
+      .eq("esporte", slug)
+      .order("horario_jogo", { ascending: false })
+      .limit(500);
+
+    if (error) {
+      console.error("quick_picks por esporte", error);
+      return [];
+    }
+
+    const rows = (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+    if (!soGratis) return rows;
+    return rows.filter((p) => !p.is_premium);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+export async function listarQuickPicksPorEsporteELiga(
+  esporteSlug: string,
+  leagueSlug: string,
+  leagueLabel: string,
+  soGratis = false,
+): Promise<QuickPickRow[]> {
+  const base = await listarQuickPicksPorEsporte(esporteSlug, soGratis);
+  return base.filter((p) =>
+    textoMatchesLiga(p.campeonato, leagueSlug, leagueLabel),
+  );
 }

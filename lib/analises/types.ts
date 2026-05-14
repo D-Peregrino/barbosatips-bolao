@@ -4,6 +4,8 @@ export type AnaliseRow = {
   id: string;
   slug: string;
   titulo: string;
+  /** Slug do esporte (siteConfig.sports), ex.: futebol, basquete. */
+  esporte: string;
   categoria: string;
   tags: string;
   campeonato: string;

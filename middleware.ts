@@ -16,6 +16,10 @@ const AUTH_ROUTES = ["/login", "/registro"];
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  if (path === "/nba") {
+    return NextResponse.redirect(new URL("/basquete/nba", request.url));
+  }
+
   /** Ranking público do bolão: sem Supabase Auth, sem redirect para login. */
   if (path === "/ranking" || path.startsWith("/ranking/")) {
     return NextResponse.next();
