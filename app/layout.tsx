@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Oswald, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { Footer } from "@/components/layout/Footer";
@@ -7,6 +7,7 @@ import { GlobalLiveBar } from "@/components/live/GlobalLiveBar";
 import { SiteWideJsonLd } from "@/components/seo/SiteWideJsonLd";
 import { siteConfig } from "@/config/site";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
+import { PwaClientMount } from "@/components/pwa/PwaClientMount";
 
 const fontDisplay = Oswald({
   subsets: ["latin"],
@@ -41,6 +42,15 @@ const defaultKeywords = buildKeywordsFromParts([
   "análise esportiva",
 ]);
 
+export const viewport: Viewport = {
+  themeColor: "#030303",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(base),
   title: {
@@ -50,8 +60,18 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   keywords: defaultKeywords,
   alternates: { canonical: base },
+  appleWebApp: {
+    capable: true,
+    title: siteConfig.shortTitle,
+    statusBarStyle: "black-translucent",
+  },
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/pwa/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     type: "website",
@@ -88,7 +108,7 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
     >
-      <body className="bg-pitch-950 font-body text-cream-muted antialiased">
+      <body className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]">
         <SiteWideJsonLd />
         <Navbar />
         <GlobalLiveBar />
@@ -96,6 +116,7 @@ export default function RootLayout({
         <main className="pt-[calc(4.5rem+5.5rem)]">{children}</main>
 
         <Footer />
+        <PwaClientMount />
       </body>
     </html>
   );

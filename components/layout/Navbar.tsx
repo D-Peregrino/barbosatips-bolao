@@ -52,7 +52,7 @@ export function Navbar() {
           className="flex items-center gap-3 group"
           aria-label={siteConfig.name}
         >
-          <BrandShield size="sm" className="transition duration-300 group-hover:drop-shadow-[0_0_14px_rgba(201,162,39,0.35)]" />
+          <BrandShield size="sm" priority className="transition duration-300 group-hover:drop-shadow-[0_0_14px_rgba(201,162,39,0.35)]" />
           <span className="font-display text-lg font-bold tracking-wide text-cream transition-colors duration-200 group-hover:text-gold-200">
             Barbosa<span className="text-gold-gradient">Tips</span>
           </span>
