@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
+import { BRAND_LOGO_512_WEBP, BRAND_LOGO_OFICIAL_PNG } from "@/lib/brand/assets";
 
 /**
- * Web App Manifest — instalável, tema escuro BarbosaTips, ícones do escudo.
+ * Web App Manifest — instalável, tema escuro BarbosaTips, ícones oficiais (`public/brand/`).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -22,15 +23,15 @@ export default function manifest(): MetadataRoute.Manifest {
     dir: "ltr",
     icons: [
       {
-        src: "/pwa/icon-192.png",
+        src: BRAND_LOGO_OFICIAL_PNG,
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/pwa/icon-512.png",
+        src: BRAND_LOGO_512_WEBP,
         sizes: "512x512",
-        type: "image/png",
+        type: "image/webp",
         purpose: "any",
       },
       {

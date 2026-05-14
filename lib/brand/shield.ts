@@ -1,2 +1,1 @@
-/** Escudo oficial BarbosaTips (SVG em `public/`). */
-export const BRAND_SHIELD_SRC = "/images/barbosatips-shield.svg" as const;
+export { BRAND_LOGO_OFICIAL_PNG as BRAND_SHIELD_SRC } from "@/lib/brand/assets";

@@ -11,6 +11,12 @@ import { PwaClientMount } from "@/components/pwa/PwaClientMount";
 import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { IsolatedClientMount } from "@/components/ops/IsolatedClientMount";
+import {
+  BRAND_APPLE_TOUCH_PNG,
+  BRAND_FAVICON_ICO,
+  BRAND_LOGO_512_WEBP,
+  BRAND_LOGO_OFICIAL_PNG,
+} from "@/lib/brand/assets";
 
 const fontDisplay = Oswald({
   subsets: ["latin"],
@@ -70,11 +76,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: BRAND_FAVICON_ICO, sizes: "32x32", type: "image/png" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: BRAND_LOGO_OFICIAL_PNG, sizes: "512x512", type: "image/png" },
+      { url: BRAND_LOGO_512_WEBP, sizes: "512x512", type: "image/webp" },
     ],
-    apple: [{ url: "/pwa/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: BRAND_APPLE_TOUCH_PNG, sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     type: "website",
@@ -83,12 +90,21 @@ export const metadata: Metadata = {
     url: base,
     title: siteConfig.title,
     description: siteConfig.description,
+    images: [
+      {
+        url: siteConfig.ogImage.startsWith("/") ? siteConfig.ogImage : `/${siteConfig.ogImage}`,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.shortTitle,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     site: siteConfig.twitterHandle,
     title: siteConfig.title,
     description: siteConfig.description,
+    images: [siteConfig.ogImage.startsWith("/") ? siteConfig.ogImage : `/${siteConfig.ogImage}`],
   },
   robots: {
     index: true,

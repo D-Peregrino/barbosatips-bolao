@@ -12,7 +12,8 @@ export const siteConfig = {
   language:    "pt-BR",
 
   // OG / Social
-  ogImage:     "/images/og-default.jpg",
+  /** Fallback OG / Twitter (1200×630 com logo centrado em `public/brand/`). */
+  ogImage:     "/brand/og-share-default.png",
   twitterHandle: "@barbosatips",
 
   // Autores padrão
@@ -26,7 +27,8 @@ export const siteConfig = {
   social: {
     twitter:   "https://twitter.com/barbosatips",
     instagram: "https://instagram.com/barbosatips",
-    youtube:   "https://www.youtube.com/@barbosatips",
+    /** Canal oficial BarbosaTips (@CBarbosaTips) */
+    youtube:   "https://www.youtube.com/@CBarbosaTips",
     /** Canal Telegram (avisos oficiais). */
     telegram:  "https://t.me/barbosatips",
     /** Grupo / comunidade Telegram — substituir pelo link de convite real. */
@@ -43,7 +45,8 @@ export const siteConfig = {
     telegramCanal:   "https://t.me/barbosatips",
     telegramGrupo:   "https://t.me/barbosatips",
     telegramPicks:   "https://t.me/barbosatips",
-    youtubeCanalUrl: "https://www.youtube.com/@barbosatips",
+    /** Canal oficial BarbosaTips (@CBarbosaTips) */
+    youtubeCanalUrl: "https://www.youtube.com/@CBarbosaTips",
     youtubeChannelRssId: "",
     youtubeFallbackVideoIds: [],
     youtubeShortVideoIds: [],

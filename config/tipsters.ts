@@ -31,7 +31,7 @@ export const PUBLIC_TIPSTERS: readonly PublicTipsterProfile[] = [
     bio: "Foco em leitura de mercado, gestão de banca e transparência total em odds e confiança. O padrão editorial do portal — rigor, contexto e zero ruído de cassino.",
     especialidade: "Futebol, basquete (NBA) e mercados principais com valor esperado.",
     sportsSlugs: ["futebol", "basquete", "tenis", "futebol-americano"],
-    avatarUrl: "/images/barbosatips-shield.svg",
+    avatarUrl: "/brand/barbosatips-logo-oficial.png",
     picksScope: "portal",
   },
 ] as const;

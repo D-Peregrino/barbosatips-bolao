@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { BRAND_SHIELD_SRC } from "@/lib/brand/shield";
+import { BRAND_LOGO_OFICIAL_PNG } from "@/lib/brand/assets";
 
 const DIM = {
   xs: 28,
@@ -42,16 +42,20 @@ export function BrandShield({
         : "";
 
   return (
-    <Image
-      src={BRAND_SHIELD_SRC}
-      alt={decorative ? "" : alt}
-      role={decorative ? "presentation" : undefined}
-      width={dim}
-      height={dim}
-      priority={priority}
-      unoptimized
-      className={cn("h-auto max-w-full object-contain", glowClass, className)}
-      style={{ width: dim, height: "auto" }}
-    />
+    <div
+      className={cn("relative shrink-0 overflow-hidden", glowClass, className)}
+      style={{ width: dim, height: dim }}
+    >
+      <Image
+        src={BRAND_LOGO_OFICIAL_PNG}
+        alt={decorative ? "" : alt}
+        role={decorative ? "presentation" : undefined}
+        fill
+        sizes={`${dim}px`}
+        className="object-contain object-center"
+        quality={92}
+        priority={priority}
+      />
+    </div>
   );
 }

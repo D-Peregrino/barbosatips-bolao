@@ -8,11 +8,13 @@ const MAX_HTML_ENTRIES = 10;
 const PRECACHE_URLS = [
   "/",
   "/offline",
-  "/images/barbosatips-shield.svg",
+  "/brand/barbosatips-logo-oficial.png",
+  "/brand/barbosatips-logo-512.webp",
+  "/brand/favicon.ico",
+  "/brand/apple-touch-icon.png",
+  "/brand/og-share-default.png",
   "/icon.svg",
-  "/pwa/icon-192.png",
-  "/pwa/icon-512.png",
-  "/pwa/apple-touch-icon.png",
+  "/pwa/icon-512-maskable.png",
 ];
 
 self.addEventListener("install", (event) => {

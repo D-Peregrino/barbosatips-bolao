@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Youtube } from "lucide-react";
 import type { PublicTipsterProfile } from "@/config/tipsters";
 import { tipsterSportsLabels } from "@/config/tipsters";
+import { siteConfig } from "@/config/site";
 import { BrandShield } from "@/components/brand/BrandShield";
 import { FollowToggleButton } from "@/components/engagement/FollowToggleButton";
 
@@ -67,6 +68,15 @@ export function TipsterHero({ profile }: Props) {
             >
               Análises
             </Link>
+            <a
+              href={siteConfig.hub.youtubeCanalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/35 bg-red-950/30 px-5 py-2.5 text-sm font-bold text-red-100 transition hover:border-red-400/50"
+            >
+              <Youtube className="h-4 w-4 shrink-0" aria-hidden />
+              YouTube
+            </a>
           </div>
         </div>
 
