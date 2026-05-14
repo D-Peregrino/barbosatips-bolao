@@ -20,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     path: "/dashboard",
     keywords: buildKeywordsFromParts(["conta", "dashboard", "plano", "VIP"]),
+    noindex: true,
   });
 }
 

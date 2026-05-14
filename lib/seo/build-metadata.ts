@@ -41,7 +41,7 @@ export function buildPageMetadata(input: PageSeoInput): Metadata {
     ...(input.keywords?.length ? { keywords: input.keywords } : {}),
     alternates: { canonical },
     robots: input.noindex
-      ? { index: false, follow: true, googleBot: { index: false, follow: true } }
+      ? { index: false, follow: false, googleBot: { index: false, follow: false } }
       : {
           index: true,
           follow: true,

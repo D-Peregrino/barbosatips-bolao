@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     path: "/meu-feed",
     keywords: buildKeywordsFromParts(["favoritos", "feed", "notificações", "BarbosaTips"]),
+    noindex: true,
   });
 }
 

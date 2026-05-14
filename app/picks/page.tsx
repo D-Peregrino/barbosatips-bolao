@@ -3,12 +3,13 @@ import { Send } from "lucide-react";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
-import { listarQuickPicks } from "@/lib/picks/queries";
+import { listarQuickPicks, listarQuickPicksRecentes } from "@/lib/picks/queries";
 import { calcularEstatisticasQuickPicksEncerradas } from "@/lib/picks/stats";
 import { PickCard } from "@/components/picks/PickCard";
 import { PicksStatsBar } from "@/components/picks/PicksStatsBar";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
+import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
@@ -16,14 +17,25 @@ import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
 export const revalidate = siteConfig.revalidate.picks;
 
 export async function generateMetadata(): Promise<Metadata> {
+  const recent = await listarQuickPicksRecentes(12, true);
   const title = `Picks rápidas | ${siteConfig.shortTitle}`;
-  const description =
-    "Mercado, odd e confiança em segundos — picks rápidas BarbosaTips sem análise longa.";
+  const sports = Array.from(new Set(recent.map((r) => r.esporte))).filter(Boolean);
+  const description = buildAutoMetaDescription([
+    recent.length ? `${recent.length}+ linhas recentes` : "Flash picks com odd e confiança",
+    sports.length ? sports.map((s) => s.replace(/-/g, " ")).join(", ") : "futebol, NBA, NFL",
+    "mercados ao vivo, pendentes e resultado público BarbosaTips",
+  ]);
   return buildPageMetadata({
     title,
     description,
     path: "/picks",
-    keywords: buildKeywordsFromParts(["picks rápidas", "quick picks", "odds", "valor esperado"]),
+    keywords: buildKeywordsFromParts([
+      "picks rápidas",
+      "quick picks",
+      "odds",
+      "valor esperado",
+      ...sports,
+    ]),
   });
 }
 

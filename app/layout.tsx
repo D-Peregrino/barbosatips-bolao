@@ -4,7 +4,9 @@ import { Oswald, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { GlobalLiveBar } from "@/components/live/GlobalLiveBar";
+import { ProductionGtmNoScript, ProductionScripts } from "@/components/seo/ProductionScripts";
 import { SiteWideJsonLd } from "@/components/seo/SiteWideJsonLd";
+import { getPublicProductionConfig } from "@/config/production-public";
 import { siteConfig } from "@/config/site";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PwaClientMount } from "@/components/pwa/PwaClientMount";
@@ -15,7 +17,6 @@ import {
   BRAND_APPLE_TOUCH_PNG,
   BRAND_FAVICON_ICO,
   BRAND_LOGO_512_WEBP,
-  BRAND_LOGO_OFICIAL_PNG,
 } from "@/lib/brand/assets";
 
 const fontDisplay = Oswald({
@@ -40,6 +41,7 @@ const fontMono = JetBrains_Mono({
 });
 
 const base = siteConfig.url.replace(/\/$/, "");
+const prodPublic = getPublicProductionConfig();
 
 const defaultKeywords = buildKeywordsFromParts([
   siteConfig.name,
@@ -66,9 +68,17 @@ export const metadata: Metadata = {
     default: siteConfig.title,
     template: `%s · ${siteConfig.shortTitle}`,
   },
+  applicationName: siteConfig.shortTitle,
   description: siteConfig.description,
   keywords: defaultKeywords,
+  authors: [{ name: siteConfig.author.name, url: siteConfig.author.url }],
+  creator: siteConfig.author.name,
+  publisher: siteConfig.name,
   alternates: { canonical: base },
+  formatDetection: { telephone: false, address: false, email: false },
+  ...(prodPublic.googleSiteVerification
+    ? { verification: { google: prodPublic.googleSiteVerification } }
+    : {}),
   appleWebApp: {
     capable: true,
     title: siteConfig.shortTitle,
@@ -76,9 +86,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: BRAND_FAVICON_ICO, sizes: "32x32", type: "image/png" },
+      { url: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: BRAND_FAVICON_ICO, sizes: "any" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: BRAND_LOGO_OFICIAL_PNG, sizes: "512x512", type: "image/png" },
       { url: BRAND_LOGO_512_WEBP, sizes: "512x512", type: "image/webp" },
     ],
     apple: [{ url: BRAND_APPLE_TOUCH_PNG, sizes: "180x180", type: "image/png" }],
@@ -102,6 +113,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     site: siteConfig.twitterHandle,
+    creator: siteConfig.twitterHandle,
     title: siteConfig.title,
     description: siteConfig.description,
     images: [siteConfig.ogImage.startsWith("/") ? siteConfig.ogImage : `/${siteConfig.ogImage}`],
@@ -128,6 +140,8 @@ export default function RootLayout({
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
     >
       <body className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]">
+        <ProductionScripts />
+        <ProductionGtmNoScript />
         <SiteWideJsonLd />
         <Navbar />
         <IsolatedClientMount scope="global_live_bar">

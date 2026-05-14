@@ -10,11 +10,12 @@ const base = () => getSiteBaseUrl();
 
 export function jsonLdOrganization(): JsonLdThing {
   return {
-    "@type": "Organization",
+    "@type": ["Organization", "SportsOrganization"],
     "@id": `${base()}/#organization`,
     name: siteConfig.name,
     url: siteConfig.url,
     logo: urlOgPadrao(),
+    sport: siteConfig.sports.map((s) => s.label),
     sameAs: [
       siteConfig.social.twitter,
       siteConfig.social.instagram,

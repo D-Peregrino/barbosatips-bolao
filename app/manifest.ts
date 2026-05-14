@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
-import { BRAND_LOGO_512_WEBP, BRAND_LOGO_OFICIAL_PNG } from "@/lib/brand/assets";
+import {
+  BRAND_LOGO_512_WEBP,
+  BRAND_LOGO_OFICIAL_PNG,
+} from "@/lib/brand/assets";
 
 /**
- * Web App Manifest — instalável, tema escuro BarbosaTips, ícones oficiais (`public/brand/`).
+ * Web App Manifest — PWA refinado (atalhos, ícones any + maskable, tema BarbosaTips).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -11,7 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: siteConfig.title,
     short_name: siteConfig.shortTitle,
     description: siteConfig.description,
-    start_url: "/",
+    start_url: "/?utm_source=pwa",
     scope: "/",
     display: "standalone",
     display_override: ["standalone", "minimal-ui", "browser"],
@@ -21,10 +24,17 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["sports", "entertainment", "lifestyle"],
     lang: "pt-BR",
     dir: "ltr",
+    prefer_related_applications: false,
     icons: [
       {
-        src: BRAND_LOGO_OFICIAL_PNG,
+        src: "/pwa/icon-192.png",
         sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: BRAND_LOGO_OFICIAL_PNG,
+        sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
@@ -39,6 +49,36 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
+      },
+    ],
+    shortcuts: [
+      {
+        name: "Tips do dia",
+        short_name: "Tips",
+        description: "Tips e prognósticos com stake e contexto.",
+        url: "/tips",
+        icons: [{ src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+      {
+        name: "Análises",
+        short_name: "Análises",
+        description: "Análises editoriais com odds e confiança.",
+        url: "/analises",
+        icons: [{ src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+      {
+        name: "Picks rápidas",
+        short_name: "Picks",
+        description: "Mercado, odd e confiança em segundos.",
+        url: "/picks",
+        icons: [{ src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+      {
+        name: "Performance",
+        short_name: "Stats",
+        description: "Taxa, ROI e gráficos das quick picks.",
+        url: "/performance",
+        icons: [{ src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
     ],
   };

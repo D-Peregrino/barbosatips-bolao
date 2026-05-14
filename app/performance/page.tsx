@@ -5,26 +5,38 @@ import { PerformanceDashboard } from "@/components/performance/PerformanceDashbo
 import { siteConfig } from "@/config/site";
 import { computePerformanceModel } from "@/lib/picks/performance-compute";
 import { listarQuickPicksPerformance } from "@/lib/picks/queries";
-
-const base = siteConfig.url.replace(/\/$/, "");
+import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
+import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
+import { buildPageMetadata } from "@/lib/seo/build-metadata";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: `Performance · ${siteConfig.shortTitle}`,
-  description:
-    "Dashboard público de desempenho das picks rápidas BarbosaTips — greens, reds, taxa, ROI estimado e breakdown por esporte e mercado.",
-  alternates: { canonical: `${base}/performance` },
-  openGraph: {
-    title: `Performance | ${siteConfig.name}`,
-    description:
-      "Histórico e performance pública das quick picks — taxa de acerto, ROI 1u e gráficos.",
-    type: "website",
-    locale: siteConfig.locale,
-    siteName: siteConfig.name,
-    url: `${base}/performance`,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const picks = await listarQuickPicksPerformance();
+  const model = computePerformanceModel(picks);
+  const taxa =
+    model.taxaAcertoPct != null ? `taxa ~${model.taxaAcertoPct}%` : "métricas públicas";
+  const roi =
+    model.roiEstimadoPct != null ? `ROI ~${model.roiEstimadoPct}% (1u)` : "ROI 1u estimado";
+  const description = buildAutoMetaDescription([
+    `${model.totalPicks} picks rastreadas`,
+    `${model.encerradas} encerradas · ${model.greens}G ${model.reds}R`,
+    taxa,
+    roi,
+  ]);
+  return buildPageMetadata({
+    title: `Performance · ${siteConfig.shortTitle}`,
+    description,
+    path: "/performance",
+    keywords: buildKeywordsFromParts([
+      "performance picks",
+      "ROI",
+      "taxa de acerto",
+      "quick picks",
+      "greens",
+    ]),
+  });
+}
 
 export default async function PerformancePage() {
   const picks = await listarQuickPicksPerformance();
@@ -78,10 +90,6 @@ export default async function PerformancePage() {
           </div>
 
           <PerformanceDashboard model={model} />
-
-          <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
-          </div>
         </div>
       </CommercialPageShell>
     </div>

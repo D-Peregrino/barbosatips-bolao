@@ -12,18 +12,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/tips`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
     { url: `${baseUrl}/analises`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/picks`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.85 },
-    { url: `${baseUrl}/performance`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.82 },
+    { url: `${baseUrl}/performance`, lastModified: new Date(), changeFrequency: "daily", priority: 0.82 },
     {
       url: `${baseUrl}/inteligencia`,
       lastModified: new Date(),
       changeFrequency: "hourly",
       priority: 0.84,
     },
+    { url: `${baseUrl}/live`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.8 },
+    { url: `${baseUrl}/comunidade`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.78 },
+    { url: `${baseUrl}/newsletter`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.72 },
     { url: `${baseUrl}/premium`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.75 },
+    { url: `${baseUrl}/vip`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.72 },
     { url: `${baseUrl}/bolao`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${baseUrl}/ranking`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${baseUrl}/guias`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
-    { url: `${baseUrl}/estatisticas`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
+    { url: `${baseUrl}/termos`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.35 },
+    { url: `${baseUrl}/privacidade`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.35 },
   ];
 
   const sportPages: MetadataRoute.Sitemap = siteConfig.sports.map((s) => ({

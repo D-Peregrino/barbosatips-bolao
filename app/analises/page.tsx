@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { listarAnalisesPublicadas } from "@/lib/analises/queries";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
+import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +21,12 @@ export async function generateMetadata(): Promise<Metadata> {
     ? `${primary.titulo.length > 58 ? `${primary.titulo.slice(0, 58)}…` : primary.titulo} | ${siteConfig.shortTitle}`
     : baseTitle;
 
-  const description =
-    n > 0
-      ? `${n} ${n === 1 ? "análise publicada" : "análises publicadas"} com odds, confiança e leitura de mercado. ${siteConfig.description}`
-      : `Portal editorial de prognósticos: odds, confiança e contexto por confronto. ${siteConfig.description}`;
+  const description = buildAutoMetaDescription([
+    n > 0 ? `${n} ${n === 1 ? "análise" : "análises"} com odds e contexto` : "prognósticos editoriais",
+    primary?.titulo,
+    primary?.campeonato,
+    "confiança, mercados e leitura BarbosaTips",
+  ]);
 
   const capa = primary?.imagem_capa?.trim();
   const ogImageUrl = capa
@@ -31,7 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
       ? capa
       : `${siteConfig.url.replace(/\/$/, "")}${capa.startsWith("/") ? capa : `/${capa}`}`
     : null;
-  const ogImages = ogImageUrl ? [{ url: ogImageUrl }] : undefined;
+  const ogImages = ogImageUrl
+    ? [{ url: ogImageUrl, width: 1200, height: 630, alt: primary?.titulo ?? siteConfig.shortTitle }]
+    : undefined;
 
   const keywords = buildKeywordsFromParts([
     "análises",

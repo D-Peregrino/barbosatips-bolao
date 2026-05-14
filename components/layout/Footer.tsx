@@ -26,7 +26,7 @@ const FOOTER_LINKS = {
   BarbosaTips: [
     { href: "/sobre", label: "Sobre" },
     { href: "/contato", label: "Contato" },
-    { href: "/politica-privacidade", label: "Privacidade" },
+    { href: "/privacidade", label: "Privacidade" },
     { href: "/termos", label: "Termos de Uso" },
   ],
 };

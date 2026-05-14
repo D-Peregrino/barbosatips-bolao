@@ -34,6 +34,26 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/estatisticas",
+        destination: "/performance",
+        permanent: true,
+      },
+      {
+        source: "/estatisticas/:path*",
+        destination: "/performance",
+        permanent: true,
+      },
+      {
+        source: "/politica-privacidade/:path*",
+        destination: "/privacidade",
+        permanent: true,
+      },
+      {
+        source: "/politica-privacidade",
+        destination: "/privacidade",
+        permanent: true,
+      },
+      {
         source: "/bolao/criar",
         destination: "/bolao",
         permanent: true,

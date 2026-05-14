@@ -13,6 +13,7 @@ import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { LeadCaptureForm } from "@/components/leads/LeadCaptureForm";
 import { BrandShield } from "@/components/brand/BrandShield";
 import { siteConfig } from "@/config/site";
+import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import {
@@ -21,12 +22,24 @@ import {
 } from "@/components/community/ComunidadeHubSections";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const description = buildAutoMetaDescription([
+    "Hub oficial BarbosaTips",
+    "Telegram canal e grupo",
+    "YouTube com análises e shorts",
+    "Instagram, X, newsletter e roadmap da comunidade",
+  ]);
   return buildPageMetadata({
     title: `Comunidade · ${siteConfig.shortTitle}`,
-    description:
-      "Hub central BarbosaTips — Telegram (canal e grupo), YouTube, redes sociais e benefícios da comunidade. Newsletter e VIP em evolução.",
+    description,
     path: "/comunidade",
-    keywords: buildKeywordsFromParts(["comunidade", "telegram", "youtube", "tips", "prognósticos"]),
+    keywords: buildKeywordsFromParts([
+      "comunidade",
+      "telegram",
+      "youtube",
+      "tips",
+      "prognósticos",
+      "BarbosaTips",
+    ]),
   });
 }
 
