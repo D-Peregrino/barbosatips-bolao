@@ -20,9 +20,9 @@ function formatarHorario(iso: string): string {
 }
 
 function corConfianca(n: number): string {
-  if (n >= 80) return "from-amber-500/90 to-orange-600 text-pitch-950";
-  if (n >= 60) return "from-emerald-500/85 to-emerald-700 text-white";
-  return "from-zinc-500 to-zinc-700 text-white";
+  if (n >= 80) return "from-gold-400/95 to-gold-600 text-pitch-950";
+  if (n >= 60) return "from-emerald-400/95 to-emerald-700 text-pitch-950";
+  return "from-stone-600 to-stone-800 text-cream";
 }
 
 function badgeResultado(
@@ -38,13 +38,15 @@ function badgeResultado(
   if (pick.resultado === "green") {
     return {
       label: "GREEN",
-      className: "border-emerald-400/50 bg-emerald-500/25 text-emerald-100",
+      className:
+        "border-emerald-400/45 bg-emerald-500/12 text-emerald-100 shadow-[0_0_20px_-6px_rgba(52,211,153,0.35)]",
     };
   }
   if (pick.resultado === "red") {
     return {
       label: "RED",
-      className: "border-red-400/50 bg-red-500/25 text-red-100",
+      className:
+        "border-rose-400/40 bg-rose-950/45 text-rose-100 shadow-[0_0_18px_-6px_rgba(251,113,133,0.22)]",
     };
   }
   if (pick.resultado === "void") {
@@ -83,14 +85,14 @@ function cardShellClass(pick: QuickPickRow, premiumLocked: boolean): string {
   }
   if (pick.resultado === "green") {
     return cn(
-      "border-emerald-500/50 bg-gradient-to-br from-emerald-950/45 to-pitch-950",
-      "ring-1 ring-emerald-500/20",
+      "border-emerald-400/45 bg-gradient-to-br from-emerald-950/55 via-pitch-950 to-[var(--color-void)]",
+      "ring-1 ring-emerald-400/18",
     );
   }
   if (pick.resultado === "red") {
     return cn(
-      "border-red-500/50 bg-gradient-to-br from-red-950/40 to-pitch-950",
-      "ring-1 ring-red-500/18",
+      "border-rose-500/40 bg-gradient-to-br from-rose-950/50 via-pitch-950 to-[var(--color-void)]",
+      "ring-1 ring-rose-400/15",
     );
   }
   if (pick.resultado === "void") {
@@ -99,7 +101,7 @@ function cardShellClass(pick: QuickPickRow, premiumLocked: boolean): string {
       "ring-1 ring-zinc-600/20",
     );
   }
-  return "border-[#3d3420]/80 bg-gradient-to-br from-[#12100e] to-[#080706]";
+  return "border-gold-400/16 bg-gradient-to-br from-pitch-900/95 to-[var(--color-void)] ring-1 ring-gold-400/8";
 }
 
 function cantoIcone(pick: QuickPickRow, premiumLocked: boolean): ReactNode {
@@ -123,7 +125,7 @@ function cantoIcone(pick: QuickPickRow, premiumLocked: boolean): ReactNode {
   if (pick.resultado === "green") {
     return (
       <div
-        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-lg font-black text-pitch-950 shadow-lg"
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-400 text-lg font-black text-pitch-950 shadow-[0_0_20px_-4px_rgba(52,211,153,0.5)]"
         aria-label="Green"
       >
         ✓
@@ -133,7 +135,7 @@ function cantoIcone(pick: QuickPickRow, premiumLocked: boolean): ReactNode {
   if (pick.resultado === "red") {
     return (
       <div
-        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-lg font-black text-white shadow-lg"
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-rose-400/40 bg-rose-600 text-lg font-black text-cream shadow-[0_0_18px_-4px_rgba(251,113,133,0.35)]"
         aria-label="Red"
       >
         ✕
@@ -178,14 +180,14 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-2xl border p-5 shadow-[0_20px_50px_-28px_rgba(0,0,0,.75)] transition duration-300 hover:-translate-y-0.5",
+        "group relative overflow-hidden rounded-2xl border p-5 shadow-[0_24px_56px_-30px_rgba(0,0,0,.82)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_60px_-26px_rgba(201,162,39,0.12)]",
         cardShellClass(pick, locked),
       )}
     >
       {cantoIcone(pick, locked)}
 
       <div className="mb-3 flex flex-wrap items-center gap-2 pr-12">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/80 bg-black/40 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-600/70 bg-black/50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
           <span aria-hidden>{icon}</span>
           {sportLabel}
         </span>
@@ -193,7 +195,7 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
           <PremiumLockBadge className="scale-90" />
         ) : null}
         {pick.campeonato?.trim() ? (
-          <span className="rounded-full border border-gold/25 bg-gold/5 px-2.5 py-0.5 text-[11px] font-medium text-gold/90">
+          <span className="rounded-full border border-gold-400/22 bg-gold-400/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-gold-200/95">
             {pick.campeonato.trim()}
           </span>
         ) : null}
@@ -209,12 +211,12 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
         ) : null}
       </div>
 
-      <h2 className="font-display text-xl font-bold leading-snug text-white sm:text-2xl">
+      <h2 className="font-display text-xl font-bold leading-snug text-cream sm:text-2xl">
         {pick.jogo}
       </h2>
 
       {locked ? (
-        <div className="relative mt-4 overflow-hidden rounded-xl border border-amber-500/20 bg-black/40 py-8">
+        <div className="relative mt-4 overflow-hidden rounded-xl border border-gold-400/18 bg-black/50 py-8">
           <div
             className="pointer-events-none space-y-3 px-2 blur-md"
             aria-hidden
@@ -224,7 +226,7 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
               <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm text-zinc-100">
                 {pick.mercado}
               </span>
-              <span className="ml-auto font-mono text-lg text-gold">
+              <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
                 @{pick.odd.toFixed(2)}
               </span>
             </div>
@@ -242,26 +244,26 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
         </div>
       ) : (
         <>
-          <div className="mt-3 flex flex-wrap items-baseline gap-2">
-            <span className="text-sm font-medium text-zinc-400">Mercado</span>
-            <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm font-semibold text-zinc-100">
+          <div className="mt-3 flex flex-wrap items-baseline gap-2 gap-y-2">
+            <span className="text-sm font-medium text-stone-500">Mercado</span>
+            <span className="rounded-lg border border-gold-400/10 bg-white/[0.03] px-2 py-0.5 text-sm font-semibold text-cream-muted">
               {pick.mercado}
             </span>
-            <span className="ml-auto font-mono text-lg font-bold tabular-nums text-gold">
+            <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
               @{pick.odd.toFixed(2).replace(".", ",")}
             </span>
           </div>
 
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-stone-500">
             {pick.justificativa?.trim() || "Pick rápida — sem justificativa longa."}
           </p>
         </>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4">
-        <div className="text-xs text-zinc-500">
-          <span className="block uppercase tracking-wider text-zinc-600">Jogo</span>
-          <time dateTime={pick.horario_jogo} className="font-medium text-zinc-300">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gold-400/10 pt-4">
+        <div className="text-xs text-stone-500">
+          <span className="block uppercase tracking-wider text-stone-600">Jogo</span>
+          <time dateTime={pick.horario_jogo} className="font-medium text-cream-muted">
             {formatarHorario(pick.horario_jogo)}
           </time>
         </div>

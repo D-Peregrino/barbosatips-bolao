@@ -16,36 +16,32 @@ module.exports = {
       colors: {
         // Preto profundo — backgrounds principais
         pitch: {
-          950: "#080808",
-          900: "#0f0f0f",
-          800: "#161616",
-          700: "#1e1e1e",
-          600: "#262626",
-          500: "#303030",
+          950: "#030303",
+          900: "#080807",
+          800: "#0f0e0c",
+          700: "#171512",
+          600: "#221f1a",
+          500: "#2c2820",
         },
-        // Ouro — cor de destaque da marca
+        // Ouro metálico — identidade clube / portal premium
         gold: {
-          50:  "#fffbeb",
-          100: "#fef3c7",
-          200: "#fde68a",
-          300: "#fbbf24",
-          400: "#f59e0b",
-          500: "#d97706",
-          600: "#b45309",
-          DEFAULT: "#f59e0b",
+          50:  "#fdfaf0",
+          100: "#f5ecd4",
+          200: "#e8cf7a",
+          300: "#d4af37",
+          400: "#c9a227",
+          500: "#a67c00",
+          600: "#7a5c0e",
+          DEFAULT: "#d4af37",
         },
-        // Verde — resultado positivo / ganhou
-        win: {
-          DEFAULT: "#22c55e",
-          light: "#dcfce7",
-          dark: "#166534",
+        cream: {
+          DEFAULT: "#f5f0e6",
+          muted: "#c4bdb0",
         },
-        // Vermelho — resultado negativo / perdeu
-        loss: {
-          DEFAULT: "#ef4444",
-          light: "#fee2e2",
-          dark: "#991b1b",
-        },
+        // Verde — resultado positivo (vivo, não neon)
+        win: "#34d399",
+        // Vermelho — resultado negativo (rose sofisticado)
+        loss: "#fb7185",
         // Cinza neutro — textos secundários
         muted: {
           DEFAULT: "#737373",
@@ -94,11 +90,12 @@ module.exports = {
 
       // ─── SOMBRAS ────────────────────────────────────────────────────────────
       boxShadow: {
-        "gold-sm":  "0 0 12px rgba(245, 158, 11, 0.15)",
-        "gold-md":  "0 0 24px rgba(245, 158, 11, 0.25)",
-        "gold-lg":  "0 0 48px rgba(245, 158, 11, 0.35)",
-        "card":     "0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.6)",
-        "card-hover":"0 4px 16px rgba(0,0,0,0.6)",
+        "gold-sm":  "0 0 14px rgba(201, 162, 39, 0.18)",
+        "gold-md":  "0 0 28px rgba(201, 162, 39, 0.22)",
+        "gold-lg":  "0 0 42px rgba(212, 175, 55, 0.26)",
+        "card":     "0 1px 0 rgba(212,175,55,0.06) inset, 0 18px 40px -24px rgba(0,0,0,0.75)",
+        "card-hover":
+          "0 1px 0 rgba(232,207,122,0.1) inset, 0 22px 50px -20px rgba(0,0,0,0.82), 0 0 0 1px rgba(201,162,39,0.12)",
       },
 
       // ─── ANIMAÇÕES ──────────────────────────────────────────────────────────
@@ -109,6 +106,7 @@ module.exports = {
         "pulse-gold":    "pulseGold 2s ease-in-out infinite",
         "shimmer":       "shimmer 1.5s linear infinite",
         "count-up":      "countUp 0.6s ease-out forwards",
+        "brand-breathe": "brandBreathe 2.8s ease-in-out infinite",
       },
 
       keyframes: {
@@ -125,12 +123,16 @@ module.exports = {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         pulseGold: {
-          "0%, 100%": { boxShadow: "0 0 12px rgba(245,158,11,0.15)" },
-          "50%":      { boxShadow: "0 0 32px rgba(245,158,11,0.4)" },
+          "0%, 100%": { boxShadow: "0 0 14px rgba(201,162,39,0.14)" },
+          "50%":      { boxShadow: "0 0 28px rgba(212,175,55,0.22)" },
         },
         shimmer: {
           "0%":   { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
+        },
+        brandBreathe: {
+          "0%, 100%": { opacity: "0.92", transform: "scale(1)" },
+          "50%":      { opacity: "1", transform: "scale(1.02)" },
         },
         countUp: {
           "0%":   { opacity: "0", transform: "translateY(8px)" },
@@ -170,7 +172,7 @@ module.exports = {
       addUtilities({
         // Texto com gradiente dourado
         ".text-gold-gradient": {
-          background: `linear-gradient(135deg, ${theme("colors.gold.300")}, ${theme("colors.gold.500")})`,
+          background: `linear-gradient(135deg, ${theme("colors.gold.100")}, ${theme("colors.gold.300")}, ${theme("colors.gold.500")})`,
           "-webkit-background-clip": "text",
           "-webkit-text-fill-color": "transparent",
           "background-clip": "text",
@@ -213,13 +215,14 @@ module.exports = {
         // Badge de odd
         ".badge-odd": {
           fontFamily: theme("fontFamily.mono"),
-          fontWeight: "700",
-          fontSize: "0.875rem",
-          padding: "0.125rem 0.5rem",
+          fontWeight: "800",
+          fontSize: "1rem",
+          padding: "0.2rem 0.55rem",
           borderRadius: theme("borderRadius.md"),
-          backgroundColor: `${theme("colors.gold.500")}20`,
-          color: theme("colors.gold.400"),
-          border: `1px solid ${theme("colors.gold.500")}40`,
+          backgroundColor: `${theme("colors.gold.400")}18`,
+          color: theme("colors.gold.200"),
+          border: `1px solid ${theme("colors.gold.400")}35`,
+          boxShadow: `0 0 20px rgba(201,162,39,0.12)`,
         },
       });
     },

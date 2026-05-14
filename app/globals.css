@@ -6,16 +6,23 @@
 
 /* ─── CSS CUSTOM PROPERTIES ─────────────────────────────────────────────────*/
 :root {
-  --color-gold:        #f59e0b;
-  --color-gold-light:  #fbbf24;
-  --color-gold-dark:   #d97706;
-  --color-pitch:       #0f0f0f;
-  --color-surface:     #161616;
-  --color-border:      #262626;
-  --color-border-gold: rgba(245, 158, 11, 0.25);
-  --color-win:         #22c55e;
-  --color-loss:        #ef4444;
-  --color-push:        #94a3b8;
+  --color-gold:        #d4af37;
+  --color-gold-light:  #f0d78c;
+  --color-gold-dark:   #8a7018;
+  --color-gold-glow:   rgba(201, 162, 39, 0.22);
+  --color-void:        #030303;
+  --color-pitch:       #050504;
+  --color-surface:     #0c0b09;
+  --color-surface-2:   #12100c;
+  --color-border:      rgba(201, 162, 39, 0.14);
+  --color-border-gold: rgba(212, 175, 55, 0.22);
+  --color-cream:       #f5f0e6;
+  --color-cream-muted: #a8a095;
+  --color-win:         #34d399;
+  --color-win-deep:    #065f46;
+  --color-loss:        #fb7185;
+  --color-loss-deep:   #881337;
+  --color-push:        #78716c;
   --transition-base:   200ms ease;
   --transition-slow:   400ms ease;
   --navbar-h:          64px;
@@ -45,15 +52,17 @@
   }
 
   body {
-    @apply min-h-screen overflow-x-hidden font-body antialiased bg-pitch-950 text-neutral-200;
+    @apply min-h-screen overflow-x-hidden font-body antialiased bg-pitch-950 text-cream-muted;
+    background-color: var(--color-void);
     background-image:
-      radial-gradient(ellipse 100% 80% at 50% -30%, rgba(217, 119, 6, 0.12), transparent 45%),
-      linear-gradient(180deg, #050505 0%, #0a0a0c 35%, #050505 100%);
+      radial-gradient(ellipse 120% 70% at 50% -25%, rgba(201, 162, 39, 0.09), transparent 50%),
+      radial-gradient(ellipse 50% 40% at 100% 0%, rgba(212, 175, 55, 0.04), transparent 42%),
+      linear-gradient(180deg, #020202 0%, #060504 32%, #030302 100%);
   }
 
   ::selection {
-    background-color: rgba(245, 158, 11, 0.25);
-    color: #fbbf24;
+    background-color: rgba(201, 162, 39, 0.28);
+    color: var(--color-cream);
   }
 
   ::-webkit-scrollbar {
@@ -75,7 +84,7 @@
     font-weight:    700;
     line-height:    1.15;
     letter-spacing: -0.01em;
-    @apply text-white;
+    @apply text-cream;
   }
 
   h1 { font-size: clamp(2rem, 5vw, 3.5rem); }
@@ -101,12 +110,12 @@
   }
 
   input, textarea, select {
-    @apply w-full rounded-lg border border-pitch-600 bg-pitch-800 px-3.5 py-2.5 text-neutral-200 outline-none transition-colors duration-200;
+    @apply w-full rounded-lg border border-pitch-600 bg-pitch-900 px-3.5 py-2.5 text-cream-muted outline-none transition-colors duration-200;
   }
 
   input:focus, textarea:focus, select:focus {
     border-color: var(--color-gold);
-    box-shadow:   0 0 0 3px rgba(245, 158, 11, 0.12);
+    box-shadow:   0 0 0 3px rgba(201, 162, 39, 0.12);
   }
 
   input::placeholder, textarea::placeholder {
@@ -133,7 +142,7 @@
 
   .btn-primary {
     @apply btn;
-    @apply bg-gold text-pitch-950 hover:bg-gold-300;
+    @apply bg-gradient-to-r from-gold-300 via-gold-400 to-gold-300 text-pitch-950 hover:brightness-105;
     @apply shadow-gold-sm hover:shadow-gold-md;
     @apply active:scale-95;
     font-family:    var(--font-display);
@@ -145,22 +154,28 @@
 
   .btn-secondary {
     @apply btn;
-    @apply bg-pitch-700 text-white border-pitch-600;
-    @apply hover:bg-pitch-600 hover:border-pitch-500;
+    @apply bg-pitch-800 text-cream border border-pitch-600;
+    @apply hover:bg-pitch-700;
     @apply active:scale-95;
+  }
+  .btn-secondary:hover {
+    border-color: rgba(212, 175, 55, 0.22);
   }
 
   .btn-outline {
-    @apply btn;
-    @apply bg-transparent text-gold border-gold;
-    @apply hover:bg-gold hover:text-pitch-950;
+    @apply btn bg-transparent text-gold-300;
+    border-color: rgba(201, 162, 39, 0.45);
     @apply active:scale-95;
+  }
+  .btn-outline:hover {
+    background-color: rgba(201, 162, 39, 0.08);
+    color: #f5ecd4;
   }
 
   .btn-ghost {
     @apply btn;
-    @apply bg-transparent text-muted-light;
-    @apply hover:bg-pitch-700 hover:text-white;
+    @apply bg-transparent text-cream-muted;
+    @apply hover:bg-pitch-800 hover:text-cream;
   }
 
   .btn-sm  { @apply btn px-3 py-1.5 text-xs rounded-md; }
@@ -168,19 +183,21 @@
   .btn-icon { @apply btn p-2.5 rounded-lg; }
 
   .card {
-    @apply bg-pitch-800 border border-pitch-600 rounded-xl;
+    @apply bg-pitch-900 border border-pitch-600 rounded-xl;
     @apply transition-all duration-200;
   }
 
   .card-hover {
-    @apply card;
-    @apply hover:border-gold/20 hover:shadow-card-hover hover:-translate-y-0.5;
-    @apply cursor-pointer;
+    @apply card cursor-pointer;
+    @apply hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+  .card-hover:hover {
+    border-color: rgba(201, 162, 39, 0.22);
   }
 
   .card-gold {
-    @apply card;
-    @apply border-gold/30 shadow-gold-sm;
+    @apply card shadow-gold-sm;
+    border-color: rgba(201, 162, 39, 0.22);
   }
 
   .badge {
@@ -189,11 +206,29 @@
     @apply uppercase tracking-wider;
   }
 
-  .badge-win  { @apply badge bg-win/10 text-win border border-win/20; }
-  .badge-loss { @apply badge bg-loss/10 text-loss border border-loss/20; }
-  .badge-push { @apply badge bg-muted/10 text-muted-light border border-muted/20; }
-  .badge-gold { @apply badge bg-gold/10 text-gold border border-gold/20; }
-  .badge-vip  { @apply badge bg-gold/20 text-gold-300 border border-gold/30; }
+  .badge-win {
+    @apply badge text-emerald-200 border border-emerald-400/30;
+    background-color: rgba(16, 185, 129, 0.12);
+  }
+  .badge-loss {
+    @apply badge text-rose-100 border border-rose-400/30;
+    background-color: rgba(244, 63, 94, 0.12);
+  }
+  .badge-push {
+    @apply badge text-muted-light;
+    background-color: rgba(115, 115, 115, 0.1);
+    border: 1px solid rgba(163, 163, 163, 0.2);
+  }
+  .badge-gold {
+    @apply badge text-gold-200;
+    background-color: rgba(201, 162, 39, 0.1);
+    border: 1px solid rgba(201, 162, 39, 0.22);
+  }
+  .badge-vip {
+    @apply badge text-gold-100;
+    background-color: rgba(201, 162, 39, 0.14);
+    border: 1px solid rgba(232, 207, 122, 0.22);
+  }
 
   .divider {
     @apply relative flex items-center gap-4 my-6;
@@ -218,8 +253,10 @@
 
   .odds-value {
     font-family:    var(--font-mono);
-    font-weight:    700;
-    color:          var(--color-gold);
+    font-weight:    800;
+    font-size:      1.125rem;
+    color:          var(--color-gold-light);
+    text-shadow:    0 0 24px rgba(201, 162, 39, 0.18);
     letter-spacing: -0.02em;
   }
 
@@ -227,9 +264,9 @@
     @apply rounded-lg animate-shimmer;
     background: linear-gradient(
       90deg,
-      theme("colors.pitch.700") 25%,
-      theme("colors.pitch.600") 50%,
-      theme("colors.pitch.700") 75%
+      theme("colors.pitch.800") 25%,
+      theme("colors.pitch.700") 50%,
+      theme("colors.pitch.800") 75%
     );
     background-size: 200% 100%;
   }
@@ -248,10 +285,10 @@
     @apply py-12 sm:py-16 lg:py-20;
   }
 
-  .text-muted { @apply text-neutral-400; }
+  .text-muted { @apply text-stone-500; }
 
   .link-gold {
-    @apply text-muted-light hover:text-gold transition-colors duration-200;
+    @apply text-cream-muted hover:text-gold-200 transition-colors duration-200;
   }
 
   .tips-grid {
@@ -265,30 +302,52 @@
   }
 
   .ad-slot {
-    @apply bg-pitch-900 border border-pitch-700 border-dashed rounded-xl;
-    @apply flex items-center justify-center;
-    @apply text-xs text-muted/50 tracking-widest uppercase;
+    @apply bg-pitch-900 rounded-xl flex items-center justify-center text-2xs text-stone-600 tracking-widest uppercase;
+    border: 1px dashed rgba(201, 162, 39, 0.15);
   }
 
   /* Fundo premium por página (opcional em wrappers) */
   .page-premium-bg {
-    @apply relative bg-gradient-to-b from-pitch-950 via-pitch-900 to-pitch-950;
+    @apply relative;
+    background: linear-gradient(to bottom, #030303, #080807, #030303);
   }
 
-  /** Layout comercial: cartões menos pesados + borda dourada suave */
+  /** Layout comercial: cartões com profundidade + filete dourado */
   .commercial-card-elevated {
-    @apply rounded-2xl border border-amber-500/20 bg-gradient-to-br from-zinc-900/55 via-pitch-900/90 to-pitch-950;
+    border-radius: 1rem;
+    border: 1px solid rgba(201, 162, 39, 0.18);
+    background: linear-gradient(to bottom right, rgba(15, 14, 12, 0.9), rgba(8, 8, 7, 0.95), #030303);
     box-shadow:
-      0 1px 0 rgba(251, 191, 36, 0.06) inset,
-      0 24px 60px -28px rgba(0, 0, 0, 0.75);
+      0 1px 0 rgba(232, 207, 122, 0.07) inset,
+      0 28px 64px -32px rgba(0, 0, 0, 0.88);
   }
 
   .commercial-section-strip {
-    @apply border-y border-amber-500/10 bg-gradient-to-b from-black/40 via-pitch-950/95 to-zinc-950/50;
+    border-top: 1px solid rgba(201, 162, 39, 0.12);
+    border-bottom: 1px solid rgba(201, 162, 39, 0.12);
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.5),
+      rgba(3, 3, 3, 0.98),
+      rgba(15, 14, 12, 0.4)
+    );
   }
 
   .commercial-page-bg {
-    @apply min-h-[calc(100vh-64px)] bg-gradient-to-b from-pitch-950 via-[#0a0a0c] to-black text-zinc-100;
+    min-height: calc(100vh - 64px);
+    color: #c4bdb0;
+    background: linear-gradient(to bottom, #030303, #030303, #000000);
+  }
+
+  /** Textura diagonal discreta (clube / relvado) */
+  .texture-club {
+    background-image: repeating-linear-gradient(
+      -18deg,
+      transparent,
+      transparent 14px,
+      rgba(201, 162, 39, 0.04) 14px,
+      rgba(201, 162, 39, 0.04) 15px
+    );
   }
 }
 
@@ -302,6 +361,17 @@
   }
 }
 
+@keyframes brandBreathe {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
 /* ─── UTILITIES CUSTOM ───────────────────────────────────────────────────────*/
 @layer utilities {
   .animate-home-ticker {
@@ -312,10 +382,17 @@
     .animate-home-ticker {
       animation: none;
     }
+    .animate-brand-breathe {
+      animation: none;
+    }
+  }
+
+  .animate-brand-breathe {
+    animation: brandBreathe 2.8s ease-in-out infinite;
   }
 
   .text-gold-gradient {
-    background:                 linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+    background:                 linear-gradient(135deg, #f5ecd4, #d4af37, #a67c00);
     -webkit-background-clip:  text;
     -webkit-text-fill-color:    transparent;
     background-clip:            text;

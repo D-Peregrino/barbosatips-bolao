@@ -18,7 +18,7 @@ export function AnaliseCardGrid({
   const lockedPreview = analise.is_premium && !viewerCanViewPremium;
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#2a2418]/90 bg-gradient-to-b from-[#12100c] to-[#070605] shadow-[0_20px_50px_-28px_rgba(0,0,0,.85)] transition duration-300 ease-out hover:-translate-y-1 hover:border-[#C9A227]/40 hover:shadow-[0_28px_70px_-24px_rgba(212,175,55,.14)]">
+    <article className="commercial-card-elevated group flex h-full flex-col overflow-hidden transition duration-300 ease-out hover:-translate-y-1 hover:border-gold-400/32 hover:shadow-[0_28px_70px_-24px_rgba(201,162,39,0.12)]">
       <div className="relative">
         {analise.is_premium ? (
           <div className="absolute left-3 top-3 z-10">
@@ -28,47 +28,47 @@ export function AnaliseCardGrid({
         <AnaliseCapaMedia analise={analise} aspectClass="aspect-[16/10]" />
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C9A227]/90">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gold-400/95">
           {analise.campeonato || "Campeonato"}
         </p>
         <AnaliseCategoriaTags
           categoria={analise.categoria}
           tags={analise.tags}
         />
-        <p className="text-xs font-semibold text-zinc-300">
+        <p className="text-xs font-semibold text-cream-muted">
           {analise.time_casa}{" "}
-          <span className="text-zinc-600" aria-hidden>
+          <span className="text-stone-600" aria-hidden>
             ×
           </span>{" "}
           {analise.time_fora}
         </p>
-        <h3 className="line-clamp-2 font-display text-lg font-bold leading-snug text-white">
+        <h3 className="line-clamp-2 font-display text-lg font-bold leading-snug text-cream">
           {analise.titulo}
         </h3>
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+          <span className="rounded-md border border-emerald-400/35 bg-emerald-500/12 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-emerald-200">
             Odd {oddFmt}
           </span>
-          <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200">
+          <span className="rounded-md border border-gold-400/28 bg-gold-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-100">
             Confiança {analise.confianca}%
           </span>
         </div>
         <p
           className={cn(
-            "line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-500",
+            "line-clamp-3 flex-1 text-sm leading-relaxed text-stone-500",
             lockedPreview && "select-none blur-[5px]",
           )}
         >
           {analise.resumo?.trim() || "Resumo em breve."}
         </p>
         {dataFmt ? (
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-stone-600">
             {dataFmt}
           </p>
         ) : null}
         <Link
           href={`/analise/${encodeURIComponent(analise.slug)}`}
-          className="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#b8860b] to-[#d4af37] py-2.5 text-sm font-bold text-[#0a0a0a] transition duration-300 hover:brightness-110"
+          className="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-gold-500 via-gold-300 to-gold-400 py-2.5 text-sm font-bold text-pitch-950 shadow-gold-sm transition duration-300 hover:brightness-110"
         >
           {lockedPreview ? "Pré-visualizar" : "Ler análise"}
         </Link>

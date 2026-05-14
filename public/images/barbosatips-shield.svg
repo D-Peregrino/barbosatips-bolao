@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="btGold" x1="86" y1="72" x2="426" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5e6b8"/>
+      <stop offset="0.28" stop-color="#d4af37"/>
+      <stop offset="0.55" stop-color="#b8941f"/>
+      <stop offset="0.82" stop-color="#e8cf7a"/>
+      <stop offset="1" stop-color="#c9a227"/>
+    </linearGradient>
+    <linearGradient id="btGoldDark" x1="120" y1="120" x2="392" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8a7018"/>
+      <stop offset="1" stop-color="#4a3a0c"/>
+    </linearGradient>
+    <radialGradient id="shieldSheen" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(200 140) rotate(55) scale(340 380)">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="18" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.45 0" result="b2"/>
+      <feMerge>
+        <feMergeNode in="b2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <path
+    d="M256 28c-52 0-100 18-136 48-18 15-32 34-40 56v168c0 96 72 176 176 212 104-36 176-116 176-212V132c-8-22-22-41-40-56-36-30-84-48-136-48z"
+    fill="url(#btGold)"
+    opacity="0.12"
+    filter="url(#softGlow)"
+  />
+  <path
+    d="M256 44c-46 0-88 15-120 42-14 12-26 28-32 46v156c0 84 64 156 152 188l.2.1.8.3.8-.3.2-.1c88-32 152-104 152-188V132c-6-18-18-34-32-46-32-27-74-42-120-42z"
+    fill="#050403"
+    stroke="url(#btGold)"
+    stroke-width="10"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M256 72c-38 0-73 13-99 34-10 8-18 19-23 31v138c0 68 52 126 122 154 70-28 122-86 122-154V137c-5-12-13-23-23-31-26-21-61-34-99-34z"
+    stroke="url(#btGold)"
+    stroke-opacity="0.35"
+    stroke-width="2.5"
+    fill="none"
+  />
+  <path d="M256 72c-38 0-73 13-99 34-10 8-18 19-23 31v138c0 68 52 126 122 154 70-28 122-86 122-154V137c-5-12-13-23-23-31-26-21-61-34-99-34z" fill="url(#shieldSheen)"/>
+  <path d="M256 118l52 58H204l52-58z" fill="url(#btGoldDark)" opacity="0.55"/>
+  <path d="M256 118l52 58H204l52-58z" stroke="url(#btGold)" stroke-opacity="0.5" stroke-width="2" fill="none"/>
+  <text
+    x="256"
+    y="338"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-weight="700"
+    font-size="168"
+    letter-spacing="-8"
+    fill="url(#btGold)"
+    stroke="#0a0906"
+    stroke-width="2.5"
+    paint-order="stroke fill"
+  >BT</text>
+  <path d="M148 392c36 24 84 38 108 38s72-14 108-38" stroke="url(#btGold)" stroke-opacity="0.45" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { BrandShield } from "@/components/brand/BrandShield";
 
 export type AdSlotVariant =
   | "sidebar"
@@ -22,6 +23,17 @@ const copy = {
   ads: "Google Ads",
 } as const;
 
+const baseFrame =
+  "relative flex flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-gold-400/18 bg-gradient-to-br from-pitch-900/90 via-pitch-950 to-[var(--color-void)] text-center shadow-[inset_0_1px_0_rgba(232,207,122,0.06)]";
+
+function Watermark() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.07]" aria-hidden>
+      <BrandShield size="xl" decorative />
+    </div>
+  );
+}
+
 /**
  * Espaços reservados para patrocinadores e Google Ads — sem script AdSense.
  * Variantes alinham ao layout comercial (rails desktop / banners mobile).
@@ -34,9 +46,6 @@ export function AdSlot({
   const primary = copy[intent];
   const secondary = intent === "sponsor" ? copy.ads : copy.sponsor;
 
-  const baseFrame =
-    "relative flex flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-zinc-900/70 via-pitch-900/80 to-black text-center shadow-[inset_0_1px_0_rgba(251,191,36,.08)]";
-
   if (variant === "sidebar") {
     return (
       <aside
@@ -47,12 +56,16 @@ export function AdSlot({
         )}
         aria-label={primary}
       >
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-500/90">
+        <Watermark />
+        <BrandShield size="md" className="relative z-[1] opacity-40" decorative />
+        <span className="relative z-[1] text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300/95">
           {primary}
         </span>
-        <span className="max-w-[7rem] text-[9px] leading-snug text-zinc-500">{secondary}</span>
+        <span className="relative z-[1] max-w-[7rem] text-[9px] leading-snug text-stone-500">
+          {secondary}
+        </span>
         <div
-          className="mt-2 h-24 w-px bg-gradient-to-b from-transparent via-amber-500/25 to-transparent"
+          className="relative z-[1] mt-2 h-24 w-px bg-gradient-to-b from-transparent via-gold-400/25 to-transparent"
           aria-hidden
         />
       </aside>
@@ -70,14 +83,16 @@ export function AdSlot({
         role="region"
         aria-label={`${primary} · ${secondary}`}
       >
-        <span className="rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+        <Watermark />
+        <span className="relative z-[1] rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-200">
           Patrocínio
         </span>
-        <div className="flex flex-1 flex-col items-center justify-center gap-1">
-          <span className="text-xs font-semibold text-zinc-200">{primary}</span>
-          <span className="text-[11px] text-zinc-500">{secondary}</span>
+        <div className="relative z-[1] flex flex-1 flex-col items-center justify-center gap-1">
+          <BrandShield size="sm" className="opacity-50" decorative />
+          <span className="text-xs font-semibold text-cream-muted">{primary}</span>
+          <span className="text-[11px] text-stone-500">{secondary}</span>
         </div>
-        <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-200">
+        <span className="relative z-[1] rounded-full border border-gold-400/30 bg-gold-400/8 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold-200">
           Ads
         </span>
       </div>
@@ -95,16 +110,17 @@ export function AdSlot({
         role="region"
         aria-label={primary}
       >
-        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-400">
+        <Watermark />
+        <span className="relative z-[1] text-[10px] font-black uppercase tracking-[0.18em] text-gold-400">
           Destaque
         </span>
-        <p className="font-display text-lg font-bold text-white">{primary}</p>
-        <p className="text-xs text-zinc-500">{secondary}</p>
+        <BrandShield size="md" className="relative z-[1] opacity-45" decorative />
+        <p className="relative z-[1] font-display text-lg font-bold text-cream">{primary}</p>
+        <p className="relative z-[1] text-xs text-stone-500">{secondary}</p>
       </div>
     );
   }
 
-  /* mobile-inline */
   return (
     <div
       className={cn(
@@ -115,10 +131,12 @@ export function AdSlot({
       role="region"
       aria-label={`${primary} · ${secondary}`}
     >
-      <span className="text-left text-[11px] font-semibold leading-tight text-zinc-300">
+      <Watermark />
+      <span className="relative z-[1] flex items-center gap-2 text-left text-[11px] font-semibold leading-tight text-cream-muted">
+        <BrandShield size="xs" className="opacity-50" decorative />
         {primary}
       </span>
-      <span className="shrink-0 rounded-md border border-zinc-600/80 bg-black/40 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
+      <span className="relative z-[1] shrink-0 rounded-md border border-gold-400/15 bg-black/50 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-stone-500">
         {secondary}
       </span>
     </div>

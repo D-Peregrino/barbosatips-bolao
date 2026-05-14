@@ -42,7 +42,7 @@ export default async function Home() {
   const tickerItems = buildHomeTickerItems(premiumPicks);
 
   return (
-    <div className="commercial-page-bg text-white">
+    <div className="commercial-page-bg text-cream">
       <HeroSection tipsHoje={4} />
       <SportsTicker items={tickerItems} />
       <SportsRibbon kicker="BarbosaTips · ao vivo no mercado" />
@@ -65,8 +65,8 @@ export default async function Home() {
           />
 
           <div className="hidden sm:block">
-            <SportsRibbon kicker="Linha de fundo" className="rounded-xl border-x border-amber-500/10">
-              <span className="text-zinc-500">
+            <SportsRibbon kicker="Linha de fundo" className="rounded-xl border-x border-gold-400/12">
+              <span className="text-stone-500">
                 Transparência · confiança · contexto — identidade BarbosaTips.
               </span>
             </SportsRibbon>
@@ -91,30 +91,30 @@ export default async function Home() {
           </div>
 
           <section
-            className="commercial-section-strip rounded-2xl border border-amber-500/15 px-4 py-12 sm:py-14"
+            className="commercial-section-strip rounded-2xl border border-gold-400/16 px-4 py-14 sm:py-16"
             aria-labelledby="tips-dia-heading"
           >
             <div className="mx-auto max-w-6xl">
               <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400/90">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400/95">
                     BarbosaTips
                   </p>
                   <h2
                     id="tips-dia-heading"
-                    className="mt-2 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl"
+                    className="mt-2 font-display text-2xl font-bold tracking-tight text-cream sm:text-3xl"
                   >
                     Tips do <span className="text-gold">dia</span>
                   </h2>
                 </div>
                 <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wide">
-                  <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-amber-200">
+                  <span className="rounded-full border border-gold-400/35 bg-gold-400/10 px-2.5 py-1 text-gold-100">
                     Ao vivo
                   </span>
-                  <span className="rounded-full border border-emerald-500/40 bg-emerald-500/12 px-2.5 py-1 text-emerald-300">
+                  <span className="rounded-full border border-emerald-400/40 bg-emerald-500/12 px-2.5 py-1 text-emerald-200">
                     Green
                   </span>
-                  <span className="rounded-full border border-red-500/40 bg-red-500/12 px-2.5 py-1 text-red-300">
+                  <span className="rounded-full border border-rose-400/40 bg-rose-950/40 px-2.5 py-1 text-rose-100">
                     Red
                   </span>
                 </div>
