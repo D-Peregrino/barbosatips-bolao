@@ -4,10 +4,19 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { parseHorarioJogoBrasilia } from "@/lib/picks/parse-horario";
+import type { QuickPickResultado, QuickPickStatus } from "@/lib/picks/types";
 
 export type SalvarQuickPickResult =
   | { ok: true; message?: string }
   | { ok: false; error: string };
+
+const RESULTADOS: QuickPickResultado[] = [
+  "pendente",
+  "green",
+  "red",
+  "void",
+];
+const STATUS: QuickPickStatus[] = ["ativo", "encerrado"];
 
 function parseOdd(formData: FormData): number {
   const n = parseFloat(String(formData.get("odd") ?? "").replace(",", "."));
@@ -18,6 +27,32 @@ function parseConfianca(formData: FormData): number {
   const c = parseInt(String(formData.get("confianca") ?? "").trim(), 10);
   if (!Number.isFinite(c)) return 50;
   return Math.min(100, Math.max(0, c));
+}
+
+function parseResultado(raw: string): QuickPickResultado | null {
+  const s = raw.toLowerCase().trim();
+  return RESULTADOS.includes(s as QuickPickResultado)
+    ? (s as QuickPickResultado)
+    : null;
+}
+
+function parseStatus(raw: string): QuickPickStatus | null {
+  const s = raw.toLowerCase().trim();
+  return STATUS.includes(s as QuickPickStatus) ? (s as QuickPickStatus) : null;
+}
+
+/** Regras: ao vivo → só pendente; green/red/void → sempre encerrado. */
+function normalizarEstadoGuardado(
+  status: QuickPickStatus,
+  resultado: QuickPickResultado,
+): { status: QuickPickStatus; resultado: QuickPickResultado } {
+  if (status === "ativo") {
+    return { status: "ativo", resultado: "pendente" };
+  }
+  if (resultado === "green" || resultado === "red" || resultado === "void") {
+    return { status: "encerrado", resultado };
+  }
+  return { status: "encerrado", resultado };
 }
 
 export async function criarQuickPickAction(
@@ -62,7 +97,7 @@ export async function criarQuickPickAction(
     justificativa,
     horario_jogo: horario.toISOString(),
     status: "ativo",
-    resultado: null,
+    resultado: "pendente",
   });
 
   if (error) {
@@ -75,7 +110,7 @@ export async function criarQuickPickAction(
   return { ok: true, message: "Pick publicada." };
 }
 
-export async function encerrarQuickPickAction(
+export async function guardarEstadoQuickPickAction(
   _prev: SalvarQuickPickResult | undefined,
   formData: FormData,
 ): Promise<SalvarQuickPickResult> {
@@ -84,27 +119,27 @@ export async function encerrarQuickPickAction(
   }
 
   const id = String(formData.get("pick_id") ?? "").trim();
-  const resultadoRaw = String(formData.get("resultado") ?? "").toLowerCase().trim();
+  const statusIn = parseStatus(String(formData.get("status") ?? ""));
+  const resultadoIn = parseResultado(String(formData.get("resultado") ?? ""));
+
   if (!id) return { ok: false, error: "Pick inválida." };
-  if (resultadoRaw !== "green" && resultadoRaw !== "red") {
-    return { ok: false, error: "Resultado inválido." };
-  }
+  if (!statusIn) return { ok: false, error: "Estado inválido." };
+  if (!resultadoIn) return { ok: false, error: "Resultado inválido." };
+
+  const { status, resultado } = normalizarEstadoGuardado(statusIn, resultadoIn);
 
   const admin = createAdminClient();
   const { error } = await admin
     .from("quick_picks")
-    .update({
-      status: "encerrado",
-      resultado: resultadoRaw,
-    })
+    .update({ status, resultado })
     .eq("id", id);
 
   if (error) {
-    console.error("encerrarQuickPick", error);
-    return { ok: false, error: error.message || "Erro ao encerrar." };
+    console.error("guardarEstadoQuickPick", error);
+    return { ok: false, error: error.message || "Erro ao guardar." };
   }
 
   revalidatePath("/picks");
   revalidatePath("/admin-picks");
-  return { ok: true, message: "Pick encerrada." };
+  return { ok: true, message: "Estado atualizado." };
 }

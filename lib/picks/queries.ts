@@ -15,7 +15,9 @@ function normalizarResultado(raw: unknown): QuickPickResultado {
   const s = String(raw ?? "").toLowerCase().trim();
   if (s === "green") return "green";
   if (s === "red") return "red";
-  return null;
+  if (s === "void") return "void";
+  if (s === "pendente") return "pendente";
+  return "pendente";
 }
 
 function mapRow(r: Record<string, unknown>): QuickPickRow {

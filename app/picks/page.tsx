@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { listarQuickPicks } from "@/lib/picks/queries";
+import { calcularEstatisticasQuickPicksEncerradas } from "@/lib/picks/stats";
 import { PickCard } from "@/components/picks/PickCard";
+import { PicksStatsBar } from "@/components/picks/PicksStatsBar";
 
 const base = siteConfig.url.replace(/\/$/, "");
 
@@ -33,6 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PicksPage() {
   const picks = await listarQuickPicks();
+  const stats = calcularEstatisticasQuickPicksEncerradas(picks);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-pitch-950 pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -47,11 +50,16 @@ export default async function PicksPage() {
             Picks <span className="text-gold">rápidas</span>
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-            Linhas em destaque com odd, confiança e mercado — resultado em{" "}
-            <span className="text-emerald-400">verde</span> ou{" "}
-            <span className="text-red-400">vermelho</span> após o jogo.
+            Linhas rápidas com odd e confiança —{" "}
+            <span className="text-amber-300">ao vivo</span>,{" "}
+            <span className="text-amber-200/90">pendente</span>,{" "}
+            <span className="text-emerald-400">green</span>,{" "}
+            <span className="text-red-400">red</span> ou{" "}
+            <span className="text-zinc-400">void</span>.
           </p>
         </header>
+
+        {picks.length > 0 ? <PicksStatsBar stats={stats} /> : null}
 
         {picks.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-zinc-700 bg-pitch-900/40 px-6 py-16 text-center">

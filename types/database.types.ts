@@ -192,6 +192,6 @@ export interface QuickPick {
   justificativa:  string;
   horario_jogo:   string;
   status:         "ativo" | "encerrado";
-  resultado:      "green" | "red" | null;
+  resultado:      "pendente" | "green" | "red" | "void";
   created_at:     string;
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { QuickPickRow } from "@/lib/picks/types";
 import { cn } from "@/lib/utils";
 import { iconeEsporte, rotuloEsporte } from "@/lib/picks/rotulo-esporte";
@@ -22,38 +23,146 @@ function corConfianca(n: number): string {
   return "from-zinc-500 to-zinc-700 text-white";
 }
 
+function badgeResultado(
+  pick: QuickPickRow,
+): { label: string; className: string } | null {
+  if (pick.status === "ativo") {
+    return {
+      label: "AO VIVO",
+      className:
+        "border-amber-400/50 bg-amber-500/20 text-amber-200 shadow-[0_0_20px_-4px_rgba(251,191,36,.35)]",
+    };
+  }
+  if (pick.resultado === "green") {
+    return {
+      label: "GREEN",
+      className: "border-emerald-400/50 bg-emerald-500/25 text-emerald-100",
+    };
+  }
+  if (pick.resultado === "red") {
+    return {
+      label: "RED",
+      className: "border-red-400/50 bg-red-500/25 text-red-100",
+    };
+  }
+  if (pick.resultado === "void") {
+    return {
+      label: "VOID",
+      className: "border-zinc-500/60 bg-zinc-700/40 text-zinc-200",
+    };
+  }
+  if (pick.resultado === "pendente") {
+    return {
+      label: "PENDENTE",
+      className: "border-amber-400/45 bg-amber-950/50 text-amber-100",
+    };
+  }
+  return null;
+}
+
+function cardShellClass(pick: QuickPickRow): string {
+  if (pick.status === "ativo") {
+    return cn(
+      "border-amber-500/45 bg-gradient-to-br from-amber-950/35 to-[#080706]",
+      "ring-1 ring-amber-500/15",
+    );
+  }
+  if (pick.status === "encerrado" && pick.resultado === "pendente") {
+    return cn(
+      "border-amber-500/40 bg-gradient-to-br from-amber-950/30 to-pitch-950",
+      "ring-1 ring-amber-500/12",
+    );
+  }
+  if (pick.resultado === "green") {
+    return cn(
+      "border-emerald-500/50 bg-gradient-to-br from-emerald-950/45 to-pitch-950",
+      "ring-1 ring-emerald-500/20",
+    );
+  }
+  if (pick.resultado === "red") {
+    return cn(
+      "border-red-500/50 bg-gradient-to-br from-red-950/40 to-pitch-950",
+      "ring-1 ring-red-500/18",
+    );
+  }
+  if (pick.resultado === "void") {
+    return cn(
+      "border-zinc-600/55 bg-gradient-to-br from-zinc-900/70 to-pitch-950",
+      "ring-1 ring-zinc-600/20",
+    );
+  }
+  return "border-[#3d3420]/80 bg-gradient-to-br from-[#12100e] to-[#080706]";
+}
+
+function cantoIcone(pick: QuickPickRow): ReactNode {
+  if (pick.status === "ativo") {
+    return (
+      <div
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/90 text-sm font-black text-pitch-950 shadow-lg"
+        aria-hidden
+      >
+        ●
+      </div>
+    );
+  }
+  if (pick.resultado === "green") {
+    return (
+      <div
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-lg font-black text-pitch-950 shadow-lg"
+        aria-label="Green"
+      >
+        ✓
+      </div>
+    );
+  }
+  if (pick.resultado === "red") {
+    return (
+      <div
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-lg font-black text-white shadow-lg"
+        aria-label="Red"
+      >
+        ✕
+      </div>
+    );
+  }
+  if (pick.resultado === "void") {
+    return (
+      <div
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-zinc-500 bg-zinc-800 text-xs font-black text-zinc-200 shadow-lg"
+        aria-label="Void"
+      >
+        ∅
+      </div>
+    );
+  }
+  if (pick.resultado === "pendente" && pick.status === "encerrado") {
+    return (
+      <div
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/50 bg-amber-950/80 text-xs font-black text-amber-200 shadow-lg"
+        aria-label="Pendente"
+      >
+        ?
+      </div>
+    );
+  }
+  return null;
+}
+
 export function PickCard({ pick }: { pick: QuickPickRow }) {
   const sportLabel = rotuloEsporte(pick.esporte);
   const icon = iconeEsporte(pick.esporte);
-
-  const resultado = pick.resultado;
-  const encerrada = pick.status === "encerrado";
-  const comResultado = encerrada && (resultado === "green" || resultado === "red");
+  const badge = badgeResultado(pick);
 
   return (
     <article
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-5 shadow-[0_20px_50px_-28px_rgba(0,0,0,.75)] transition duration-300 hover:-translate-y-0.5",
-        comResultado && resultado === "green" && "border-emerald-500/45 bg-gradient-to-br from-emerald-950/50 to-pitch-950 ring-1 ring-emerald-500/20",
-        comResultado && resultado === "red" && "border-red-500/45 bg-gradient-to-br from-red-950/45 to-pitch-950 ring-1 ring-red-500/20",
-        encerrada && !comResultado && "border-zinc-600/50 bg-zinc-950/80",
-        !encerrada && "border-[#3d3420]/80 bg-gradient-to-br from-[#12100e] to-[#080706]",
+        cardShellClass(pick),
       )}
     >
-      {comResultado ? (
-        <div
-          className={cn(
-            "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-lg font-black shadow-lg",
-            resultado === "green" && "bg-emerald-500 text-pitch-950",
-            resultado === "red" && "bg-red-500 text-white",
-          )}
-          aria-label={resultado === "green" ? "Pick green" : "Pick red"}
-        >
-          {resultado === "green" ? "✓" : "✕"}
-        </div>
-      ) : null}
+      {cantoIcone(pick)}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2 pr-10">
+      <div className="mb-3 flex flex-wrap items-center gap-2 pr-12">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/80 bg-black/40 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
           <span aria-hidden>{icon}</span>
           {sportLabel}
@@ -63,16 +172,16 @@ export function PickCard({ pick }: { pick: QuickPickRow }) {
             {pick.campeonato.trim()}
           </span>
         ) : null}
-        <span
-          className={cn(
-            "ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-            pick.status === "ativo"
-              ? "border border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
-              : "border border-zinc-600/50 bg-zinc-800/50 text-zinc-400",
-          )}
-        >
-          {pick.status === "ativo" ? "Ativa" : "Encerrada"}
-        </span>
+        {badge ? (
+          <span
+            className={cn(
+              "ml-auto rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest",
+              badge.className,
+            )}
+          >
+            {badge.label}
+          </span>
+        ) : null}
       </div>
 
       <h2 className="font-display text-xl font-bold leading-snug text-white sm:text-2xl">

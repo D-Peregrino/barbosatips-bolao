@@ -1,6 +1,6 @@
 export type QuickPickStatus = "ativo" | "encerrado";
 
-export type QuickPickResultado = "green" | "red" | null;
+export type QuickPickResultado = "pendente" | "green" | "red" | "void";
 
 export interface QuickPickRow {
   id: string;

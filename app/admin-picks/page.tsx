@@ -4,7 +4,7 @@ import { siteConfig } from "@/config/site";
 import { listarQuickPicks } from "@/lib/picks/queries";
 import { rotuloEsporte } from "@/lib/picks/rotulo-esporte";
 import { AdminQuickPickForm } from "@/components/admin-picks/AdminQuickPickForm";
-import { AdminEncerrarPickControls } from "@/components/admin-picks/AdminEncerrarPickControls";
+import { AdminQuickPickEstadoForm } from "@/components/admin-picks/AdminQuickPickEstadoForm";
 
 export const dynamic = "force-dynamic";
 
@@ -124,7 +124,7 @@ export default async function AdminPicksPage() {
                         </span>
                       </td>
                       <td className="px-3 py-3">
-                        <AdminEncerrarPickControls
+                        <AdminQuickPickEstadoForm
                           pickId={p.id}
                           status={p.status}
                           resultado={p.resultado}
