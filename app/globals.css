@@ -361,6 +361,16 @@
   }
 }
 
+/* Barra global LIVE — ritmo ligeiramente mais curto, mesmo easing */
+@keyframes live-bar-ticker {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 @keyframes brandBreathe {
   0%, 100% {
     opacity: 0.9;
@@ -378,7 +388,15 @@
     animation: home-ticker 52s linear infinite;
   }
 
+  .animate-live-bar-ticker {
+    animation: live-bar-ticker 42s linear infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    .animate-live-bar-ticker {
+      animation: none;
+    }
+
     .animate-home-ticker {
       animation: none;
     }

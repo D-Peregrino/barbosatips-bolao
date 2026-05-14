@@ -10,6 +10,7 @@ import { NavbarAccountControls } from "@/components/layout/NavbarAccountControls
 const NAV_LINKS = [
   { href: "/tips", label: "Tips" },
   { href: "/picks", label: "Picks" },
+  { href: "/live", label: "Live" },
   { href: "/performance", label: "Performance" },
   { href: "/analises", label: "Análises" },
   { href: "/premium", label: "Premium" },

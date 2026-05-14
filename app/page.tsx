@@ -1,4 +1,5 @@
 import { AdSlot } from "@/components/ads/AdSlot";
+import { HomeLivePortalTeaser } from "@/components/home/HomeLivePortalTeaser";
 import { HomeHighlightsGrid } from "@/components/home/HomeHighlightsGrid";
 import { HomePerformanceBar } from "@/components/home/HomePerformanceBar";
 import { HomePortalHero } from "@/components/home/HomePortalHero";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/home/home-highlights";
 import { buildHomePerformanceSnapshot } from "@/lib/home/home-performance";
 import { buildHomeTickerItems } from "@/lib/home/home-ticker";
+import { buildLiveSummaryPayload } from "@/lib/live/build-live-summary";
 import { listarQuickPicksRecentes } from "@/lib/picks/queries";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
@@ -47,11 +49,13 @@ export default async function Home() {
   const perf = buildHomePerformanceSnapshot(picksHome);
   const picksRail = picksHome.slice(0, 14);
   const tickerItems = buildHomeTickerItems(picksHome.slice(0, 12));
+  const liveTeaser = buildLiveSummaryPayload(picksHome, ultimas);
 
   return (
     <div className="commercial-page-bg text-cream">
       <HomePortalHero analise={featured} viewerCanViewPremium={viewerPremium} />
       <SportsTicker items={tickerItems} />
+      <HomeLivePortalTeaser summary={liveTeaser} />
       <SportsRibbon kicker="BarbosaTips · portal ao vivo" />
 
       <CommercialPageShell mainClassName="pb-20 pt-8 sm:pt-10">

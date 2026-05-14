@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Oswald, DM_Sans, JetBrains_Mono } from "next/font/google";
-import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { Navbar } from "@/components/layout/Navbar";
+import { GlobalLiveBar } from "@/components/live/GlobalLiveBar";
 import { SiteWideJsonLd } from "@/components/seo/SiteWideJsonLd";
 import { siteConfig } from "@/config/site";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
@@ -90,8 +91,9 @@ export default function RootLayout({
       <body className="bg-pitch-950 font-body text-cream-muted antialiased">
         <SiteWideJsonLd />
         <Navbar />
+        <GlobalLiveBar />
 
-        <main className="pt-[72px]">{children}</main>
+        <main className="pt-[calc(4.5rem+5.5rem)]">{children}</main>
 
         <Footer />
       </body>
