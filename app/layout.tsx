@@ -10,6 +10,7 @@ import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PwaClientMount } from "@/components/pwa/PwaClientMount";
 import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { IsolatedClientMount } from "@/components/ops/IsolatedClientMount";
 
 const fontDisplay = Oswald({
   subsets: ["latin"],
@@ -113,7 +114,9 @@ export default function RootLayout({
       <body className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]">
         <SiteWideJsonLd />
         <Navbar />
-        <GlobalLiveBar />
+        <IsolatedClientMount scope="global_live_bar">
+          <GlobalLiveBar />
+        </IsolatedClientMount>
 
         <main className="pt-[calc(4.5rem+5.5rem)] pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] transition-[padding] duration-300 ease-out md:pb-0">
           {children}
@@ -123,8 +126,12 @@ export default function RootLayout({
           <Footer />
         </div>
         <MobileBottomNav />
-        <PwaClientMount />
-        <LeadIntelligenceMount />
+        <IsolatedClientMount scope="pwa_mount">
+          <PwaClientMount />
+        </IsolatedClientMount>
+        <IsolatedClientMount scope="lead_intelligence_mount">
+          <LeadIntelligenceMount />
+        </IsolatedClientMount>
       </body>
     </html>
   );

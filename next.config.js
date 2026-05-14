@@ -78,6 +78,7 @@ const nextConfig = {
   },
 
   experimental: {
+    instrumentationHook: true,
     // Otimização de pacotes para bundle menor
     optimizePackageImports: ["lucide-react", "date-fns"],
     // Capas de análise até 5 MB (Supabase Storage)

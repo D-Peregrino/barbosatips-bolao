@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadLiveSummaryForViewer } from "@/lib/live/load-live-summary";
+import { opsLogError } from "@/lib/ops/logger";
 
 /**
  * Snapshot leve para polling (respeita sessão / filtro premium nas listagens).
@@ -13,7 +14,7 @@ export async function GET() {
       },
     });
   } catch (e) {
-    console.error("GET /api/live/summary", e);
+    opsLogError("api_live_summary", e, { route: "GET /api/live/summary" });
     return NextResponse.json(
       { error: "live_summary_failed" },
       { status: 500 },

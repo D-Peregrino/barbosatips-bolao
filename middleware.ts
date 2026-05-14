@@ -75,6 +75,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Health read-only — sem sessão Supabase no middleware. */
+  if (path === "/api/health" || path.startsWith("/api/health/")) {
+    return NextResponse.next();
+  }
+
+  /** Status humano (noindex) — sem auth. */
+  if (path === "/status" || path.startsWith("/status/")) {
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
