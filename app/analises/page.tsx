@@ -33,9 +33,16 @@ export default async function AnalisesPage() {
         {lista.length === 0 ? (
           <div className="rounded-2xl border border-[#3d3420]/60 bg-[#0c0b09]/80 px-6 py-12 text-center">
             <p className="text-zinc-400">
-              Em breve as primeiras análises publicadas aparecem aqui. Aplique a
-              migração <code className="text-gold/90">008_analises</code> no
-              Supabase e publique pelo painel editorial.
+              Em breve as primeiras análises publicadas aparecem aqui. Publique
+              em{" "}
+              <Link
+                href="/admin-editorial/nova"
+                className="font-semibold text-gold underline-offset-2 hover:underline"
+              >
+                /admin-editorial/nova
+              </Link>{" "}
+              com estado &quot;Publicado&quot; (migração{" "}
+              <code className="text-gold/90">008_analises</code> no Supabase).
             </p>
             <Link
               href="/"

@@ -43,6 +43,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** CMS editorial isolado em /admin-editorial — sem auth nem Supabase no middleware. */
+  if (path.startsWith("/admin-editorial")) {
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
