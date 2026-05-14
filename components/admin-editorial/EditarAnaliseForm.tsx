@@ -8,6 +8,7 @@ import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-
 import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
+import { EditorialStatBlocksBuilder } from "@/components/admin-editorial/EditorialStatBlocksBuilder";
 import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
@@ -249,6 +250,8 @@ export function EditarAnaliseForm({ initial }: Props) {
           />
         </div>
       </div>
+
+      <EditorialStatBlocksBuilder initialJson={initial.stat_blocks} />
 
       <EditorialVisualEditor
         key={initial.id}

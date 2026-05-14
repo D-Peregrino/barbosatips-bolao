@@ -22,6 +22,7 @@ import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { viewerPodeVerPremium } from "@/lib/premium/types";
 import { analiseContentTier } from "@/lib/premium/content-tier";
 import { PremiumAnaliseBody } from "@/components/premium/PremiumAnaliseBody";
+import { StatBlocksSection } from "@/components/analises/stat-blocks/StatBlocksSection";
 import { AnaliseTierBadges } from "@/components/premium/AnaliseTierBadges";
 import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 
@@ -174,6 +175,8 @@ export default async function AnaliseSlugPage({ params }: Props) {
             </span>
           </div>
         </header>
+
+        <StatBlocksSection blocks={a.stat_blocks} timeCasa={a.time_casa} timeFora={a.time_fora} />
 
         <div className="prose prose-invert prose-headings:font-display max-w-none rounded-2xl border border-[#2a2418] bg-[#0c0b09]/90 p-6 text-base leading-relaxed text-zinc-200 sm:p-8 prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-h1:text-2xl prose-h2:text-xl prose-a:text-[#C9A227] prose-blockquote:border-[#C9A227]/50 prose-blockquote:text-zinc-400 prose-hr:border-zinc-600">
           <PremiumAnaliseBody

@@ -10,6 +10,7 @@ import { conteudoEditorialParaGravacao } from "@/lib/analises/sanitize-html";
 import { siteConfig } from "@/config/site";
 import { getLeaguesForSport } from "@/lib/sport-routes";
 import { normalizarSlugEditorial } from "@/lib/admin-editorial/normalizar-slug";
+import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
 
 const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
 
@@ -74,6 +75,8 @@ export async function salvarNovaAnaliseEditorialAction(
 
   const isPremium = String(formData.get("is_premium") ?? "") === "1";
 
+  const statBlocks = parseStatBlocksPayload(String(formData.get("stat_blocks") ?? "[]"));
+
   const admin = createAdminClient();
   const { error } = await admin.from("analises").insert({
     slug,
@@ -91,6 +94,7 @@ export async function salvarNovaAnaliseEditorialAction(
     imagem_capa: imagemCapa,
     status,
     is_premium: isPremium,
+    stat_blocks: statBlocks,
   });
 
   if (error) {
@@ -149,6 +153,8 @@ export async function atualizarAnaliseEditorialAction(
 
   const isPremium = String(formData.get("is_premium") ?? "") === "1";
 
+  const statBlocks = parseStatBlocksPayload(String(formData.get("stat_blocks") ?? "[]"));
+
   const slugAnterior = String(formData.get("slug_anterior") ?? "")
     .trim()
     .toLowerCase();
@@ -190,6 +196,7 @@ export async function atualizarAnaliseEditorialAction(
       imagem_capa: imagemCapa,
       status,
       is_premium: isPremium,
+      stat_blocks: statBlocks,
     })
     .eq("id", id);
 

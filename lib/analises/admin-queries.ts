@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { statusPublicadoNormalizado } from "@/lib/analises/queries";
 import type { AnaliseRow } from "@/lib/analises/types";
+import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
 import { siteConfig } from "@/config/site";
 
 const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
@@ -16,7 +17,7 @@ function inferEsporteFromCategoria(categoria: string): string {
 }
 
 const COLUNAS =
-  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
+  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at,stat_blocks" as const;
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
   const prem = r.is_premium;
@@ -49,6 +50,7 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
+    stat_blocks: parseStatBlocksPayload(r.stat_blocks),
   };
 }
 

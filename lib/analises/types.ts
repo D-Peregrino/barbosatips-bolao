@@ -1,3 +1,5 @@
+import type { StatBlocksPayload } from "@/lib/analises/stat-blocks/types";
+
 export type AnaliseStatus = "rascunho" | "publicado";
 
 export type AnaliseRow = {
@@ -19,6 +21,8 @@ export type AnaliseRow = {
   status: AnaliseStatus;
   is_premium: boolean;
   created_at: string;
+  /** Blocos estatísticos premium (JSONB). */
+  stat_blocks: StatBlocksPayload;
 };
 
 export function oddParaNumero(odd: string | number | null | undefined): number {

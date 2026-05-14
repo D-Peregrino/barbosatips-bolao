@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseRow } from "@/lib/analises/types";
+import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
 import { siteConfig } from "@/config/site";
 import { textoMatchesLiga } from "@/lib/sport-routes";
 
@@ -52,11 +53,12 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
+    stat_blocks: parseStatBlocksPayload(r.stat_blocks),
   };
 }
 
 const COLUNAS =
-  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
+  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at,stat_blocks" as const;
 
 function aplicarFiltroGratis(
   rows: AnaliseRow[],

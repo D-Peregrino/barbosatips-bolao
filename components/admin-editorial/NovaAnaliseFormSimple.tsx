@@ -8,6 +8,7 @@ import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-
 import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
+import { EditorialStatBlocksBuilder } from "@/components/admin-editorial/EditorialStatBlocksBuilder";
 import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
 import type { IaAnaliseDraft } from "@/lib/admin-editorial/ai-analise/types";
 
@@ -240,6 +241,8 @@ export function NovaAnaliseFormSimple() {
           />
         </div>
       </div>
+
+      <EditorialStatBlocksBuilder />
 
       <EditorialVisualEditor value={conteudo} onChange={setConteudo} defaultValue="" />
 
