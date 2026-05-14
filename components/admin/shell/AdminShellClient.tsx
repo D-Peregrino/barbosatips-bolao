@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAdminPanelAction } from "@/app/admin/actions";
-import type { AdminPanelSession } from "@/lib/admin/panel-cookie";
+import type { AdminPanelShellSession } from "@/lib/admin/supabase-admin";
 
 type NavItem = {
   href: string;
@@ -105,7 +105,7 @@ function initialsFromEmail(email: string): string {
 }
 
 type Props = {
-  session: AdminPanelSession;
+  session: AdminPanelShellSession;
   children: React.ReactNode;
 };
 

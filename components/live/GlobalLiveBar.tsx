@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SportsTicker } from "@/components/home/SportsTicker";
 import { LiveBadge } from "@/components/live/LiveBadge";
+import { parseLiveSummaryResponse } from "@/lib/live/parse-live-summary-response";
 import type { LiveSummaryPayload } from "@/lib/live/types";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,8 @@ async function fetchSummary(): Promise<LiveSummaryPayload | null> {
       cache: "no-store",
     });
     if (!res.ok) return null;
-    return (await res.json()) as LiveSummaryPayload;
+    const json: unknown = await res.json();
+    return parseLiveSummaryResponse(json);
   } catch {
     return null;
   }
@@ -40,12 +42,16 @@ export function GlobalLiveBar() {
     void load();
     pollRef.current = setInterval(() => void load(), POLL_MS);
     const onVis = () => {
-      if (document.visibilityState === "visible") void load();
+      if (typeof document !== "undefined" && document.visibilityState === "visible") void load();
     };
-    document.addEventListener("visibilitychange", onVis);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVis);
+    }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
-      document.removeEventListener("visibilitychange", onVis);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVis);
+      }
     };
   }, [load]);
 
@@ -69,10 +75,12 @@ export function GlobalLiveBar() {
     return activity[activityIdx % activity.length]?.text ?? "";
   }, [activity, activityIdx]);
 
+  const oddMedia = data?.counts?.oddMediaAtivos;
   const oddLabel =
-    data?.counts.oddMediaAtivos != null
-      ? `@ média ${data.counts.oddMediaAtivos.toFixed(2)}`
-      : "—";
+    oddMedia != null && Number.isFinite(oddMedia) ? `@ média ${oddMedia.toFixed(2)}` : "—";
+
+  const tickerItemsSafe = Array.isArray(data?.tickerItems) ? data.tickerItems : [];
+  const showTicker = tickerItemsSafe.length > 0;
 
   return (
     <div
@@ -89,10 +97,10 @@ export function GlobalLiveBar() {
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium tabular-nums text-zinc-300">
           <span className="text-emerald-200/95">
-            G <strong className="text-emerald-100">{data?.counts.greens ?? "—"}</strong>
+            G <strong className="text-emerald-100">{data?.counts?.greens ?? "—"}</strong>
           </span>
           <span className="text-rose-200/90">
-            R <strong className="text-rose-100">{data?.counts.reds ?? "—"}</strong>
+            R <strong className="text-rose-100">{data?.counts?.reds ?? "—"}</strong>
           </span>
           <span className="hidden text-zinc-500 sm:inline" aria-hidden>
             ·
@@ -102,7 +110,7 @@ export function GlobalLiveBar() {
             ·
           </span>
           <span className="text-amber-200/90">
-            {data?.counts.ativos ?? "—"} ao vivo
+            {data?.counts?.ativos ?? "—"} ao vivo
           </span>
         </div>
 
@@ -124,9 +132,9 @@ export function GlobalLiveBar() {
         </Link>
       </div>
 
-      {data && data.tickerItems.length > 0 ? (
+      {showTicker ? (
         <SportsTicker
-          items={data.tickerItems}
+          items={tickerItemsSafe}
           variant="slim"
           className="border-t border-amber-500/12 border-b-0"
         />

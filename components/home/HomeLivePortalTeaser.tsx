@@ -13,7 +13,10 @@ export function HomeLivePortalTeaser({
   summary,
   className,
 }: HomeLivePortalTeaserProps) {
-  const line = summary.activity[0]?.text ?? "Centro live sincronizado com as quick picks.";
+  const activity = summary.activity ?? [];
+  const line =
+    activity[0]?.text?.trim() ||
+    "Centro live sincronizado com as quick picks.";
   return (
     <div
       className={cn(

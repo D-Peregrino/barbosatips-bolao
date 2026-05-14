@@ -57,7 +57,8 @@ export function AdminLoginForm({ redirectTo }: Props) {
       ) : null}
       <Submit />
       <p className="mt-6 text-center text-[11px] leading-relaxed text-stone-500">
-        Cookie httpOnly assinado · logout no painel apaga a sessão em todos os módulos deste login.
+        Sessão Supabase (cookies httpOnly) · terminar sessão no painel revoga o acesso aqui e nas áreas
+        do site que usam a mesma conta.
       </p>
     </form>
   );

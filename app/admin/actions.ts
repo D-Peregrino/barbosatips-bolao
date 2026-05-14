@@ -1,24 +1,10 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ADMIN_PANEL_COOKIE,
-  adminPanelSessionSecret,
-  createAdminPanelCookieValue,
-  credentialsMatchPanelEnv,
-} from "@/lib/admin/panel-cookie";
+import { createClient } from "@/lib/supabase/server";
 
 export type AdminLoginState = {
   error: string | null;
-};
-
-const COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: 60 * 60 * 24 * 30,
 };
 
 function sanitizeAdminInternalPath(raw: string): string {
@@ -37,28 +23,55 @@ export async function loginAdminPanelAction(
   const password = String(formData.get("password") ?? "");
   const rawNext = String(formData.get("redirect") ?? "/admin");
 
-  if (!adminPanelSessionSecret()) {
+  let supabase;
+  try {
+    supabase = createClient();
+  } catch {
     return {
       error:
-        "Painel admin não configurado. Define ADMIN_PANEL_EMAIL e ADMIN_PANEL_PASSWORD (e opcionalmente ADMIN_PANEL_SESSION_SECRET) no servidor.",
+        "Supabase não está configurado neste ambiente (URL / chave em falta). Não é possível iniciar sessão.",
     };
   }
 
-  if (!credentialsMatchPanelEnv(email, password)) {
+  const { error: signError } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+
+  if (signError) {
     return { error: "Email ou senha incorretos." };
   }
 
-  const secret = adminPanelSessionSecret();
-  const value = await createAdminPanelCookieValue(secret, email, Date.now());
-  cookies().set(ADMIN_PANEL_COOKIE, value, COOKIE_OPTS);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Não foi possível validar a sessão. Tenta novamente." };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError || profile?.role !== "admin") {
+    await supabase.auth.signOut();
+    return {
+      error: "Esta conta não tem permissão de administrador na BarbosaTips.",
+    };
+  }
 
   redirect(sanitizeAdminInternalPath(rawNext));
 }
 
 export async function logoutAdminPanelAction(): Promise<void> {
-  cookies().set(ADMIN_PANEL_COOKIE, "", {
-    ...COOKIE_OPTS,
-    maxAge: 0,
-  });
+  try {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+  } catch {
+    // Sem Supabase configurado — redireciona na mesma.
+  }
   redirect("/admin/login");
 }

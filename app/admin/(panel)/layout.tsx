@@ -1,10 +1,7 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ADMIN_PANEL_COOKIE,
-  adminPanelSessionSecret,
-  parseAdminPanelCookie,
-} from "@/lib/admin/panel-cookie";
+import type { AdminPanelShellSession } from "@/lib/admin/supabase-admin";
+import { isUserAdmin } from "@/lib/admin/supabase-admin";
+import { createClient } from "@/lib/supabase/server";
 import { AdminShellClient } from "@/components/admin/shell/AdminShellClient";
 
 export default async function AdminPanelLayout({
@@ -12,12 +9,31 @@ export default async function AdminPanelLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const token = cookies().get(ADMIN_PANEL_COOKIE)?.value;
-  const secret = adminPanelSessionSecret();
-  const session = secret ? await parseAdminPanelCookie(token, secret) : null;
-  if (!session) {
+  let supabase;
+  try {
+    supabase = createClient();
+  } catch {
+    redirect("/admin/login?erro=config&redirect=/admin");
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     redirect("/admin/login?redirect=/admin");
   }
+
+  if (!(await isUserAdmin(supabase, user.id))) {
+    redirect("/acesso-negado?motivo=permissao");
+  }
+
+  const email = user.email ?? "";
+  const lastAt = user.last_sign_in_at
+    ? new Date(user.last_sign_in_at).getTime()
+    : Date.now();
+
+  const session: AdminPanelShellSession = { email, lastAt };
 
   return <AdminShellClient session={session}>{children}</AdminShellClient>;
 }

@@ -1,5 +1,5 @@
 /**
- * Rotas que exigem sessão do painel admin central (cookie `ADMIN_PANEL_COOKIE`).
+ * Rotas que exigem sessão Supabase Auth + `users.role = 'admin'`.
  * Exclui `/admin/bolao` (sessão própria do bolão) e `/admin/login`.
  */
 export function requiresAdminPanelSession(pathname: string): boolean {

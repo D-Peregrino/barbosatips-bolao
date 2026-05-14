@@ -26,7 +26,8 @@ export default function AdminLoginPage({
           Administração central
         </h1>
         <p className="mt-2 text-center text-sm text-stone-400">
-          Sessão persistente e segura — acesso exclusivo da equipa.
+          Autenticação Supabase (email e senha) — apenas contas com perfil de administrador na base de
+          dados.
         </p>
 
         {erro === "config" ? (
@@ -34,7 +35,8 @@ export default function AdminLoginPage({
             className="mt-6 rounded-xl border border-amber-500/35 bg-amber-950/25 px-4 py-3 text-center text-sm text-amber-100"
             role="alert"
           >
-            Credenciais do painel não configuradas no servidor (ADMIN_PANEL_EMAIL / ADMIN_PANEL_PASSWORD).
+            Supabase ao vivo indisponível ou mal configurado neste ambiente (URL pública e chave anon em
+            falta). O painel admin não pode validar sessões.
           </p>
         ) : null}
 

@@ -55,6 +55,9 @@ function ColumnEmpty({
 }
 
 function PickLine({ pick }: { pick: QuickPickRow }) {
+  const oddRaw = typeof pick.odd === "number" ? pick.odd : Number(pick.odd);
+  const oddSafe = Number.isFinite(oddRaw) ? oddRaw : 0;
+
   const badge =
     pick.status === "ativo"
       ? "text-gold-200 border-gold-400/30 bg-gold-400/10"
@@ -77,7 +80,7 @@ function PickLine({ pick }: { pick: QuickPickRow }) {
           <span
             className={`shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums ${badge}`}
           >
-            @{pick.odd.toFixed(2)}
+            @{oddSafe.toFixed(2)}
           </span>
         </div>
         <p className="mt-0.5 line-clamp-1 text-[11px] text-stone-500">{pick.mercado}</p>

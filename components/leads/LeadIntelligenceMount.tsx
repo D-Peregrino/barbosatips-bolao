@@ -21,7 +21,13 @@ export function LeadIntelligenceMount() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(SESSION_POPUP)) return;
+    let popupSeen = false;
+    try {
+      popupSeen = !!sessionStorage.getItem(SESSION_POPUP);
+    } catch {
+      /* storage indisponível */
+    }
+    if (popupSeen) return;
 
     const tryOpen = () => {
       if (openedRef.current) return;
@@ -47,24 +53,40 @@ export function LeadIntelligenceMount() {
   }, []);
 
   const closePopup = useCallback(() => {
-    if (typeof window !== "undefined") sessionStorage.setItem(SESSION_POPUP, "1");
+    try {
+      if (typeof window !== "undefined") sessionStorage.setItem(SESSION_POPUP, "1");
+    } catch {
+      /* ignore */
+    }
     setShowPopup(false);
   }, []);
 
   const dismissSticky = useCallback(() => {
     setStickyDismissed(true);
     setStickyOpen(false);
-    sessionStorage.setItem(SESSION_STICKY, "1");
+    try {
+      sessionStorage.setItem(SESSION_STICKY, "1");
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(SESSION_STICKY)) setStickyDismissed(true);
+    try {
+      if (sessionStorage.getItem(SESSION_STICKY)) setStickyDismissed(true);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
     if (showPopup && typeof window !== "undefined") {
-      sessionStorage.setItem(SESSION_POPUP, "1");
+      try {
+        sessionStorage.setItem(SESSION_POPUP, "1");
+      } catch {
+        /* ignore */
+      }
     }
   }, [showPopup]);
 

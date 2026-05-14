@@ -19,10 +19,14 @@ interface AuthState {
 
 export function useAuth(): AuthState {
   const skipLive = useMemo(() => shouldSkipLiveSupabase(), []);
-  const supabase = useMemo(
-    () => (skipLive ? null : createClient()),
-    [skipLive],
-  );
+  const supabase = useMemo(() => {
+    if (skipLive) return null;
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }, [skipLive]);
 
   const [user, setUser]         = useState<User | null>(null);
   const [profile, setProfile]   = useState<UserProfile | null>(null);

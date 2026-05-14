@@ -1,35 +1,25 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  ADMIN_PANEL_COOKIE,
-  adminPanelSessionSecret,
-  parseAdminPanelCookie,
-  refreshAdminPanelCookieIfStale,
-} from "@/lib/admin/panel-cookie";
 import {
   ADMIN_BOLAO_COOKIE,
   adminBolaoSessionSecret,
   verifyAdminBolaoCookieValue,
 } from "@/lib/admin/bolao-cookie";
+import { isUserAdmin } from "@/lib/admin/supabase-admin";
 import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { applyAdminSecurityHeaders } from "@/lib/middleware/admin-security-headers";
 import {
   requiresAdminPanelSession,
   shouldRedirectAdminRootToPanel,
 } from "@/lib/middleware/admin-panel-path";
+import {
+  createSupabaseMiddlewareClient,
+  redirectPreservingSupabaseCookies,
+} from "@/lib/supabase/middleware-client";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
 
 const AUTH_ROUTES = ["/login", "/registro"];
-
-const PANEL_COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: 60 * 60 * 24 * 30,
-};
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -69,16 +59,24 @@ export async function middleware(request: NextRequest) {
     return applyAdminSecurityHeaders(NextResponse.next());
   }
 
-  /** Login central — se já autenticado, vai ao painel. */
-  if (path === "/admin/login" || path.startsWith("/admin/login/")) {
-    const secret = adminPanelSessionSecret();
-    if (secret) {
-      const tok = request.cookies.get(ADMIN_PANEL_COOKIE)?.value;
-      if (await parseAdminPanelCookie(tok, secret)) {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
+  const isAdminLoginPath = path === "/admin/login" || path.startsWith("/admin/login/");
+
+  if (isAdminLoginPath) {
+    if (shouldSkipLiveSupabase()) {
+      return applyAdminSecurityHeaders(NextResponse.next());
     }
-    return applyAdminSecurityHeaders(NextResponse.next());
+    const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const res = getResponse();
+    if (user && (await isUserAdmin(supabase, user.id))) {
+      const target = new URL("/admin", request.url);
+      return applyAdminSecurityHeaders(
+        redirectPreservingSupabaseCookies(request, target, res),
+      );
+    }
+    return applyAdminSecurityHeaders(res);
   }
 
   /** Login editorial antigo → painel central. */
@@ -91,21 +89,34 @@ export async function middleware(request: NextRequest) {
   const panelNeeded = requiresAdminPanelSession(path);
 
   if (panelNeeded) {
-    const secret = adminPanelSessionSecret();
-    if (!secret) {
+    if (shouldSkipLiveSupabase()) {
       return NextResponse.redirect(
         new URL("/admin/login?erro=config", request.url),
       );
     }
-    const token = request.cookies.get(ADMIN_PANEL_COOKIE)?.value;
-    const session = await parseAdminPanelCookie(token, secret);
-    if (!session) {
+    const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    let res = getResponse();
+
+    if (!user) {
       const u = new URL("/admin/login", request.url);
       u.searchParams.set(
         "redirect",
         sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/admin"),
       );
-      return NextResponse.redirect(u);
+      return applyAdminSecurityHeaders(
+        redirectPreservingSupabaseCookies(request, u, res),
+      );
+    }
+
+    if (!(await isUserAdmin(supabase, user.id))) {
+      const u = new URL("/acesso-negado", request.url);
+      u.searchParams.set("motivo", "permissao");
+      return applyAdminSecurityHeaders(
+        redirectPreservingSupabaseCookies(request, u, res),
+      );
     }
 
     if (shouldRedirectAdminRootToPanel(path)) {
@@ -113,14 +124,11 @@ export async function middleware(request: NextRequest) {
       if (path === "/admin-editorial") u.searchParams.set("mod", "editorial");
       if (path === "/admin-picks") u.searchParams.set("mod", "picks");
       if (path === "/admin-leads") u.searchParams.set("mod", "leads");
-      return NextResponse.redirect(u);
+      return applyAdminSecurityHeaders(
+        redirectPreservingSupabaseCookies(request, u, res),
+      );
     }
 
-    const refreshed = await refreshAdminPanelCookieIfStale(token, secret);
-    let res = NextResponse.next({ request });
-    if (refreshed) {
-      res.cookies.set(ADMIN_PANEL_COOKIE, refreshed, PANEL_COOKIE_OPTS);
-    }
     return applyAdminSecurityHeaders(res);
   }
 
@@ -148,28 +156,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
+  const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
 
   const {
     data: { user },
@@ -183,17 +170,17 @@ export async function middleware(request: NextRequest) {
       "redirect",
       sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/meu-feed"),
     );
-    return NextResponse.redirect(redirectUrl);
+    return redirectPreservingSupabaseCookies(request, redirectUrl, getResponse());
   }
 
   const isAuthRoute = AUTH_ROUTES.some((r) => path.startsWith(r));
   if (isAuthRoute && user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
-    return NextResponse.redirect(redirectUrl);
+    return redirectPreservingSupabaseCookies(request, redirectUrl, getResponse());
   }
 
-  return supabaseResponse;
+  return getResponse();
 }
 
 export const config = {

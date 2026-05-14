@@ -42,7 +42,13 @@ export function PwaClientMount() {
     window.addEventListener("beforeinstallprompt", onBip);
 
     const isIos = /iPad|iPhone|iPod/i.test(navigator.userAgent);
-    if (isIos && !standalone && !sessionStorage.getItem("pwa-ios-hint-dismissed")) {
+    let iosHintDismissed = false;
+    try {
+      iosHintDismissed = !!sessionStorage.getItem("pwa-ios-hint-dismissed");
+    } catch {
+      /* Safari modo privado / storage bloqueado */
+    }
+    if (isIos && !standalone && !iosHintDismissed) {
       setShowIos(true);
     }
 
@@ -68,7 +74,11 @@ export function PwaClientMount() {
     setDismissed(true);
     setShowAndroid(false);
     setShowIos(false);
-    sessionStorage.setItem("pwa-ios-hint-dismissed", "1");
+    try {
+      sessionStorage.setItem("pwa-ios-hint-dismissed", "1");
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   if (dismissed) return null;
