@@ -38,6 +38,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Admin editorial desativado: sem Supabase Auth nem checagens neste prefixo. */
+  if (path.startsWith("/admin/analises")) {
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
