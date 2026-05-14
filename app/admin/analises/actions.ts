@@ -1,12 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import {
-  ADMIN_ANALISES_COOKIE,
-  adminAnalisesSessionSecret,
-  verifyAdminAnalisesCookieValue,
-} from "@/lib/admin/analises-cookie";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseStatus } from "@/lib/analises/types";
@@ -29,28 +23,11 @@ function mimeCapaPorExt(ext: "jpg" | "png" | "webp"): string {
   return "image/webp";
 }
 
-async function guardAdminAnalises(): Promise<
-  { ok: true } | { ok: false; error: string }
-> {
-  const secret = adminAnalisesSessionSecret();
-  if (!secret) {
-    return { ok: false, error: "Admin de análises não configurado." };
-  }
-  const token = cookies().get(ADMIN_ANALISES_COOKIE)?.value;
-  if (!(await verifyAdminAnalisesCookieValue(token, secret))) {
-    return { ok: false, error: "Sessão inválida ou expirada." };
-  }
-  return { ok: true };
-}
-
 export async function uploadImagemCapaAnaliseAction(
   formData: FormData,
 ): Promise<
   { ok: true; publicUrl: string } | { ok: false; error: string }
 > {
-  const g = await guardAdminAnalises();
-  if (!g.ok) return g;
-
   if (shouldSkipLiveSupabase()) {
     return { ok: false, error: "Supabase não configurado neste ambiente." };
   }
@@ -138,9 +115,6 @@ export type CriarAnaliseInput = {
 export async function criarAnaliseAction(
   input: CriarAnaliseInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const g = await guardAdminAnalises();
-  if (!g.ok) return g;
-
   if (shouldSkipLiveSupabase()) {
     return { ok: false, error: "Supabase não configurado neste ambiente." };
   }
