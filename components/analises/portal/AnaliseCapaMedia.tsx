@@ -28,6 +28,7 @@ export function AnaliseCapaMedia({
         <img
           src={analise.imagem_capa}
           alt={analise.titulo}
+          loading="lazy"
           className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
         />
         <div

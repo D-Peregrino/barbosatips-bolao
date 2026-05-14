@@ -54,6 +54,35 @@ function mapRow(r: Record<string, unknown>): QuickPickRow {
   };
 }
 
+/** Picks recentes com limite controlado (home, destaques) — mais leve que listarQuickPicks(500). `soGratis` exclui premium. */
+export async function listarQuickPicksRecentes(
+  limit: number,
+  soGratis = false,
+): Promise<QuickPickRow[]> {
+  if (shouldSkipLiveSupabase() || limit <= 0) return [];
+  const cap = Math.min(Math.max(limit, 1), 200);
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("quick_picks")
+      .select(COLUNAS)
+      .order("horario_jogo", { ascending: false })
+      .limit(cap);
+
+    if (error) {
+      console.error("quick_picks recentes", error);
+      return [];
+    }
+
+    const rows = (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+    if (!soGratis) return rows;
+    return rows.filter((p) => !p.is_premium);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
 /** `soGratis`: exclui premium para utilizador logado sem assinatura. */
 export async function listarQuickPicks(soGratis = false): Promise<QuickPickRow[]> {
   if (shouldSkipLiveSupabase()) return [];
