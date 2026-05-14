@@ -19,7 +19,7 @@ const btnGhost =
 export function EditorialIaAnaliseAssistente({
   onApply,
 }: {
-  onApply: (draft: IaAnaliseDraft) => void;
+  onApply: (_draft: IaAnaliseDraft) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [jogo, setJogo] = useState("");

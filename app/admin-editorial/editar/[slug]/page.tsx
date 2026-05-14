@@ -39,7 +39,7 @@ export default async function AdminEditorialEditarPage({ params }: Props) {
         </div>
 
         <section className="rounded-2xl border border-[#3d3420]/90 bg-[#0c0b09]/90 p-6 sm:p-8">
-          <EditarAnaliseForm initial={a} />
+          <EditarAnaliseForm key={a.id} initial={a} />
         </section>
       </div>
     </div>

@@ -57,7 +57,7 @@ type Props = {
   textareaId?: string;
   /** Modo controlado: sincroniza com o estado pai (ex.: assistente IA). */
   value?: string;
-  onChange?: (markdown: string) => void;
+  onChange?: (_markdown: string) => void;
 };
 
 export function EditorialVisualEditor({

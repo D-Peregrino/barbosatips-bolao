@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { atualizarAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
 import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
+import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
+import type { IaAnaliseDraft } from "@/lib/admin-editorial/ai-analise/types";
 
 const resultadoInicial: SalvarAnaliseEditorialResult = { ok: true };
 
@@ -34,11 +37,41 @@ const textarea =
 
 type Props = { initial: AnaliseRow };
 
+function oddInicialStr(o: AnaliseRow["odd"]): string {
+  const n = oddParaNumero(o);
+  return Number.isFinite(n) && n > 0 ? String(n) : "";
+}
+
 export function EditarAnaliseForm({ initial }: Props) {
-  const [state, formAction] = useFormState(
-    atualizarAnaliseEditorialAction,
-    resultadoInicial,
-  );
+  const [state, formAction] = useFormState(atualizarAnaliseEditorialAction, resultadoInicial);
+
+  const [titulo, setTitulo] = useState(initial.titulo);
+  const [slug, setSlug] = useState(initial.slug);
+  const [esporte, setEsporte] = useState(initial.esporte || "futebol");
+  const [campeonato, setCampeonato] = useState(initial.campeonato);
+  const [categoria, setCategoria] = useState(initial.categoria);
+  const [tags, setTags] = useState(initial.tags);
+  const [timeCasa, setTimeCasa] = useState(initial.time_casa);
+  const [timeFora, setTimeFora] = useState(initial.time_fora);
+  const [odd, setOdd] = useState(oddInicialStr(initial.odd));
+  const [confianca, setConfianca] = useState(String(initial.confianca));
+  const [resumo, setResumo] = useState(initial.resumo);
+  const [conteudo, setConteudo] = useState(initial.conteudo ?? "");
+
+  const aplicarIa = useCallback((d: IaAnaliseDraft) => {
+    setTitulo(d.titulo);
+    setSlug(d.slug);
+    setEsporte(d.esporte);
+    setCampeonato(d.campeonato);
+    setCategoria(d.categoria);
+    setTags(d.tags);
+    setTimeCasa(d.timeCasa);
+    setTimeFora(d.timeFora);
+    setOdd(d.oddReferencia);
+    setConfianca(String(d.confianca));
+    setResumo(d.resumo);
+    setConteudo(d.conteudoMarkdown);
+  }, []);
 
   const erro = state?.ok === false ? state.error : "";
   const slugAnterior = String(initial.slug ?? "").trim().toLowerCase();
@@ -47,6 +80,14 @@ export function EditarAnaliseForm({ initial }: Props) {
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="id" value={initial.id} />
       <input type="hidden" name="slug_anterior" value={slugAnterior} />
+
+      <div className="flex flex-col gap-3 rounded-xl border border-[#C9A227]/25 bg-[#080706]/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#C9A227]">Produção</p>
+          <p className="text-xs text-zinc-500">IA local — substitui campos atuais ao aplicar.</p>
+        </div>
+        <EditorialIaAnaliseAssistente onApply={aplicarIa} />
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -59,7 +100,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             className={input}
             required
             autoComplete="off"
-            defaultValue={initial.titulo}
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -72,7 +114,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             className={input}
             required
             autoComplete="off"
-            defaultValue={initial.slug}
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -83,7 +126,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             id="esporte"
             name="esporte"
             className={input}
-            defaultValue={initial.esporte || "futebol"}
+            value={esporte}
+            onChange={(e) => setEsporte(e.target.value)}
           >
             {siteConfig.sports.map((s) => (
               <option key={s.slug} value={s.slug}>
@@ -101,7 +145,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             name="campeonato"
             className={input}
             autoComplete="off"
-            defaultValue={initial.campeonato}
+            value={campeonato}
+            onChange={(e) => setCampeonato(e.target.value)}
           />
         </div>
         <div>
@@ -114,7 +159,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             className={input}
             placeholder="ex.: Futebol, NBA, Valor"
             autoComplete="off"
-            defaultValue={initial.categoria}
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
           />
         </div>
         <div>
@@ -127,7 +173,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             className={input}
             placeholder="futebol, over, correct score, valor"
             autoComplete="off"
-            defaultValue={initial.tags}
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
           />
         </div>
         <div>
@@ -139,7 +186,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             name="time_casa"
             className={input}
             autoComplete="off"
-            defaultValue={initial.time_casa}
+            value={timeCasa}
+            onChange={(e) => setTimeCasa(e.target.value)}
           />
         </div>
         <div>
@@ -151,7 +199,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             name="time_fora"
             className={input}
             autoComplete="off"
-            defaultValue={initial.time_fora}
+            value={timeFora}
+            onChange={(e) => setTimeFora(e.target.value)}
           />
         </div>
         <div>
@@ -166,11 +215,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             className={input}
             placeholder="2.10"
             autoComplete="off"
-            defaultValue={
-              Number.isFinite(oddParaNumero(initial.odd))
-                ? oddParaNumero(initial.odd).toString()
-                : ""
-            }
+            value={odd}
+            onChange={(e) => setOdd(e.target.value)}
           />
         </div>
         <div>
@@ -185,7 +231,8 @@ export function EditarAnaliseForm({ initial }: Props) {
             max={100}
             className={input}
             autoComplete="off"
-            defaultValue={String(initial.confianca)}
+            value={confianca}
+            onChange={(e) => setConfianca(e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -197,14 +244,17 @@ export function EditarAnaliseForm({ initial }: Props) {
             name="resumo"
             className={textarea}
             rows={3}
-            defaultValue={initial.resumo}
+            value={resumo}
+            onChange={(e) => setResumo(e.target.value)}
           />
         </div>
       </div>
 
       <EditorialVisualEditor
-        key={`${initial.id}-conteudo`}
+        key={initial.id}
         defaultValue={initial.conteudo}
+        value={conteudo}
+        onChange={setConteudo}
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -220,9 +270,7 @@ export function EditarAnaliseForm({ initial }: Props) {
               className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
             />
             <span>
-              <span className="block text-sm font-semibold text-[#E8D48B]">
-                Conteúdo premium
-              </span>
+              <span className="block text-sm font-semibold text-[#E8D48B]">Conteúdo premium</span>
               <span className="mt-0.5 block text-xs text-zinc-500">
                 Visível na íntegra apenas para assinantes Premium; outros vêem pré-visualização.
               </span>
@@ -233,12 +281,7 @@ export function EditarAnaliseForm({ initial }: Props) {
           <label htmlFor="status" className={label}>
             Estado
           </label>
-          <select
-            id="status"
-            name="status"
-            className={input}
-            defaultValue={initial.status}
-          >
+          <select id="status" name="status" className={input} defaultValue={initial.status}>
             <option value="rascunho">Rascunho</option>
             <option value="publicado">Publicado</option>
           </select>
@@ -246,10 +289,7 @@ export function EditarAnaliseForm({ initial }: Props) {
       </div>
 
       {erro ? (
-        <p
-          className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
-          role="alert"
-        >
+        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
           {erro}
         </p>
       ) : null}
