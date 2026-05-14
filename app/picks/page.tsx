@@ -8,8 +8,8 @@ import { PickCard } from "@/components/picks/PickCard";
 import { PicksStatsBar } from "@/components/picks/PicksStatsBar";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
-
-const base = siteConfig.url.replace(/\/$/, "");
+import { buildPageMetadata } from "@/lib/seo/build-metadata";
+import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 
 export const revalidate = siteConfig.revalidate.picks;
 
@@ -17,24 +17,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `Picks rápidas | ${siteConfig.shortTitle}`;
   const description =
     "Mercado, odd e confiança em segundos — picks rápidas BarbosaTips sem análise longa.";
-  return {
+  return buildPageMetadata({
     title,
     description,
-    alternates: { canonical: `${base}/picks` },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      locale: siteConfig.locale,
-      siteName: siteConfig.name,
-      url: `${base}/picks`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    path: "/picks",
+    keywords: buildKeywordsFromParts(["picks rápidas", "quick picks", "odds", "valor esperado"]),
+  });
 }
 
 export default async function PicksPage() {

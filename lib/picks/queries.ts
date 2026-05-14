@@ -6,6 +6,10 @@ import { textoMatchesLiga } from "@/lib/sport-routes";
 const COLUNAS =
   "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,is_premium,created_at" as const;
 
+const COLUNAS_SITEMAP = "id,horario_jogo,created_at" as const;
+
+export type QuickPickSitemapEntry = { id: string; lastModified: Date };
+
 function normalizarStatus(raw: unknown): QuickPickStatus {
   return String(raw ?? "").toLowerCase().trim() === "encerrado"
     ? "encerrado"
@@ -202,4 +206,65 @@ export async function listarQuickPicksPorEsporteELiga(
   return base.filter((p) =>
     textoMatchesLiga(p.campeonato, leagueSlug, leagueLabel),
   );
+}
+
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizePickIdQuery(raw: string): string {
+  return String(raw ?? "").trim().toLowerCase();
+}
+
+/** Entradas para sitemap (`/pick/[id]`) — só leitura, sem alterar Supabase. */
+export async function listarQuickPicksParaSitemap(limit = 500): Promise<QuickPickSitemapEntry[]> {
+  if (shouldSkipLiveSupabase() || limit <= 0) return [];
+  const cap = Math.min(Math.max(limit, 1), 2000);
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("quick_picks")
+      .select(COLUNAS_SITEMAP)
+      .order("horario_jogo", { ascending: false })
+      .limit(cap);
+
+    if (error) {
+      console.error("quick_picks sitemap", error);
+      return [];
+    }
+
+    return (data ?? [])
+      .map((row) => {
+        const r = row as Record<string, unknown>;
+        const id = String(r.id ?? "");
+        const hora = String(r.horario_jogo ?? "");
+        const created = String(r.created_at ?? "");
+        const raw = hora || created;
+        const d = new Date(raw);
+        const lastModified = Number.isFinite(d.getTime()) ? d : new Date();
+        return { id, lastModified };
+      })
+      .filter((x) => UUID_LIKE.test(x.id));
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+export async function obterQuickPickPorId(rawId: string): Promise<QuickPickRow | null> {
+  const id = normalizePickIdQuery(rawId);
+  if (!id || !UUID_LIKE.test(id)) return null;
+  if (shouldSkipLiveSupabase()) return null;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.from("quick_picks").select(COLUNAS).eq("id", id).maybeSingle();
+
+    if (error) {
+      console.error("quick_picks obterPorId", error);
+      return null;
+    }
+    if (!data) return null;
+    return mapRow(data as Record<string, unknown>);
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }

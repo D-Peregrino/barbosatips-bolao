@@ -12,8 +12,8 @@ import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/type
 import { listarQuickPicksPorEsporte } from "@/lib/picks/queries";
 import { buildSportHubStats } from "@/lib/sport-hub-stats";
 import { getLeaguesForSport, isSportSlug } from "@/lib/sport-routes";
-
-const base = siteConfig.url.replace(/\/$/, "");
+import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
+import { buildPageMetadata } from "@/lib/seo/build-metadata";
 
 export const revalidate = siteConfig.revalidate.analises;
 
@@ -30,24 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${sport.label} | Análises e picks | ${siteConfig.shortTitle}`;
   const description = `Portal ${sport.label}: análises publicadas, picks rápidas e estatísticas agregadas. ${siteConfig.description}`;
   const path = `/${esporte}`;
-  return {
+  return buildPageMetadata({
     title,
     description,
-    alternates: { canonical: `${base}${path}` },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      locale: siteConfig.locale,
-      siteName: siteConfig.name,
-      url: `${base}${path}`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    path,
+    keywords: buildKeywordsFromParts([sport.label, sport.slug, "análises", "picks"]),
+  });
 }
 
 export default async function EsportePage({ params }: Props) {

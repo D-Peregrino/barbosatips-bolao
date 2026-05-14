@@ -106,3 +106,30 @@ export function jsonLdArticleAnalise(a: AnaliseRow): ArticleJsonLd {
     keywords: keywordsSeoAnalise(a).join(", "),
   };
 }
+
+/** Nó Article para `@graph` (sem `@context` duplicado). */
+export function jsonLdArticleAnaliseGraphNode(a: AnaliseRow): Record<string, unknown> {
+  const raw = jsonLdArticleAnalise(a) as Record<string, unknown>;
+  const { ["@context"]: _ctx, ...node } = raw;
+  void _ctx;
+  return node;
+}
+
+/** Evento desportivo editorial (confronto da análise). */
+export function jsonLdSportsEventFromAnalise(a: AnaliseRow): Record<string, unknown> {
+  const url = urlCanonicaAnalise(a.slug);
+  const name = [a.time_casa, a.time_fora].filter((t) => t?.trim()).join(" x ").trim() || a.titulo;
+  return {
+    "@type": "SportsEvent",
+    "@id": `${url}#sports-event`,
+    name,
+    description: descricaoSeoAnalise(a, 240),
+    sport: a.esporte,
+    url,
+    eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+    location: {
+      "@type": "VirtualLocation",
+      url,
+    },
+  };
+}

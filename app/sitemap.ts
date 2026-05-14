@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
 import { listTipsterSlugs } from "@/config/tipsters";
 import { listarAnalisesPublicadasParaSitemap } from "@/lib/analises/queries";
+import { listarQuickPicksParaSitemap } from "@/lib/picks/queries";
 
 const baseUrl = siteConfig.url.replace(/\/$/, "");
 
@@ -55,12 +56,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.78,
   }));
 
+  const pickRows = await listarQuickPicksParaSitemap(900);
+  const pickPages: MetadataRoute.Sitemap = pickRows.map((p) => ({
+    url: `${baseUrl}/pick/${encodeURIComponent(p.id)}`,
+    lastModified: p.lastModified,
+    changeFrequency: "hourly" as const,
+    priority: 0.72,
+  }));
+
   return [
     ...staticPages,
     ...sportPages,
     ...leaguePagesFutebol,
     ...leaguePagesBasquete,
     ...tipsterPages,
+    ...pickPages,
     ...analisePages,
   ];
 }

@@ -19,8 +19,8 @@ import {
   getLeaguesForSport,
   isSportSlug,
 } from "@/lib/sport-routes";
-
-const base = siteConfig.url.replace(/\/$/, "");
+import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
+import { buildPageMetadata } from "@/lib/seo/build-metadata";
 
 export const revalidate = siteConfig.revalidate.analises;
 
@@ -47,24 +47,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${league.label} · ${sport.label} | ${siteConfig.shortTitle}`;
   const description = `Análises e picks rápidas ${sport.label} — ${league.label}. ${siteConfig.description}`;
   const path = `/${esporte}/${league.slug}`;
-  return {
+  return buildPageMetadata({
     title,
     description,
-    alternates: { canonical: `${base}${path}` },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      locale: siteConfig.locale,
-      siteName: siteConfig.name,
-      url: `${base}${path}`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    path,
+    keywords: buildKeywordsFromParts([league.label, league.slug, sport.label, sport.slug, "prognóstico"]),
+  });
 }
 
 export default async function CampeonatoPage({ params }: Props) {

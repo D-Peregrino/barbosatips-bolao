@@ -1,6 +1,5 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
@@ -9,13 +8,16 @@ import { oddParaNumero } from "@/lib/analises/types";
 import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-analise";
 import {
   descricaoSeoAnalise,
-  jsonLdArticleAnalise,
   keywordsSeoAnalise,
   tituloSeoAnalise,
   urlAbsolutaImagemCapa,
   urlCanonicaAnalise,
   urlOgPadrao,
 } from "@/lib/analises/seo-analise";
+import { jsonLdAnaliseDetailGraph } from "@/lib/analises/json-ld-analise-page";
+import { breadcrumbTrailForAnalise } from "@/lib/seo/breadcrumbs-model";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { JsonLdScript } from "@/components/seo/JsonLdScript";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { viewerPodeVerPremium } from "@/lib/premium/types";
 import { PremiumAnaliseBody } from "@/components/premium/PremiumAnaliseBody";
@@ -60,7 +62,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: { canonical },
     robots: isDraft
       ? { index: false, follow: true, googleBot: { index: false, follow: true } }
-      : { index: true, follow: true },
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        },
     openGraph: {
       type: "article",
       locale: siteConfig.locale,
@@ -103,25 +115,17 @@ export default async function AnaliseSlugPage({ params }: Props) {
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const tg = siteConfig.social.telegram;
   const corpoHtml = conteudoAnaliseParaHtmlPublico(a.conteudo);
-  const jsonLd = JSON.stringify(jsonLdArticleAnalise(a));
+  const crumbs = breadcrumbTrailForAnalise(a);
+  const graphLd = jsonLdAnaliseDetailGraph(a, crumbs);
 
   return (
     <article className="min-h-[calc(100vh-64px)] bg-black pb-20 pt-6 text-zinc-100">
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger -- JSON-LD (Schema.org Article)
-        dangerouslySetInnerHTML={{ __html: jsonLd }}
-      />
+      <JsonLdScript id="analise-jsonld" data={graphLd} />
 
       <div className="container-site max-w-3xl">
-        <nav className="mb-6 text-sm text-zinc-500">
-          <Link
-            href="/analises"
-            className="font-medium text-gold/90 underline-offset-2 hover:underline"
-          >
-            ← Análises
-          </Link>
-        </nav>
+        <div className="mb-6">
+          <Breadcrumbs items={crumbs} className="text-zinc-500" />
+        </div>
 
         {a.status === "rascunho" ? (
           <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">

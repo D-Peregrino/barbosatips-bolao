@@ -20,6 +20,11 @@ export default function robots(): MetadataRoute.Robots {
           "/_next/",
         ],
       },
+      {
+        userAgent: "Googlebot",
+        allow: "/",
+        disallow: ["/admin/", "/api/", "/_next/"],
+      },
     ],
     sitemap: `${base}/sitemap.xml`,
     host: base,

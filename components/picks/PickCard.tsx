@@ -184,98 +184,102 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
         cardShellClass(pick, locked),
       )}
     >
-      {cantoIcone(pick, locked)}
+      <Link
+        href={`/pick/${encodeURIComponent(pick.id)}`}
+        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950"
+        aria-label={`Ver pick ${pick.jogo}`}
+      />
 
-      <div className="mb-3 flex flex-wrap items-center gap-2 pr-12">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-600/70 bg-black/50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
-          <span aria-hidden>{icon}</span>
-          {sportLabel}
-        </span>
-        {pick.is_premium && !locked ? (
-          <PremiumLockBadge className="scale-90" />
-        ) : null}
-        {pick.campeonato?.trim() ? (
-          <span className="rounded-full border border-gold-400/22 bg-gold-400/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-gold-200/95">
-            {pick.campeonato.trim()}
+      <div className="relative z-10 pointer-events-none">
+        {cantoIcone(pick, locked)}
+
+        <div className="mb-3 flex flex-wrap items-center gap-2 pr-12">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-600/70 bg-black/50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+            <span aria-hidden>{icon}</span>
+            {sportLabel}
           </span>
-        ) : null}
-        {badge && !locked ? (
-          <span
-            className={cn(
-              "ml-auto rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest",
-              badge.className,
-            )}
-          >
-            {badge.label}
-          </span>
-        ) : null}
-      </div>
+          {pick.is_premium && !locked ? (
+            <PremiumLockBadge className="scale-90" />
+          ) : null}
+          {pick.campeonato?.trim() ? (
+            <span className="rounded-full border border-gold-400/22 bg-gold-400/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-gold-200/95">
+              {pick.campeonato.trim()}
+            </span>
+          ) : null}
+          {badge && !locked ? (
+            <span
+              className={cn(
+                "ml-auto rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                badge.className,
+              )}
+            >
+              {badge.label}
+            </span>
+          ) : null}
+        </div>
 
-      <h2 className="font-display text-xl font-bold leading-snug text-cream sm:text-2xl">
-        {pick.jogo}
-      </h2>
+        <h2 className="font-display text-xl font-bold leading-snug text-cream sm:text-2xl">{pick.jogo}</h2>
 
-      {locked ? (
-        <div className="relative mt-4 overflow-hidden rounded-xl border border-gold-400/18 bg-black/50 py-8">
-          <div
-            className="pointer-events-none space-y-3 px-2 blur-md"
-            aria-hidden
-          >
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-zinc-400">Mercado</span>
-              <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm text-zinc-100">
+        {locked ? (
+          <div className="relative mt-4 overflow-hidden rounded-xl border border-gold-400/18 bg-black/50 py-8">
+            <div className="space-y-3 px-2 blur-md" aria-hidden>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm text-zinc-400">Mercado</span>
+                <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm text-zinc-100">{pick.mercado}</span>
+                <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
+                  @{pick.odd.toFixed(2)}
+                </span>
+              </div>
+              <p className="text-sm text-zinc-400">{pick.justificativa}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mt-3 flex flex-wrap items-baseline gap-2 gap-y-2">
+              <span className="text-sm font-medium text-stone-500">Mercado</span>
+              <span className="rounded-lg border border-gold-400/10 bg-white/[0.03] px-2 py-0.5 text-sm font-semibold text-cream-muted">
                 {pick.mercado}
               </span>
               <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
-                @{pick.odd.toFixed(2)}
+                @{pick.odd.toFixed(2).replace(".", ",")}
               </span>
             </div>
-            <p className="text-sm text-zinc-400">{pick.justificativa}</p>
-          </div>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-t from-black via-black/80 to-transparent px-4 text-center">
-            <PremiumLockBadge />
-            <Link
-              href="/premium"
-              className="mt-1 text-xs font-bold uppercase tracking-wide text-amber-300 underline-offset-2 hover:underline"
-            >
-              Desbloquear Premium
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="mt-3 flex flex-wrap items-baseline gap-2 gap-y-2">
-            <span className="text-sm font-medium text-stone-500">Mercado</span>
-            <span className="rounded-lg border border-gold-400/10 bg-white/[0.03] px-2 py-0.5 text-sm font-semibold text-cream-muted">
-              {pick.mercado}
-            </span>
-            <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
-              @{pick.odd.toFixed(2).replace(".", ",")}
-            </span>
-          </div>
 
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-stone-500">
-            {pick.justificativa?.trim() || "Pick rápida — sem justificativa longa."}
-          </p>
-        </>
-      )}
+            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-stone-500">
+              {pick.justificativa?.trim() || "Pick rápida — sem justificativa longa."}
+            </p>
+          </>
+        )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gold-400/10 pt-4">
-        <div className="text-xs text-stone-500">
-          <span className="block uppercase tracking-wider text-stone-600">Jogo</span>
-          <time dateTime={pick.horario_jogo} className="font-medium text-cream-muted">
-            {formatarHorario(pick.horario_jogo)}
-          </time>
-        </div>
-        <div
-          className={cn(
-            "rounded-lg bg-gradient-to-r px-3 py-1.5 text-xs font-black uppercase tracking-wide shadow-md",
-            locked ? "blur-sm opacity-60" : corConfianca(pick.confianca),
-          )}
-        >
-          Confiança {pick.confianca}%
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gold-400/10 pt-4">
+          <div className="text-xs text-stone-500">
+            <span className="block uppercase tracking-wider text-stone-600">Jogo</span>
+            <time dateTime={pick.horario_jogo} className="font-medium text-cream-muted">
+              {formatarHorario(pick.horario_jogo)}
+            </time>
+          </div>
+          <div
+            className={cn(
+              "rounded-lg bg-gradient-to-r px-3 py-1.5 text-xs font-black uppercase tracking-wide shadow-md",
+              locked ? "blur-sm opacity-60" : corConfianca(pick.confianca),
+            )}
+          >
+            Confiança {pick.confianca}%
+          </div>
         </div>
       </div>
+
+      {locked ? (
+        <div className="pointer-events-auto absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-gradient-to-t from-black via-black/85 to-black/40 px-4 text-center">
+          <PremiumLockBadge />
+          <Link
+            href="/premium"
+            className="mt-1 text-xs font-bold uppercase tracking-wide text-amber-300 underline-offset-2 hover:underline"
+          >
+            Desbloquear Premium
+          </Link>
+        </div>
+      ) : null}
     </article>
   );
 }

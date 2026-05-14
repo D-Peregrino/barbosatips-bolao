@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { listarAnalisesPublicadas } from "@/lib/analises/queries";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
+import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,18 @@ export async function generateMetadata(): Promise<Metadata> {
     : null;
   const ogImages = ogImageUrl ? [{ url: ogImageUrl }] : undefined;
 
+  const keywords = buildKeywordsFromParts([
+    "análises",
+    "prognósticos",
+    primary?.campeonato,
+    primary?.categoria,
+    primary?.titulo,
+  ]);
+
   return {
     title,
     description,
+    keywords,
     alternates: { canonical: `${siteConfig.url}/analises` },
     openGraph: {
       title: primary ? `${primary.titulo} | ${siteConfig.name}` : baseTitle,
@@ -49,6 +59,16 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: primary ? `${primary.titulo} | ${siteConfig.name}` : baseTitle,
       description,
+      ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
   };
 }

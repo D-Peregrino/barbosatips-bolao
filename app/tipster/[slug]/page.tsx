@@ -13,6 +13,7 @@ import { getPublicTipster, listTipsterSlugs } from "@/config/tipsters";
 import { loadTipsterPageData } from "@/lib/tipsters/page-data";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { viewerPodeVerPremium } from "@/lib/premium/types";
+import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 
 const base = siteConfig.url.replace(/\/$/, "");
 
@@ -37,11 +38,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `${base}${profile.avatarUrl}`
     : profile.avatarUrl ?? `${base}${siteConfig.ogImage}`;
 
+  const keywords = buildKeywordsFromParts([
+    profile.displayName,
+    "tipster",
+    profile.especialidade,
+    ...profile.sportsSlugs,
+  ]);
+
   return {
     metadataBase: new URL(base),
     title,
     description,
+    keywords,
     alternates: { canonical },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
     openGraph: {
       type: "website",
       locale: siteConfig.locale,
