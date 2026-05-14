@@ -292,8 +292,28 @@
   }
 }
 
+/* Home: ticker horizontal (portal esportivo) */
+@keyframes home-ticker {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 /* ─── UTILITIES CUSTOM ───────────────────────────────────────────────────────*/
 @layer utilities {
+  .animate-home-ticker {
+    animation: home-ticker 52s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-home-ticker {
+      animation: none;
+    }
+  }
+
   .text-gold-gradient {
     background:                 linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
     -webkit-background-clip:  text;

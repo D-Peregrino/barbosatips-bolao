@@ -1,4 +1,7 @@
 import { AdSlot } from "@/components/ads/AdSlot";
+import { FeaturedPicksSection } from "@/components/home/FeaturedPicksSection";
+import { SportsRibbon } from "@/components/home/SportsRibbon";
+import { SportsTicker } from "@/components/home/SportsTicker";
 import { UltimasAnalisesSection } from "@/components/home/UltimasAnalisesSection";
 import { PremiumPicksSection } from "@/components/home/PremiumPicksSection";
 import { HeroSection } from "@/components/layout/HeroSection";
@@ -9,6 +12,7 @@ import {
   listarAnalisesPremiumPublicadas,
   listarUltimasAnalisesPublicadas,
 } from "@/lib/analises/queries";
+import { buildHomeTickerItems } from "@/lib/home/home-ticker";
 import { listarQuickPicksPremium } from "@/lib/picks/queries";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
@@ -34,10 +38,14 @@ export default async function Home() {
   const ultimasAnalises = await listarUltimasAnalisesPublicadas(3, soGratis);
   const premiumAnalises = await listarAnalisesPremiumPublicadas(4);
   const premiumPicks = await listarQuickPicksPremium(6);
+  const viewerPremium = viewerPodeVerPremium(access);
+  const tickerItems = buildHomeTickerItems(premiumPicks);
 
   return (
     <div className="commercial-page-bg text-white">
       <HeroSection tipsHoje={4} />
+      <SportsTicker items={tickerItems} />
+      <SportsRibbon kicker="BarbosaTips · ao vivo no mercado" />
 
       <CommercialPageShell mainClassName="pb-16 pt-6 sm:pt-8">
         <div className="space-y-6 sm:space-y-8">
@@ -45,10 +53,24 @@ export default async function Home() {
             <AdSlot variant="banner-horizontal" intent="ads" />
           </div>
 
+          <FeaturedPicksSection picks={premiumPicks} viewerCanViewPremium={viewerPremium} />
+
+          <SportsRibbon kicker="Radar editorial">
+            <span>Análises com odd sugerida e leitura de confronto.</span>
+          </SportsRibbon>
+
           <UltimasAnalisesSection
             analises={ultimasAnalises}
-            viewerCanViewPremium={viewerPodeVerPremium(access)}
+            viewerCanViewPremium={viewerPremium}
           />
+
+          <div className="hidden sm:block">
+            <SportsRibbon kicker="Linha de fundo" className="rounded-xl border-x border-amber-500/10">
+              <span className="text-zinc-500">
+                Transparência · confiança · contexto — identidade BarbosaTips.
+              </span>
+            </SportsRibbon>
+          </div>
 
           <div className="lg:hidden">
             <AdSlot variant="mobile-inline" intent="sponsor" />
