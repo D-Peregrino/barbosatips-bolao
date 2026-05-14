@@ -70,6 +70,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Central de inteligência esportiva — público; sem auth no middleware. */
+  if (path.startsWith("/inteligencia")) {
+    return NextResponse.next();
+  }
+
   /** Analytics / inteligência — mesmo modelo (sem login). */
   if (path.startsWith("/analytics")) {
     return NextResponse.next();

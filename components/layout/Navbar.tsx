@@ -19,6 +19,11 @@ const PRIMARY_NAV = [
     match: (p: string) => p.startsWith("/analises") || p.startsWith("/analise/"),
   },
   { href: "/performance", label: "Performance", match: (p: string) => p.startsWith("/performance") },
+  {
+    href: "/inteligencia",
+    label: "Inteligência",
+    match: (p: string) => p.startsWith("/inteligencia"),
+  },
   { href: "/bolao", label: "Bolão", match: (p: string) => p.startsWith("/bolao") },
   { href: "/vip", label: "VIP", match: (p: string) => p.startsWith("/vip") || p.startsWith("/premium") },
 ] as const;

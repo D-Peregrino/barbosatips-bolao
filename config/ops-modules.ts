@@ -19,6 +19,8 @@ export const OPS_EXPERIMENTAL_MODULE_PATHS: readonly string[] = [
   "components/leads/**",
   "components/pwa/**",
   "components/live/**",
+  "app/inteligencia/**",
+  "components/inteligencia/**",
   "app/analytics/**",
   "app/operacional/**",
 ] as const;
