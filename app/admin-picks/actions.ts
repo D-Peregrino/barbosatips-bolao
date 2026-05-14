@@ -85,6 +85,7 @@ export async function criarQuickPickAction(
   }
 
   const confianca = parseConfianca(formData);
+  const isPremium = String(formData.get("is_premium") ?? "") === "1";
 
   const admin = createAdminClient();
   const { error } = await admin.from("quick_picks").insert({
@@ -98,6 +99,7 @@ export async function criarQuickPickAction(
     horario_jogo: horario.toISOString(),
     status: "ativo",
     resultado: "pendente",
+    is_premium: isPremium,
   });
 
   if (error) {
@@ -107,6 +109,8 @@ export async function criarQuickPickAction(
 
   revalidatePath("/picks");
   revalidatePath("/admin-picks");
+  revalidatePath("/premium");
+  revalidatePath("/");
   return { ok: true, message: "Pick publicada." };
 }
 
@@ -141,5 +145,7 @@ export async function guardarEstadoQuickPickAction(
 
   revalidatePath("/picks");
   revalidatePath("/admin-picks");
+  revalidatePath("/premium");
+  revalidatePath("/");
   return { ok: true, message: "Estado atualizado." };
 }

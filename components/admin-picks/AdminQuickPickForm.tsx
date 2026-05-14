@@ -152,6 +152,24 @@ export function AdminQuickPickForm() {
         />
       </label>
 
+      <div className="rounded-xl border border-zinc-700 bg-zinc-950/80 px-4 py-3">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input type="hidden" name="is_premium" value="0" />
+          <input
+            type="checkbox"
+            name="is_premium"
+            value="1"
+            className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-950 text-emerald-500 focus:ring-emerald-500/40"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-zinc-200">Conteúdo premium</span>
+            <span className="mt-0.5 block text-xs text-zinc-500">
+              Pick visível na íntegra só para assinantes; visitantes vêem pré-visualização em /picks.
+            </span>
+          </span>
+        </label>
+      </div>
+
       {state && !state.ok ? (
         <p className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
           {state.error}

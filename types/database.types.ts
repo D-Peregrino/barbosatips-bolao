@@ -27,6 +27,8 @@ export interface User {
   role:         UserRole;
   bio:          string | null;
   is_verified:  boolean;
+  /** Acesso a análises e picks `is_premium` (definir no Supabase ou integração futura). */
+  is_subscriber_premium?: boolean;
   created_at:   string;
   updated_at:   string;
 }
@@ -193,5 +195,6 @@ export interface QuickPick {
   horario_jogo:   string;
   status:         "ativo" | "encerrado";
   resultado:      "pendente" | "green" | "red" | "void";
+  is_premium:     boolean;
   created_at:     string;
 }

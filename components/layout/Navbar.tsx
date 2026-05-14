@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/tips",     label: "Tips" },
   { href: "/picks",    label: "Picks" },
   { href: "/analises", label: "Análises" },
+  { href: "/premium",  label: "Premium" },
   { href: "/bolao",    label: "Bolão" },
   { href: "/ranking",  label: "Ranking" },
   { href: "/guias",    label: "Guias" },

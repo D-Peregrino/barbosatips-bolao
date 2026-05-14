@@ -1,19 +1,32 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { AnaliseCategoriaTags } from "@/components/analises/portal/AnaliseCategoriaTags";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
+import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 
-type Props = { analise: AnaliseRow };
+type Props = { analise: AnaliseRow; viewerCanViewPremium?: boolean };
 
-export function AnaliseCardGrid({ analise }: Props) {
+export function AnaliseCardGrid({
+  analise,
+  viewerCanViewPremium = true,
+}: Props) {
   const oddFmt = oddParaNumero(analise.odd).toFixed(2);
   const dataFmt = formatAnalisePublicadaDate(analise.created_at);
+  const lockedPreview = analise.is_premium && !viewerCanViewPremium;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#2a2418]/90 bg-gradient-to-b from-[#12100c] to-[#070605] shadow-[0_20px_50px_-28px_rgba(0,0,0,.85)] transition duration-300 ease-out hover:-translate-y-1 hover:border-[#C9A227]/40 hover:shadow-[0_28px_70px_-24px_rgba(212,175,55,.14)]">
-      <AnaliseCapaMedia analise={analise} aspectClass="aspect-[16/10]" />
+      <div className="relative">
+        {analise.is_premium ? (
+          <div className="absolute left-3 top-3 z-10">
+            <PremiumLockBadge />
+          </div>
+        ) : null}
+        <AnaliseCapaMedia analise={analise} aspectClass="aspect-[16/10]" />
+      </div>
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C9A227]/90">
           {analise.campeonato || "Campeonato"}
@@ -40,7 +53,12 @@ export function AnaliseCardGrid({ analise }: Props) {
             Confiança {analise.confianca}%
           </span>
         </div>
-        <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-500">
+        <p
+          className={cn(
+            "line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-500",
+            lockedPreview && "select-none blur-[5px]",
+          )}
+        >
           {analise.resumo?.trim() || "Resumo em breve."}
         </p>
         {dataFmt ? (
@@ -52,7 +70,7 @@ export function AnaliseCardGrid({ analise }: Props) {
           href={`/analise/${encodeURIComponent(analise.slug)}`}
           className="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#b8860b] to-[#d4af37] py-2.5 text-sm font-bold text-[#0a0a0a] transition duration-300 hover:brightness-110"
         >
-          Ler análise
+          {lockedPreview ? "Pré-visualizar" : "Ler análise"}
         </Link>
       </div>
     </article>

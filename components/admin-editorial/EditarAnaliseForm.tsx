@@ -191,6 +191,26 @@ export function EditarAnaliseForm({ initial }: Props) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload key={initial.slug} defaultValue={initial.imagem_capa} />
+        <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-[#3d3420]/60 bg-[#080706]/80 px-4 py-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input type="hidden" name="is_premium" value="0" />
+            <input
+              type="checkbox"
+              name="is_premium"
+              value="1"
+              defaultChecked={initial.is_premium}
+              className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-[#E8D48B]">
+                Conteúdo premium
+              </span>
+              <span className="mt-0.5 block text-xs text-zinc-500">
+                Visível na íntegra apenas para assinantes Premium; outros vêem pré-visualização.
+              </span>
+            </span>
+          </label>
+        </div>
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
             Estado

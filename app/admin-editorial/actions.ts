@@ -62,6 +62,8 @@ export async function salvarNovaAnaliseEditorialAction(
   const status: AnaliseStatus =
     statusRaw === "publicado" ? "publicado" : "rascunho";
 
+  const isPremium = String(formData.get("is_premium") ?? "") === "1";
+
   const admin = createAdminClient();
   const { error } = await admin.from("analises").insert({
     slug,
@@ -77,6 +79,7 @@ export async function salvarNovaAnaliseEditorialAction(
     conteudo,
     imagem_capa: imagemCapa,
     status,
+    is_premium: isPremium,
   });
 
   if (error) {
@@ -88,6 +91,8 @@ export async function salvarNovaAnaliseEditorialAction(
 
   revalidatePath("/analises");
   revalidatePath(`/analise/${slug}`);
+  revalidatePath("/premium");
+  revalidatePath("/");
   redirect(
     `/admin-editorial?gravado=1&slug=${encodeURIComponent(slug)}`,
   );
@@ -129,6 +134,8 @@ export async function atualizarAnaliseEditorialAction(
   const status: AnaliseStatus =
     statusRaw === "publicado" ? "publicado" : "rascunho";
 
+  const isPremium = String(formData.get("is_premium") ?? "") === "1";
+
   const slugAnterior = String(formData.get("slug_anterior") ?? "")
     .trim()
     .toLowerCase();
@@ -168,6 +175,7 @@ export async function atualizarAnaliseEditorialAction(
       conteudo,
       imagem_capa: imagemCapa,
       status,
+      is_premium: isPremium,
     })
     .eq("id", id);
 
@@ -180,6 +188,8 @@ export async function atualizarAnaliseEditorialAction(
 
   revalidatePath("/analises");
   revalidatePath(`/analise/${slug}`);
+  revalidatePath("/premium");
+  revalidatePath("/");
   if (slugAnterior && slugAnterior !== slug) {
     revalidatePath(`/analise/${slugAnterior}`);
   }

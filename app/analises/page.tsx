@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { listarAnalisesPublicadas } from "@/lib/analises/queries";
 import { AnalisesPortal } from "@/components/analises/portal/AnalisesPortal";
+import { getPremiumAccess } from "@/lib/premium/get-premium-access";
+import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +52,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AnalisesPage() {
-  const data = await listarAnalisesPublicadas();
-  console.log("PUBLIC ANALISES", data);
+  const access = await getPremiumAccess();
+  const data = await listarAnalisesPublicadas(filtroListagemSoGratis(access));
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#030201] pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -71,7 +73,10 @@ export default async function AnalisesPage() {
           </p>
         </header>
 
-        <AnalisesPortal analises={data} />
+        <AnalisesPortal
+          analises={data}
+          viewerCanViewPremium={viewerPodeVerPremium(access)}
+        />
       </div>
     </div>
   );

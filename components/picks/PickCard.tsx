@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { QuickPickRow } from "@/lib/picks/types";
 import { cn } from "@/lib/utils";
 import { iconeEsporte, rotuloEsporte } from "@/lib/picks/rotulo-esporte";
+import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 
 function formatarHorario(iso: string): string {
   if (!iso) return "—";
@@ -60,7 +62,13 @@ function badgeResultado(
   return null;
 }
 
-function cardShellClass(pick: QuickPickRow): string {
+function cardShellClass(pick: QuickPickRow, premiumLocked: boolean): string {
+  if (premiumLocked) {
+    return cn(
+      "border-amber-600/35 bg-gradient-to-br from-[#0f0c06] to-black",
+      "ring-1 ring-amber-500/15",
+    );
+  }
   if (pick.status === "ativo") {
     return cn(
       "border-amber-500/45 bg-gradient-to-br from-amber-950/35 to-[#080706]",
@@ -94,7 +102,14 @@ function cardShellClass(pick: QuickPickRow): string {
   return "border-[#3d3420]/80 bg-gradient-to-br from-[#12100e] to-[#080706]";
 }
 
-function cantoIcone(pick: QuickPickRow): ReactNode {
+function cantoIcone(pick: QuickPickRow, premiumLocked: boolean): ReactNode {
+  if (premiumLocked) {
+    return (
+      <div className="absolute right-3 top-3" aria-hidden>
+        <PremiumLockBadge className="scale-95 shadow-md" />
+      </div>
+    );
+  }
   if (pick.status === "ativo") {
     return (
       <div
@@ -148,31 +163,41 @@ function cantoIcone(pick: QuickPickRow): ReactNode {
   return null;
 }
 
-export function PickCard({ pick }: { pick: QuickPickRow }) {
+type PickCardProps = {
+  pick: QuickPickRow;
+  /** Por omissão true (admin / assinante). */
+  viewerCanViewPremium?: boolean;
+};
+
+export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
   const sportLabel = rotuloEsporte(pick.esporte);
   const icon = iconeEsporte(pick.esporte);
   const badge = badgeResultado(pick);
+  const locked = pick.is_premium && !viewerCanViewPremium;
 
   return (
     <article
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-5 shadow-[0_20px_50px_-28px_rgba(0,0,0,.75)] transition duration-300 hover:-translate-y-0.5",
-        cardShellClass(pick),
+        cardShellClass(pick, locked),
       )}
     >
-      {cantoIcone(pick)}
+      {cantoIcone(pick, locked)}
 
       <div className="mb-3 flex flex-wrap items-center gap-2 pr-12">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/80 bg-black/40 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
           <span aria-hidden>{icon}</span>
           {sportLabel}
         </span>
+        {pick.is_premium && !locked ? (
+          <PremiumLockBadge className="scale-90" />
+        ) : null}
         {pick.campeonato?.trim() ? (
           <span className="rounded-full border border-gold/25 bg-gold/5 px-2.5 py-0.5 text-[11px] font-medium text-gold/90">
             {pick.campeonato.trim()}
           </span>
         ) : null}
-        {badge ? (
+        {badge && !locked ? (
           <span
             className={cn(
               "ml-auto rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest",
@@ -188,19 +213,50 @@ export function PickCard({ pick }: { pick: QuickPickRow }) {
         {pick.jogo}
       </h2>
 
-      <div className="mt-3 flex flex-wrap items-baseline gap-2">
-        <span className="text-sm font-medium text-zinc-400">Mercado</span>
-        <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm font-semibold text-zinc-100">
-          {pick.mercado}
-        </span>
-        <span className="ml-auto font-mono text-lg font-bold tabular-nums text-gold">
-          @{pick.odd.toFixed(2).replace(".", ",")}
-        </span>
-      </div>
+      {locked ? (
+        <div className="relative mt-4 overflow-hidden rounded-xl border border-amber-500/20 bg-black/40 py-8">
+          <div
+            className="pointer-events-none space-y-3 px-2 blur-md"
+            aria-hidden
+          >
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm text-zinc-400">Mercado</span>
+              <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm text-zinc-100">
+                {pick.mercado}
+              </span>
+              <span className="ml-auto font-mono text-lg text-gold">
+                @{pick.odd.toFixed(2)}
+              </span>
+            </div>
+            <p className="text-sm text-zinc-400">{pick.justificativa}</p>
+          </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-t from-black via-black/80 to-transparent px-4 text-center">
+            <PremiumLockBadge />
+            <Link
+              href="/premium"
+              className="mt-1 text-xs font-bold uppercase tracking-wide text-amber-300 underline-offset-2 hover:underline"
+            >
+              Desbloquear Premium
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mt-3 flex flex-wrap items-baseline gap-2">
+            <span className="text-sm font-medium text-zinc-400">Mercado</span>
+            <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm font-semibold text-zinc-100">
+              {pick.mercado}
+            </span>
+            <span className="ml-auto font-mono text-lg font-bold tabular-nums text-gold">
+              @{pick.odd.toFixed(2).replace(".", ",")}
+            </span>
+          </div>
 
-      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-zinc-400">
-        {pick.justificativa?.trim() || "Pick rápida — sem justificativa longa."}
-      </p>
+          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-zinc-400">
+            {pick.justificativa?.trim() || "Pick rápida — sem justificativa longa."}
+          </p>
+        </>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4">
         <div className="text-xs text-zinc-500">
@@ -212,7 +268,7 @@ export function PickCard({ pick }: { pick: QuickPickRow }) {
         <div
           className={cn(
             "rounded-lg bg-gradient-to-r px-3 py-1.5 text-xs font-black uppercase tracking-wide shadow-md",
-            corConfianca(pick.confianca),
+            locked ? "blur-sm opacity-60" : corConfianca(pick.confianca),
           )}
         >
           Confiança {pick.confianca}%

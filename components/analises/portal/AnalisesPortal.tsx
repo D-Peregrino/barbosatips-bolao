@@ -4,9 +4,15 @@ import { AnaliseFeaturedHero } from "@/components/analises/portal/AnaliseFeature
 import { AnaliseCardGrid } from "@/components/analises/portal/AnaliseCardGrid";
 import { AnalisesSidebar } from "@/components/analises/portal/AnalisesSidebar";
 
-type Props = { analises: AnaliseRow[] };
+type Props = {
+  analises: AnaliseRow[];
+  viewerCanViewPremium?: boolean;
+};
 
-export function AnalisesPortal({ analises }: Props) {
+export function AnalisesPortal({
+  analises,
+  viewerCanViewPremium = true,
+}: Props) {
   if (analises.length === 0) {
     return (
       <div className="rounded-3xl border border-[#3d3420]/60 bg-[#0c0b09]/90 px-6 py-16 text-center shadow-[0_24px_60px_-32px_rgba(0,0,0,.85)]">
@@ -44,7 +50,7 @@ export function AnalisesPortal({ analises }: Props) {
           <h2 id="analises-destaque-heading" className="sr-only">
             Última análise em destaque
           </h2>
-          <AnaliseFeaturedHero analise={destaque} />
+          <AnaliseFeaturedHero analise={destaque} viewerCanViewPremium={viewerCanViewPremium} />
         </section>
 
         {gridItems.length > 0 ? (
@@ -65,7 +71,10 @@ export function AnalisesPortal({ analises }: Props) {
             <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
               {gridItems.map((a) => (
                 <li key={a.id}>
-                  <AnaliseCardGrid analise={a} />
+                  <AnaliseCardGrid
+                    analise={a}
+                    viewerCanViewPremium={viewerCanViewPremium}
+                  />
                 </li>
               ))}
             </ul>
@@ -74,7 +83,10 @@ export function AnalisesPortal({ analises }: Props) {
       </div>
 
       <div className="mt-12 min-w-0 xl:mt-0">
-        <AnalisesSidebar itens={sidebarItens} />
+        <AnalisesSidebar
+          itens={sidebarItens}
+          viewerCanViewPremium={viewerCanViewPremium}
+        />
       </div>
     </div>
   );

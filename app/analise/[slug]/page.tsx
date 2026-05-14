@@ -16,6 +16,10 @@ import {
   urlCanonicaAnalise,
   urlOgPadrao,
 } from "@/lib/analises/seo-analise";
+import { getPremiumAccess } from "@/lib/premium/get-premium-access";
+import { viewerPodeVerPremium } from "@/lib/premium/types";
+import { PremiumAnaliseBody } from "@/components/premium/PremiumAnaliseBody";
+import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 
 type Props = { params: { slug: string } };
 
@@ -86,12 +90,16 @@ export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnaliseSlugPage({ params }: Props) {
   const data = await buscarAnaliseNaTabela(params.slug);
+  const access = await getPremiumAccess();
 
   if (!data) {
     notFound();
   }
 
   const a = data;
+  const podeVerPremium = viewerPodeVerPremium(access);
+  const desbloqueado =
+    a.status === "rascunho" || !a.is_premium || podeVerPremium;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const tg = siteConfig.social.telegram;
   const corpoHtml = conteudoAnaliseParaHtmlPublico(a.conteudo);
@@ -136,9 +144,12 @@ export default async function AnaliseSlugPage({ params }: Props) {
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
             {a.campeonato || "Campeonato"}
           </p>
-          <h1 className="mt-2 font-display text-3xl font-bold leading-tight text-white sm:text-4xl">
-            {a.titulo}
-          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-3xl font-bold leading-tight text-white sm:text-4xl">
+              {a.titulo}
+            </h1>
+            {a.is_premium ? <PremiumLockBadge className="shrink-0" /> : null}
+          </div>
           <p className="mt-3 text-lg font-semibold text-zinc-200">
             {a.time_casa}{" "}
             <span className="text-zinc-600" aria-hidden>
@@ -157,15 +168,11 @@ export default async function AnaliseSlugPage({ params }: Props) {
         </header>
 
         <div className="prose prose-invert prose-headings:font-display max-w-none rounded-2xl border border-[#2a2418] bg-[#0c0b09]/90 p-6 text-base leading-relaxed text-zinc-200 sm:p-8 prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-h1:text-2xl prose-h2:text-xl prose-a:text-[#C9A227] prose-blockquote:border-[#C9A227]/50 prose-blockquote:text-zinc-400 prose-hr:border-zinc-600">
-          {corpoHtml ? (
-            <div
-              className="analise-conteudo-html"
-              // eslint-disable-next-line react/no-danger -- HTML sanitizado (XSS mitigado)
-              dangerouslySetInnerHTML={{ __html: corpoHtml }}
-            />
-          ) : (
-            <p className="text-zinc-500">Conteúdo em elaboração.</p>
-          )}
+          <PremiumAnaliseBody
+            corpoHtml={corpoHtml}
+            resumo={a.resumo}
+            unlocked={desbloqueado}
+          />
         </div>
 
         <aside className="mt-12 rounded-2xl border border-[#C9A227]/35 bg-gradient-to-br from-[#1a1610] to-[#0c0b09] p-6 sm:p-8">

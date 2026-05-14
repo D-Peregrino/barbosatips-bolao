@@ -14,5 +14,6 @@ export interface QuickPickRow {
   horario_jogo: string;
   status: QuickPickStatus;
   resultado: QuickPickResultado;
+  is_premium: boolean;
   created_at: string;
 }

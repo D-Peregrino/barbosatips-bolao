@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
+import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 
 type Props = {
   analises: AnaliseRow[];
+  viewerCanViewPremium?: boolean;
 };
 
 const btnGold =
@@ -15,11 +18,23 @@ function labelCategoria(a: AnaliseRow): string {
   return c || "Editorial";
 }
 
-function CardDestaque({ analise: a }: { analise: AnaliseRow }) {
+function CardDestaque({
+  analise: a,
+  viewerCanViewPremium = true,
+}: {
+  analise: AnaliseRow;
+  viewerCanViewPremium?: boolean;
+}) {
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
+  const lockedPreview = a.is_premium && !viewerCanViewPremium;
   return (
     <article className="group flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-[#3d3420]/80 bg-gradient-to-br from-[#14120e] via-[#0c0b09] to-[#050608] shadow-[0_32px_80px_-28px_rgba(0,0,0,.88)] transition duration-500 hover:border-[#C9A227]/45 lg:flex-row">
       <div className="relative min-h-[220px] shrink-0 lg:w-[48%] lg:min-h-[300px]">
+        {a.is_premium ? (
+          <div className="absolute left-4 top-4 z-10">
+            <PremiumLockBadge />
+          </div>
+        ) : null}
         <AnaliseCapaMedia
           analise={a}
           aspectClass="aspect-[16/10] lg:aspect-auto lg:h-full lg:min-h-[300px]"
@@ -41,25 +56,44 @@ function CardDestaque({ analise: a }: { analise: AnaliseRow }) {
             Confiança {a.confianca}%
           </span>
         </div>
-        <p className="line-clamp-4 text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
+        <p
+          className={cn(
+            "line-clamp-4 text-sm leading-relaxed text-zinc-400 sm:text-[15px]",
+            lockedPreview && "select-none blur-[6px]",
+          )}
+        >
           {a.resumo?.trim() || "Leitura de mercado e contexto do confronto."}
         </p>
         <Link
           href={`/analise/${encodeURIComponent(a.slug)}`}
           className={`${btnGold} mt-auto max-w-xs sm:py-3`}
         >
-          Ler análise
+          {lockedPreview ? "Pré-visualizar" : "Ler análise"}
         </Link>
       </div>
     </article>
   );
 }
 
-function CardCompacta({ analise: a }: { analise: AnaliseRow }) {
+function CardCompacta({
+  analise: a,
+  viewerCanViewPremium = true,
+}: {
+  analise: AnaliseRow;
+  viewerCanViewPremium?: boolean;
+}) {
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
+  const lockedPreview = a.is_premium && !viewerCanViewPremium;
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#2a2418]/90 bg-gradient-to-b from-[#12100c] to-[#070605] shadow-[0_20px_50px_-28px_rgba(0,0,0,.85)] transition hover:border-[#C9A227]/40 hover:shadow-[0_24px_60px_-24px_rgba(212,175,55,.12)]">
-      <AnaliseCapaMedia analise={a} aspectClass="aspect-[16/10]" />
+      <div className="relative">
+        {a.is_premium ? (
+          <div className="absolute left-3 top-3 z-10">
+            <PremiumLockBadge />
+          </div>
+        ) : null}
+        <AnaliseCapaMedia analise={a} aspectClass="aspect-[16/10]" />
+      </div>
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C9A227]/90">
           {labelCategoria(a)}
@@ -75,11 +109,16 @@ function CardCompacta({ analise: a }: { analise: AnaliseRow }) {
             Confiança {a.confianca}%
           </span>
         </div>
-        <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-500">
+        <p
+          className={cn(
+            "line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-500",
+            lockedPreview && "select-none blur-[5px]",
+          )}
+        >
           {a.resumo?.trim() || "Resumo em breve."}
         </p>
         <Link href={`/analise/${encodeURIComponent(a.slug)}`} className={`${btnGold} mt-auto`}>
-          Ler análise
+          {lockedPreview ? "Pré-visualizar" : "Ler análise"}
         </Link>
       </div>
     </article>
@@ -89,7 +128,10 @@ function CardCompacta({ analise: a }: { analise: AnaliseRow }) {
 /**
  * Secção "Últimas Análises" na home — destaque + até duas cards compactas.
  */
-export function UltimasAnalisesSection({ analises }: Props) {
+export function UltimasAnalisesSection({
+  analises,
+  viewerCanViewPremium = true,
+}: Props) {
   const destaque = analises[0];
   const segunda = analises[1];
   const terceira = analises[2];
@@ -139,26 +181,26 @@ export function UltimasAnalisesSection({ analises }: Props) {
             .
           </p>
         ) : n === 1 ? (
-          <CardDestaque analise={destaque} />
+          <CardDestaque analise={destaque} viewerCanViewPremium={viewerCanViewPremium} />
         ) : n === 2 ? (
           <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
             <div className="lg:col-span-2">
-              <CardDestaque analise={destaque} />
+              <CardDestaque analise={destaque} viewerCanViewPremium={viewerCanViewPremium} />
             </div>
             <div className="lg:col-span-1">
-              <CardCompacta analise={segunda} />
+              <CardCompacta analise={segunda} viewerCanViewPremium={viewerCanViewPremium} />
             </div>
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-3 lg:grid-rows-2 lg:gap-8">
             <div className="min-h-0 lg:col-span-2 lg:row-span-2">
-              <CardDestaque analise={destaque} />
+              <CardDestaque analise={destaque} viewerCanViewPremium={viewerCanViewPremium} />
             </div>
             <div className="lg:col-span-1 lg:col-start-3 lg:row-start-1">
-              <CardCompacta analise={segunda} />
+              <CardCompacta analise={segunda} viewerCanViewPremium={viewerCanViewPremium} />
             </div>
             <div className="lg:col-span-1 lg:col-start-3 lg:row-start-2">
-              <CardCompacta analise={terceira} />
+              <CardCompacta analise={terceira} viewerCanViewPremium={viewerCanViewPremium} />
             </div>
           </div>
         )}

@@ -1,20 +1,31 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { AnaliseCategoriaTags } from "@/components/analises/portal/AnaliseCategoriaTags";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
+import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 
-type Props = { analise: AnaliseRow };
+type Props = { analise: AnaliseRow; viewerCanViewPremium?: boolean };
 
-export function AnaliseFeaturedHero({ analise }: Props) {
+export function AnaliseFeaturedHero({
+  analise,
+  viewerCanViewPremium = true,
+}: Props) {
   const oddFmt = oddParaNumero(analise.odd).toFixed(2);
   const dataFmt = formatAnalisePublicadaDate(analise.created_at);
+  const lockedPreview = analise.is_premium && !viewerCanViewPremium;
 
   return (
     <article className="group relative overflow-hidden rounded-3xl border border-[#3d3420]/80 bg-gradient-to-br from-[#14120e] via-[#0c0b09] to-[#050608] shadow-[0_32px_80px_-24px_rgba(0,0,0,.9)] transition duration-500 ease-out hover:border-[#C9A227]/45 hover:shadow-[0_40px_100px_-28px_rgba(212,175,55,.12)]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div className="relative min-h-[220px] lg:min-h-[340px]">
+          {analise.is_premium ? (
+            <div className="absolute left-4 top-4 z-10">
+              <PremiumLockBadge />
+            </div>
+          ) : null}
           <AnaliseCapaMedia
             analise={analise}
             aspectClass="aspect-[16/10] lg:aspect-auto lg:h-full lg:min-h-[340px]"
@@ -60,7 +71,12 @@ export function AnaliseFeaturedHero({ analise }: Props) {
             ) : null}
           </div>
 
-          <p className="line-clamp-4 text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
+          <p
+            className={cn(
+              "line-clamp-4 text-sm leading-relaxed text-zinc-400 sm:text-[15px]",
+              lockedPreview && "select-none blur-[6px]",
+            )}
+          >
             {analise.resumo?.trim() || "Análise com leitura de mercado e contexto do confronto."}
           </p>
 
@@ -68,7 +84,7 @@ export function AnaliseFeaturedHero({ analise }: Props) {
             href={`/analise/${encodeURIComponent(analise.slug)}`}
             className="inline-flex w-full max-w-xs items-center justify-center rounded-2xl bg-gradient-to-r from-[#b8860b] to-[#d4af37] py-3.5 text-sm font-bold text-[#0a0a0a] shadow-[0_16px_48px_-12px_rgba(212,175,55,.5)] transition duration-300 hover:brightness-110 hover:shadow-[0_20px_56px_-12px_rgba(212,175,55,.55)] sm:w-auto sm:px-10"
           >
-            Ler análise
+            {lockedPreview ? "Pré-visualizar" : "Ler análise"}
           </Link>
         </div>
       </div>

@@ -4,9 +4,15 @@ import { statusPublicadoNormalizado } from "@/lib/analises/queries";
 import type { AnaliseRow } from "@/lib/analises/types";
 
 const COLUNAS =
-  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
+  const prem = r.is_premium;
+  const isPremium =
+    prem === true ||
+    prem === "true" ||
+    String(prem ?? "").toLowerCase() === "t";
+
   return {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
@@ -22,6 +28,7 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     conteudo: String(r.conteudo ?? ""),
     imagem_capa: String(r.imagem_capa ?? ""),
     status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
+    is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
   };
 }

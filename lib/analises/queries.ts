@@ -8,6 +8,12 @@ export function statusPublicadoNormalizado(status: unknown): boolean {
 }
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
+  const prem = r.is_premium;
+  const isPremium =
+    prem === true ||
+    prem === "true" ||
+    String(prem ?? "").toLowerCase() === "t";
+
   return {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
@@ -23,18 +29,29 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     conteudo: String(r.conteudo ?? ""),
     imagem_capa: String(r.imagem_capa ?? ""),
     status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
+    is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
   };
 }
 
 const COLUNAS =
-  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at" as const;
+
+function aplicarFiltroGratis(
+  rows: AnaliseRow[],
+  soGratis: boolean,
+): AnaliseRow[] {
+  if (!soGratis) return rows;
+  return rows.filter((a) => !a.is_premium);
+}
 
 /**
  * Lista análises visíveis em /analises: status normalizado === "publicado".
- * Usa service role no servidor para não depender do RLS (que compara texto exacto).
+ * `soGratis`: quando true, exclui `is_premium` (utilizador logado sem assinatura).
  */
-export async function listarAnalisesPublicadas(): Promise<AnaliseRow[]> {
+export async function listarAnalisesPublicadas(
+  soGratis = false,
+): Promise<AnaliseRow[]> {
   if (shouldSkipLiveSupabase()) return [];
   try {
     const admin = createAdminClient();
@@ -49,13 +66,50 @@ export async function listarAnalisesPublicadas(): Promise<AnaliseRow[]> {
       return [];
     }
 
-    return (data ?? [])
+    const mapped = (data ?? [])
       .filter((row) =>
         statusPublicadoNormalizado(
           (row as Record<string, unknown>).status,
         ),
       )
       .map((row) => mapRow(row as Record<string, unknown>));
+
+    return aplicarFiltroGratis(mapped, soGratis);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+/**
+ * Análises premium publicadas (home / secções).
+ */
+export async function listarAnalisesPremiumPublicadas(
+  limit: number,
+): Promise<AnaliseRow[]> {
+  if (shouldSkipLiveSupabase() || limit <= 0) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS)
+      .eq("is_premium", true)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(limit * 4, 200));
+
+    if (error) {
+      console.error("analises listarPremium", error);
+      return [];
+    }
+
+    return (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado(
+          (row as Record<string, unknown>).status,
+        ),
+      )
+      .map((row) => mapRow(row as Record<string, unknown>))
+      .slice(0, limit);
   } catch (e) {
     console.error(e);
     return [];
@@ -67,6 +121,7 @@ export async function listarAnalisesPublicadas(): Promise<AnaliseRow[]> {
  */
 export async function listarUltimasAnalisesPublicadas(
   limit: number,
+  soGratis = false,
 ): Promise<AnaliseRow[]> {
   if (shouldSkipLiveSupabase() || limit <= 0) return [];
   const cap = Math.min(Math.max(limit * 25, limit + 20), 200);
@@ -91,7 +146,7 @@ export async function listarUltimasAnalisesPublicadas(
       )
       .map((row) => mapRow(row as Record<string, unknown>));
 
-    return rows.slice(0, limit);
+    return aplicarFiltroGratis(rows, soGratis).slice(0, limit);
   } catch (e) {
     console.error(e);
     return [];

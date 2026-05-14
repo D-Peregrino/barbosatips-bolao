@@ -4,6 +4,8 @@ import { listarQuickPicks } from "@/lib/picks/queries";
 import { calcularEstatisticasQuickPicksEncerradas } from "@/lib/picks/stats";
 import { PickCard } from "@/components/picks/PickCard";
 import { PicksStatsBar } from "@/components/picks/PicksStatsBar";
+import { getPremiumAccess } from "@/lib/premium/get-premium-access";
+import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
 
 const base = siteConfig.url.replace(/\/$/, "");
 
@@ -34,8 +36,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PicksPage() {
-  const picks = await listarQuickPicks();
+  const access = await getPremiumAccess();
+  const picks = await listarQuickPicks(filtroListagemSoGratis(access));
   const stats = calcularEstatisticasQuickPicksEncerradas(picks);
+  const canViewPremium = viewerPodeVerPremium(access);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-pitch-950 pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -74,7 +78,7 @@ export default async function PicksPage() {
           <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {picks.map((p) => (
               <li key={p.id}>
-                <PickCard pick={p} />
+                <PickCard pick={p} viewerCanViewPremium={canViewPremium} />
               </li>
             ))}
           </ul>

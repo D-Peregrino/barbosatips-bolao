@@ -15,6 +15,7 @@ export type AnaliseRow = {
   conteudo: string;
   imagem_capa: string;
   status: AnaliseStatus;
+  is_premium: boolean;
   created_at: string;
 };
 

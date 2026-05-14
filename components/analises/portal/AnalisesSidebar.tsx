@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
@@ -7,9 +8,13 @@ import { siteConfig } from "@/config/site";
 type Props = {
   /** Itens compactos (ex.: após o destaque, para não duplicar o hero). */
   itens: AnaliseRow[];
+  viewerCanViewPremium?: boolean;
 };
 
-export function AnalisesSidebar({ itens }: Props) {
+export function AnalisesSidebar({
+  itens,
+  viewerCanViewPremium = true,
+}: Props) {
   const tg = siteConfig.social.telegram;
 
   return (
@@ -25,6 +30,7 @@ export function AnalisesSidebar({ itens }: Props) {
             {itens.map((a) => {
               const dataFmt = formatAnalisePublicadaDate(a.created_at);
               const oddFmt = oddParaNumero(a.odd).toFixed(2);
+              const locked = a.is_premium && !viewerCanViewPremium;
               return (
                 <li key={a.id} className="py-4 first:pt-4">
                   <Link
@@ -32,6 +38,13 @@ export function AnalisesSidebar({ itens }: Props) {
                     className="group block rounded-lg outline-none transition hover:bg-[#14120e]/80 focus-visible:ring-2 focus-visible:ring-[#C9A227]/50"
                   >
                     <p className="line-clamp-2 text-sm font-semibold leading-snug text-white transition group-hover:text-[#E8D48B]">
+                      {locked ? (
+                        <Lock
+                          className="mr-1 inline-block h-3.5 w-3.5 shrink-0 text-amber-400/90"
+                          strokeWidth={2.5}
+                          aria-label="Premium"
+                        />
+                      ) : null}
                       {a.titulo}
                     </p>
                     <p className="mt-1 text-[11px] text-zinc-500">
