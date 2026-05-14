@@ -3,6 +3,7 @@ import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 import { VipBadge } from "@/components/premium/VipBadge";
 import type { ContentTier } from "@/lib/premium/content-tier";
 import { siteConfig } from "@/config/site";
+import { betaPremiumHref, betaVipHref } from "@/lib/beta/cta-hrefs";
 
 type Props = {
   corpoHtml: string;
@@ -89,19 +90,19 @@ export function PremiumAnaliseBody({
             </p>
             <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-2">
               <Link
-                href="/vip"
+                href={betaVipHref()}
                 className="rounded-xl border border-gold-400/45 bg-gold-400/[0.12] px-5 py-2.5 text-sm font-bold text-gold-100 shadow-md transition hover:bg-gold-400/18"
               >
                 Programa VIP
               </Link>
               <Link
-                href="/premium"
+                href={betaPremiumHref()}
                 className="rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2.5 text-sm font-bold text-black shadow-lg shadow-amber-900/30 transition hover:brightness-110"
               >
                 Premium
               </Link>
               <a
-                href={siteConfig.social.telegram}
+                href={siteConfig.hub.telegramCanal}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-xl border border-amber-500/50 bg-black/60 px-4 py-2.5 text-sm font-semibold text-amber-100 transition hover:bg-amber-950/50"

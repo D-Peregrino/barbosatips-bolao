@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { siteConfig } from "@/config/site";
 import {
   ADMIN_BOLAO_COOKIE,
   adminBolaoSessionSecret,
@@ -39,6 +40,14 @@ export async function middleware(request: NextRequest) {
 
   if (path === "/acesso-negado" || path.startsWith("/acesso-negado/")) {
     return NextResponse.next();
+  }
+
+  if (siteConfig.betaLaunch.enabled) {
+    for (const prefix of siteConfig.betaLaunch.redirectToHomePrefixes) {
+      if (path === prefix || path.startsWith(`${prefix}/`)) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    }
   }
 
   /** Bolão admin — fluxo e cookie existentes (inalterados). */
@@ -133,14 +142,6 @@ export async function middleware(request: NextRequest) {
   }
 
   if (path.startsWith("/operacional")) {
-    return NextResponse.next();
-  }
-
-  if (path.startsWith("/inteligencia")) {
-    return NextResponse.next();
-  }
-
-  if (path.startsWith("/analytics")) {
     return NextResponse.next();
   }
 

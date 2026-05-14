@@ -8,6 +8,7 @@ import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { dashboardPlanSnapshot } from "@/lib/premium/dashboard-plan-copy";
 import { PLACEHOLDER_PLANS } from "@/lib/billing/billing-roadmap";
+import { betaVipPageHref } from "@/lib/beta/cta-hrefs";
 
 export const dynamic = "force-dynamic";
 
@@ -133,7 +134,7 @@ export default async function DashboardPage() {
             </span>
           </Link>
           <Link
-            href="/vip"
+            href={betaVipPageHref()}
             className="commercial-card-elevated group border border-gold-400/20 p-6 transition duration-300 hover:-translate-y-0.5 hover:border-gold-400/40"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-gold-400/90">Comercial</p>

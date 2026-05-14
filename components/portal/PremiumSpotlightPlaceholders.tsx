@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Crown, Lock } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { betaPremiumHref } from "@/lib/beta/cta-hrefs";
 
 /**
  * Grelha placeholder quando ainda não há análises premium — evita “buraco” na home.
@@ -49,11 +50,13 @@ export function PremiumSpotlightPlaceholders() {
           </p>
           <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
             <Link
-              href="/premium"
+              href={betaPremiumHref()}
               className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-300 px-6 text-sm font-bold text-pitch-950 shadow-gold-sm transition hover:brightness-105"
             >
               <Crown className="h-4 w-4" aria-hidden />
-              Ver Premium
+              {siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.lockedContentUpsellToLogin
+                ? "Entrar"
+                : "Ver Premium"}
             </Link>
             <Link
               href="/analises"

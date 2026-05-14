@@ -8,6 +8,7 @@ import { PickCard } from "@/components/picks/PickCard";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 import { siteConfig } from "@/config/site";
 import { viewerPodeVerPremium, type PremiumAccess } from "@/lib/premium/types";
+import { betaPremiumHref } from "@/lib/beta/cta-hrefs";
 
 type Props = {
   analises: AnaliseRow[];
@@ -97,10 +98,12 @@ export function PremiumPicksSection({ analises, picks, access }: Props) {
             </p>
           </div>
           <Link
-            href="/premium"
+            href={betaPremiumHref()}
             className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-3 text-sm font-bold text-black shadow-lg shadow-amber-900/25 transition hover:brightness-110"
           >
-            Tornar-se Premium
+            {siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.lockedContentUpsellToLogin
+              ? "Entrar"
+              : "Tornar-se Premium"}
           </Link>
         </div>
 

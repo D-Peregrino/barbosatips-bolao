@@ -7,6 +7,8 @@ import { AnalisesSidebar } from "@/components/analises/portal/AnalisesSidebar";
 import { AnalisesCommunityDeck } from "@/components/community/AnalisesCommunityDeck";
 import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
+import { siteConfig } from "@/config/site";
+import { betaPremiumHref } from "@/lib/beta/cta-hrefs";
 
 type Props = {
   analises: AnaliseRow[];
@@ -82,10 +84,12 @@ export function AnalisesPortal({
         <AnalisesSidebar itens={sidebarItens} viewerCanViewPremium={viewerCanViewPremium} />
         <div className="hidden xl:block">
           <Link
-            href="/premium"
+            href={betaPremiumHref()}
             className="block rounded-xl border border-gold-400/20 bg-black/30 px-4 py-4 text-center text-sm font-semibold text-gold-100 transition hover:border-gold-400/35"
           >
-            Programa Premium →
+            {siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.lockedContentUpsellToLogin
+              ? "Entrar para desbloquear →"
+              : "Programa Premium →"}
           </Link>
         </div>
       </aside>

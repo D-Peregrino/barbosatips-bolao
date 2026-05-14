@@ -128,6 +128,10 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  /** Reduz tradução automática do Chrome que altera o DOM e causa hydration mismatch. */
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -138,9 +142,14 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      translate="no"
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]">
+      <body
+        className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]"
+        suppressHydrationWarning
+      >
         <ProductionScripts />
         <ProductionGtmNoScript />
         <SiteWideJsonLd />

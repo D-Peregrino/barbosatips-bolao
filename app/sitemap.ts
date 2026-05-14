@@ -7,23 +7,33 @@ import { listarQuickPicksParaSitemap } from "@/lib/picks/queries";
 const baseUrl = siteConfig.url.replace(/\/$/, "");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const beta = siteConfig.betaLaunch.enabled;
+
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: "hourly", priority: 1 },
     { url: `${baseUrl}/tips`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
     { url: `${baseUrl}/analises`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/picks`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.85 },
     { url: `${baseUrl}/performance`, lastModified: new Date(), changeFrequency: "daily", priority: 0.82 },
-    {
-      url: `${baseUrl}/inteligencia`,
-      lastModified: new Date(),
-      changeFrequency: "hourly",
-      priority: 0.84,
-    },
+    ...(!beta
+      ? ([
+          {
+            url: `${baseUrl}/inteligencia`,
+            lastModified: new Date(),
+            changeFrequency: "hourly" as const,
+            priority: 0.84,
+          },
+        ] satisfies MetadataRoute.Sitemap)
+      : []),
     { url: `${baseUrl}/live`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.8 },
     { url: `${baseUrl}/comunidade`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.78 },
     { url: `${baseUrl}/newsletter`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.72 },
-    { url: `${baseUrl}/premium`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.75 },
-    { url: `${baseUrl}/vip`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.72 },
+    ...(!beta
+      ? ([
+          { url: `${baseUrl}/premium`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.75 },
+          { url: `${baseUrl}/vip`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.72 },
+        ] satisfies MetadataRoute.Sitemap)
+      : []),
     { url: `${baseUrl}/bolao`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${baseUrl}/ranking`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${baseUrl}/guias`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },

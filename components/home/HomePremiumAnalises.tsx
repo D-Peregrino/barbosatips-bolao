@@ -7,6 +7,8 @@ import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 import { rotuloEsporte, iconeEsporte } from "@/lib/picks/rotulo-esporte";
 import { PremiumSpotlightPlaceholders } from "@/components/portal/PremiumSpotlightPlaceholders";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
+import { betaPremiumHref } from "@/lib/beta/cta-hrefs";
 
 type Props = {
   analises: AnaliseRow[];
@@ -126,10 +128,12 @@ export function HomePremiumAnalises({ analises, viewerCanViewPremium }: Props) {
             </p>
           </div>
           <Link
-            href="/premium"
+            href={betaPremiumHref()}
             className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-gold-400 to-gold-300 px-6 py-3 text-sm font-bold text-pitch-950 shadow-gold-sm transition hover:brightness-105"
           >
-            Ver Premium
+            {siteConfig.betaLaunch.enabled && siteConfig.betaLaunch.lockedContentUpsellToLogin
+              ? "Entrar"
+              : "Ver Premium"}
           </Link>
         </div>
 

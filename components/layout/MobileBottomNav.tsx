@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Crown, Home, Trophy, Zap } from "lucide-react";
+import { BookOpen, Home, Trophy, Users, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type BottomItem = {
@@ -10,37 +10,31 @@ type BottomItem = {
   label: string;
   icon: typeof Home;
   match: (_path: string) => boolean;
-  labelAccent?: string;
   linkTitle?: string;
 };
 
 const ITEMS: BottomItem[] = [
-  { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
-  { href: "/picks", label: "Picks", icon: Zap, match: (p: string) => p.startsWith("/picks") || p.startsWith("/pick/") },
+  { href: "/", label: "Home", icon: Home, match: (p) => p === "/" },
+  { href: "/picks", label: "Picks", icon: Zap, match: (p) => p.startsWith("/picks") || p.startsWith("/pick/") },
   {
     href: "/analises",
     label: "Análises",
     icon: BookOpen,
-    match: (p: string) => p.startsWith("/analises") || p.startsWith("/analise/"),
+    match: (p) => p.startsWith("/analises") || p.startsWith("/analise/"),
   },
-  { href: "/bolao", label: "Bolão", icon: Trophy, match: (p: string) => p.startsWith("/bolao") },
+  { href: "/bolao", label: "Bolão", icon: Trophy, match: (p) => p.startsWith("/bolao") },
   {
-    href: "/dashboard",
-    label: "Perfil",
-    labelAccent: "VIP",
-    icon: Crown,
-    linkTitle: "Perfil, feed e programa VIP",
-    match: (p: string) =>
-      p.startsWith("/dashboard") ||
-      p.startsWith("/meu-feed") ||
-      p.startsWith("/vip") ||
-      p.startsWith("/premium") ||
-      p.startsWith("/login"),
+    href: "/comunidade",
+    label: "Comunidade",
+    icon: Users,
+    linkTitle: "Telegram, YouTube e hub BarbosaTips",
+    match: (p) => p.startsWith("/comunidade"),
   },
 ];
 
 /**
  * Navegação inferior fixa (mobile) — ícones + texto, contraste elevado.
+ * Beta: último atalho é Comunidade (hub público), não área de membros.
  * Desktop: oculto (≥ md).
  */
 export function MobileBottomNav() {
@@ -52,7 +46,7 @@ export function MobileBottomNav() {
       aria-label="Navegação principal mobile"
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-between px-1 pt-1.5">
-        {ITEMS.map(({ href, label, labelAccent, linkTitle, icon: Icon, match }) => {
+        {ITEMS.map(({ href, label, linkTitle, icon: Icon, match }) => {
           const active = match(pathname);
           return (
             <li key={href} className="min-w-0 flex-1">
@@ -71,21 +65,7 @@ export function MobileBottomNav() {
                   )}
                   aria-hidden
                 />
-                {labelAccent ? (
-                  <span className="flex flex-col items-center leading-[1.05]">
-                    <span>{label}</span>
-                    <span
-                      className={cn(
-                        "mt-px text-[8px] font-extrabold uppercase tracking-[0.14em]",
-                        active ? "text-gold-400/95" : "text-gold-500/75",
-                      )}
-                    >
-                      {labelAccent}
-                    </span>
-                  </span>
-                ) : (
-                  <span>{label}</span>
-                )}
+                <span className="line-clamp-2 max-w-[4.5rem] text-center leading-[1.05]">{label}</span>
                 {active ? (
                   <span className="h-0.5 w-6 rounded-full bg-gradient-to-r from-gold-500/0 via-gold-300 to-gold-500/0" />
                 ) : (

@@ -2,37 +2,50 @@ import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { BrandShield } from "@/components/brand/BrandShield";
 
-const FOOTER_LINKS = {
-  Apostas: [
+function footerLinksForBeta(): Record<string, { href: string; label: string }[]> {
+  const b = siteConfig.betaLaunch;
+  const apostas = [
     { href: "/tips", label: "Tips do Dia" },
     { href: "/picks", label: "Picks rápidas" },
     { href: "/analises", label: "Análises" },
-    { href: "/premium", label: "Premium" },
+    { href: "/performance", label: "Performance" },
+    ...(!b.enabled || !b.hidePremiumInMoreMenu ? [{ href: "/premium", label: "Premium" }] : []),
     { href: "/ranking", label: "Ranking Tipsters" },
     { href: "/guias", label: "Guias de Apostas" },
-  ],
-  Comunidade: [
+  ];
+
+  const comunidade = [
     { href: "/newsletter", label: "Newsletter" },
     { href: "/comunidade", label: "Comunidade" },
     { href: "/bolao", label: "Bolão" },
     { href: "/bolao", label: "Criar Bolão" },
-    { href: "/meu-feed", label: "Meu feed" },
-    { href: "/dashboard", label: "Minha Conta" },
-  ],
-  Esportes: siteConfig.sports.slice(0, 4).map((s) => ({
-    href: `/${s.slug}`,
-    label: s.label,
-  })),
-  BarbosaTips: [
-    { href: "/sobre", label: "Sobre" },
-    { href: "/contato", label: "Contato" },
-    { href: "/privacidade", label: "Privacidade" },
-    { href: "/termos", label: "Termos de Uso" },
-  ],
-};
+    ...(!b.enabled || !b.hideMemberLinksInFooter
+      ? [
+          { href: "/meu-feed", label: "Meu feed" },
+          { href: "/dashboard", label: "Minha Conta" },
+        ]
+      : []),
+  ];
+
+  return {
+    Apostas: apostas,
+    Comunidade: comunidade,
+    Esportes: siteConfig.sports.slice(0, 4).map((s) => ({
+      href: `/${s.slug}`,
+      label: s.label,
+    })),
+    BarbosaTips: [
+      { href: "/sobre", label: "Sobre" },
+      { href: "/contato", label: "Contato" },
+      { href: "/privacidade", label: "Privacidade" },
+      { href: "/termos", label: "Termos de Uso" },
+    ],
+  };
+}
 
 export function Footer() {
   const year = new Date().getFullYear();
+  const FOOTER_LINKS = footerLinksForBeta();
 
   return (
     <footer className="mt-20 border-t border-gold-400/10 bg-gradient-to-b from-pitch-950 to-[var(--color-void)]">
@@ -63,7 +76,7 @@ export function Footer() {
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <div className="flex items-center gap-3">
               <BrandShield size="xs" decorative />
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-stone-500" suppressHydrationWarning>
                 © {year}{" "}
                 <span className="font-medium text-cream-muted">{siteConfig.name}</span>
               </p>

@@ -26,7 +26,8 @@ export default function PrivacidadePage() {
             Política de privacidade
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
-            Última atualização: {new Date().toLocaleDateString("pt-BR")} · Brasil
+            Última atualização:{" "}
+            <span suppressHydrationWarning>{new Date().toLocaleDateString("pt-BR")}</span> · Brasil
           </p>
 
           <div className="prose prose-invert prose-sm mt-8 max-w-none text-zinc-300 prose-headings:font-display prose-a:text-gold-300">

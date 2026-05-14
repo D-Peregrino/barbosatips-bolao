@@ -119,6 +119,24 @@ export const siteConfig = {
     ranking: 900,   // 15 min
     home:    600,   // 10 min
   },
+
+  /**
+   * Lançamento beta público: esconder rotas mock / sem produto final na navegação
+   * e redirecionar URLs diretas (ver `middleware.ts`).
+   */
+  betaLaunch: {
+    enabled: true,
+    /** Prefixos que redirecionam para `/` (evita divulgar mock ou área VIP vazia). */
+    redirectToHomePrefixes: ["/inteligencia", "/analytics", "/vip"] as const,
+    hideInteligenciaNav: true,
+    hideVipNav: true,
+    hidePremiumInMoreMenu: true,
+    hideMemberLinksInFooter: true,
+    /** CTAs de conteúdo premium bloqueado apontam para login em vez de /vip e /premium. */
+    lockedContentUpsellToLogin: true,
+    /** Link “Analytics” no painel operacional desativado enquanto /analytics redireciona. */
+    hideOperacionalAnalyticsLink: true,
+  },
 } as const;
 
 // Tipos derivados do config

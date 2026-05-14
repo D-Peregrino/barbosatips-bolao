@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreditCard, Lock, Sparkles, Zap, Shield, Crown } from "lucide-react";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
+import { betaVipPageHref } from "@/lib/beta/cta-hrefs";
 import { PLACEHOLDER_PLANS, SUBSCRIPTION_STATE_SOURCE } from "@/lib/billing/billing-roadmap";
 
 const base = siteConfig.url.replace(/\/$/, "");
@@ -64,7 +65,7 @@ export default function PremiumPage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              href="/vip"
+              href={betaVipPageHref()}
               className="inline-flex items-center gap-2 rounded-2xl border border-gold-400/40 bg-gold-400/[0.08] px-6 py-3 text-sm font-bold text-gold-100 transition hover:border-gold-300/55 hover:bg-gold-400/12"
             >
               <Crown className="h-4 w-4 text-gold-300" aria-hidden />

@@ -180,7 +180,10 @@ export function AdminShellClient({ session, children }: Props) {
             </span>
           </div>
           <p className="mt-1 text-[11px] text-stone-400">
-            Última atividade: <span className="text-stone-200">{lastLabel}</span>
+            Última atividade:{" "}
+            <span className="text-stone-200" suppressHydrationWarning>
+              {lastLabel}
+            </span>
           </p>
         </div>
 

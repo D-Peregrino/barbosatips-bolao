@@ -18,15 +18,15 @@ export function BetaLaunchRibbon() {
             Beta público
           </span>
           <span className="min-w-0 text-[12px] leading-snug text-stone-300 sm:text-[13px]">
-            Portal em expansão — novas ligas, picks e inteligência chegam em cadência semanal.
+            Portal em expansão — novas ligas, picks e conteúdo editorial chegam em cadência semanal.
           </span>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
           <Link
-            href="/premium"
+            href="/picks"
             className="rounded-lg border border-gold-400/30 bg-gold-400/[0.08] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-gold-100 transition hover:border-gold-300/50"
           >
-            Early Premium
+            Ver picks
           </Link>
           <Link
             href="/comunidade"

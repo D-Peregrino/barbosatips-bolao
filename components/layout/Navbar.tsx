@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
@@ -9,27 +9,29 @@ import { siteConfig } from "@/config/site";
 import { BrandShield } from "@/components/brand/BrandShield";
 import { NavbarAccountControls } from "@/components/layout/NavbarAccountControls";
 
-/** Navegação principal desktop — portal esportivo, sempre visível (md+). */
-const PRIMARY_NAV = [
-  { href: "/", label: "Home", match: (p: string) => p === "/" },
-  { href: "/picks", label: "Picks", match: (p: string) => p.startsWith("/picks") || p.startsWith("/pick/") },
+type NavLink = { href: string; label: string; match: (_path: string) => boolean };
+type MoreLink = { href: string; label: string };
+
+const ALL_PRIMARY_NAV: NavLink[] = [
+  { href: "/", label: "Home", match: (p) => p === "/" },
+  { href: "/picks", label: "Picks", match: (p) => p.startsWith("/picks") || p.startsWith("/pick/") },
   {
     href: "/analises",
     label: "Análises",
-    match: (p: string) => p.startsWith("/analises") || p.startsWith("/analise/"),
+    match: (p) => p.startsWith("/analises") || p.startsWith("/analise/"),
   },
-  { href: "/performance", label: "Performance", match: (p: string) => p.startsWith("/performance") },
+  { href: "/performance", label: "Performance", match: (p) => p.startsWith("/performance") },
+  { href: "/ranking", label: "Ranking", match: (p) => p.startsWith("/ranking") },
   {
     href: "/inteligencia",
     label: "Inteligência",
-    match: (p: string) => p.startsWith("/inteligencia"),
+    match: (p) => p.startsWith("/inteligencia"),
   },
-  { href: "/bolao", label: "Bolão", match: (p: string) => p.startsWith("/bolao") },
-  { href: "/vip", label: "VIP", match: (p: string) => p.startsWith("/vip") || p.startsWith("/premium") },
-] as const;
+  { href: "/bolao", label: "Bolão", match: (p) => p.startsWith("/bolao") },
+  { href: "/vip", label: "VIP", match: (p) => p.startsWith("/vip") || p.startsWith("/premium") },
+];
 
-/** Secções extra — acessíveis pelo menu “Mais” (desktop) e no drawer mobile. */
-const MORE_NAV = [
+const ALL_MORE_NAV: MoreLink[] = [
   { href: "/tips", label: "Tips" },
   { href: "/live", label: "Live" },
   { href: "/premium", label: "Premium" },
@@ -37,19 +39,26 @@ const MORE_NAV = [
   { href: "/guias", label: "Guias" },
   { href: "/comunidade", label: "Comunidade" },
   { href: "/newsletter", label: "Newsletter" },
-] as const;
+];
 
-const MOBILE_DRAWER_LINKS = [
-  ...PRIMARY_NAV.map(({ href, label, match }) => ({ href, label, match })),
-  ...MORE_NAV.map(({ href, label }) => ({
-    href,
-    label,
-    match: (p: string) => p === href || p.startsWith(`${href}/`),
-  })),
-] as const;
+function primaryNavForBeta(): NavLink[] {
+  const b = siteConfig.betaLaunch;
+  if (!b.enabled) return ALL_PRIMARY_NAV;
+  return ALL_PRIMARY_NAV.filter((item) => {
+    if (b.hideInteligenciaNav && item.href === "/inteligencia") return false;
+    if (b.hideVipNav && item.href === "/vip") return false;
+    return true;
+  });
+}
 
-function moreMenuActive(pathname: string): boolean {
-  return MORE_NAV.some(({ href }) => pathname === href || pathname.startsWith(`${href}/`));
+function moreNavForBeta(): MoreLink[] {
+  const b = siteConfig.betaLaunch;
+  if (!b.enabled) return ALL_MORE_NAV;
+  return ALL_MORE_NAV.filter((item) => !(b.hidePremiumInMoreMenu && item.href === "/premium"));
+}
+
+function moreMenuActive(pathname: string, more: MoreLink[]): boolean {
+  return more.some(({ href }) => pathname === href || pathname.startsWith(`${href}/`));
 }
 
 export function Navbar() {
@@ -58,6 +67,20 @@ export function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  const primaryNav = useMemo(() => primaryNavForBeta(), []);
+  const moreNav = useMemo(() => moreNavForBeta(), []);
+  const mobileDrawerLinks = useMemo(
+    () => [
+      ...primaryNav.map(({ href, label, match }) => ({ href, label, match })),
+      ...moreNav.map(({ href, label }) => ({
+        href,
+        label,
+        match: (p: string) => p === href || p.startsWith(`${href}/`),
+      })),
+    ],
+    [primaryNav, moreNav],
+  );
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 8);
@@ -86,7 +109,7 @@ export function Navbar() {
     };
   }, [moreOpen]);
 
-  const maisHighlighted = moreMenuActive(pathname);
+  const maisHighlighted = moreMenuActive(pathname, moreNav);
 
   return (
     <header
@@ -114,7 +137,7 @@ export function Navbar() {
         {/* Desktop: portal principal + Mais */}
         <div className="hidden min-w-0 flex-1 items-center justify-center md:flex">
           <nav className="flex max-w-full items-center justify-center gap-0.5 lg:gap-1" aria-label="Navegação principal">
-            {PRIMARY_NAV.map(({ href, label, match }) => {
+            {primaryNav.map(({ href, label, match }) => {
               const active = match(pathname);
               return (
                 <Link
@@ -165,7 +188,7 @@ export function Navbar() {
                   aria-labelledby="nav-mais-button"
                   className="absolute right-0 top-full z-50 mt-1 min-w-[11.5rem] rounded-xl border border-gold-400/18 bg-[#0a0908]/96 py-1.5 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.9)] backdrop-blur-xl"
                 >
-                  {MORE_NAV.map(({ href, label }) => {
+                  {moreNav.map(({ href, label }) => {
                     const active = pathname === href || pathname.startsWith(`${href}/`);
                     return (
                       <Link
@@ -226,7 +249,7 @@ export function Navbar() {
           aria-label="Menu mobile"
         >
           <nav className="container-site flex flex-col gap-0.5 py-4">
-            {MOBILE_DRAWER_LINKS.map(({ href, label, match }) => {
+            {mobileDrawerLinks.map(({ href, label, match }) => {
               const active = match(pathname);
               return (
                 <Link

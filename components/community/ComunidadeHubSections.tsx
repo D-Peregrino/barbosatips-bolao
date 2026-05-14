@@ -142,10 +142,10 @@ export function ComunidadeRoadmapSection() {
         </li>
       </ul>
       <Link
-        href="/vip"
+        href="/comunidade"
         className="mt-6 inline-flex text-sm font-semibold text-gold-300 underline-offset-2 hover:underline"
       >
-        Saber mais sobre VIP →
+        Ver comunidade e canais oficiais →
       </Link>
     </section>
   );
