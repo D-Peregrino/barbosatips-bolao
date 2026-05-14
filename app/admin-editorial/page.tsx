@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listarTodasAnalisesAdmin } from "@/lib/analises/admin-queries";
-import { oddParaNumero } from "@/lib/analises/types";
+import { createAdminClient } from "@/lib/supabase/server";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 export const metadata = {
   title: "Admin Editorial · BarbosaTips",
@@ -12,8 +12,64 @@ type Props = {
   searchParams: Record<string, string | string[] | undefined>;
 };
 
-function statusPublicadoUi(status: string): boolean {
-  return status?.toLowerCase().trim() === "publicado";
+type AnaliseListaAdmin = {
+  id: string;
+  titulo: string;
+  slug: string;
+  status: string;
+  campeonato: string;
+  created_at: string;
+};
+
+function mapRow(r: Record<string, unknown>): AnaliseListaAdmin {
+  return {
+    id: String(r.id ?? ""),
+    titulo: String(r.titulo ?? ""),
+    slug: String(r.slug ?? ""),
+    status: String(r.status ?? ""),
+    campeonato: String(r.campeonato ?? ""),
+    created_at: String(r.created_at ?? ""),
+  };
+}
+
+function formatarData(iso: string): string {
+  if (!iso.trim()) return "—";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return iso;
+  }
+}
+
+async function buscarTodasAnalises(): Promise<AnaliseListaAdmin[]> {
+  if (shouldSkipLiveSupabase()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("admin-editorial analises", error);
+      return [];
+    }
+
+    return (data ?? []).map((row) =>
+      mapRow(row as Record<string, unknown>),
+    );
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
 }
 
 export default async function AdminEditorialPage({ searchParams }: Props) {
@@ -25,12 +81,11 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
   const slugGravado =
     typeof s === "string" ? s : Array.isArray(s) ? s[0] ?? "" : "";
 
-  const lista = await listarTodasAnalisesAdmin();
-  console.log("ADMIN ANALISES", lista);
+  const lista = await buscarTodasAnalises();
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] px-4 py-10 text-white">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         {gravado ? (
           <p className="mb-6 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
             Análise gravada
@@ -75,9 +130,11 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
           Admin Editorial BarbosaTips
         </h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Lista todas as linhas da tabela{" "}
-          <code className="text-zinc-300">analises</code> (qualquer estado), por{" "}
-          <code className="text-zinc-300">created_at</code> decrescente.
+          Todas as linhas da tabela{" "}
+          <code className="text-zinc-300">analises</code>, sem filtro de
+          estado, ordenadas por{" "}
+          <code className="text-zinc-300">created_at</code> (mais recentes
+          primeiro).
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -101,18 +158,18 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
           </h2>
           {lista.length === 0 ? (
             <p className="text-sm text-zinc-500">
-              Nenhuma análise na base. Crie a primeira com &quot;Nova
-              análise&quot;.
+              Nenhuma análise cadastrada.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-[#3d3420]/90">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="bg-[#14120e] text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   <tr>
                     <th className="px-4 py-3">Título</th>
                     <th className="px-4 py-3">Slug</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3">Odd</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Campeonato</th>
+                    <th className="px-4 py-3">Criado em</th>
                     <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -123,28 +180,31 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                       className="border-t border-[#2a2418]/90 odd:bg-[#0c0b09]/50"
                     >
                       <td className="max-w-[200px] truncate px-4 py-3 font-medium text-white">
-                        {row.titulo}
+                        {row.titulo || "—"}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-zinc-400">
-                        {row.slug}
-                      </td>
-                      <td className="px-4 py-3">
-                        {statusPublicadoUi(row.status) ? (
-                          <span className="text-emerald-400">Publicado</span>
-                        ) : (
-                          <span className="text-amber-300">Rascunho</span>
-                        )}
+                        {row.slug || "—"}
                       </td>
                       <td className="px-4 py-3 text-zinc-300">
-                        {oddParaNumero(row.odd).toFixed(2)}
+                        {row.status.trim() ? row.status : "—"}
+                      </td>
+                      <td className="max-w-[160px] truncate px-4 py-3 text-zinc-400">
+                        {row.campeonato.trim() ? row.campeonato : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
+                        {formatarData(row.created_at)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/admin-editorial/editar/${encodeURIComponent(row.slug)}`}
-                          className="text-xs font-semibold text-[#C9A227] underline-offset-2 hover:underline"
-                        >
-                          Editar
-                        </Link>
+                        {row.slug ? (
+                          <Link
+                            href={`/admin-editorial/editar/${encodeURIComponent(row.slug)}`}
+                            className="text-xs font-semibold text-[#C9A227] underline-offset-2 hover:underline"
+                          >
+                            Editar
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
