@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
+import { listTipsterSlugs } from "@/config/tipsters";
 import { listarAnalisesPublicadasParaSitemap } from "@/lib/analises/queries";
 
 const baseUrl = siteConfig.url.replace(/\/$/, "");
@@ -47,5 +48,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
-  return [...staticPages, ...sportPages, ...leaguePagesFutebol, ...leaguePagesBasquete, ...analisePages];
+  const tipsterPages: MetadataRoute.Sitemap = listTipsterSlugs().map((slug) => ({
+    url: `${baseUrl}/tipster/${encodeURIComponent(slug)}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.78,
+  }));
+
+  return [
+    ...staticPages,
+    ...sportPages,
+    ...leaguePagesFutebol,
+    ...leaguePagesBasquete,
+    ...tipsterPages,
+    ...analisePages,
+  ];
 }
