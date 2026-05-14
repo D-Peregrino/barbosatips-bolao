@@ -63,6 +63,42 @@ export async function listarAnalisesPublicadas(): Promise<AnaliseRow[]> {
 }
 
 /**
+ * Últimas análises publicadas (ex.: home) — lê um lote recente e filtra no servidor.
+ */
+export async function listarUltimasAnalisesPublicadas(
+  limit: number,
+): Promise<AnaliseRow[]> {
+  if (shouldSkipLiveSupabase() || limit <= 0) return [];
+  const cap = Math.min(Math.max(limit * 25, limit + 20), 200);
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS)
+      .order("created_at", { ascending: false })
+      .limit(cap);
+
+    if (error) {
+      console.error("analises listarUltimasPublicadas", error);
+      return [];
+    }
+
+    const rows = (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado(
+          (row as Record<string, unknown>).status,
+        ),
+      )
+      .map((row) => mapRow(row as Record<string, unknown>));
+
+    return rows.slice(0, limit);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+/**
  * Obtém análise por slug (qualquer status) — uso em /analise/[slug] durante testes.
  */
 export async function obterAnalisePorSlug(slug: string): Promise<AnaliseRow | null> {

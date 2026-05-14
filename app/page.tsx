@@ -1,6 +1,8 @@
+import { UltimasAnalisesSection } from "@/components/home/UltimasAnalisesSection";
 import { HeroSection } from "@/components/layout/HeroSection";
 import { TipCard } from "@/components/tips/TipCard";
 import type { TipCardData } from "@/components/tips/TipCard";
+import { listarUltimasAnalisesPublicadas } from "@/lib/analises/queries";
 
 const TIPS_MOCK: TipCardData[] = [
   {
@@ -17,10 +19,14 @@ const TIPS_MOCK: TipCardData[] = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const ultimasAnalises = await listarUltimasAnalisesPublicadas(3);
+
   return (
     <main className="min-h-screen bg-black text-white">
       <HeroSection tipsHoje={4} />
+
+      <UltimasAnalisesSection analises={ultimasAnalises} />
 
       <section className="mx-auto max-w-6xl px-4 py-12">
         <h2 className="mb-6 text-2xl font-bold text-yellow-400">
