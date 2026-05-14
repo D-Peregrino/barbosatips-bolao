@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
+import { AnaliseDetailCommunityAside } from "@/components/community/AnaliseDetailCommunityAside";
 import { obterAnalisePorSlug } from "@/lib/analises/queries";
 import { oddParaNumero } from "@/lib/analises/types";
 import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-analise";
@@ -117,7 +118,6 @@ export default async function AnaliseSlugPage({ params }: Props) {
   const desbloqueado =
     a.status === "rascunho" || !a.is_premium || podeVerPremium;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
-  const tg = siteConfig.social.telegram;
   const corpoHtml = conteudoAnaliseParaHtmlPublico(a.conteudo);
   const crumbs = breadcrumbTrailForAnalise(a);
   const graphLd = jsonLdAnaliseDetailGraph(a, crumbs);
@@ -187,23 +187,9 @@ export default async function AnaliseSlugPage({ params }: Props) {
           />
         </div>
 
-        <aside className="mt-12 rounded-2xl border border-[#C9A227]/35 bg-gradient-to-br from-[#1a1610] to-[#0c0b09] p-6 sm:p-8">
-          <p className="text-sm font-bold uppercase tracking-wide text-gold">
-            Receba mais análises
-          </p>
-          <p className="mt-2 text-sm text-zinc-400">
-            Entre no Telegram oficial da BarbosaTips para tips, análises e avisos
-            em tempo real.
-          </p>
-          <a
-            href={tg}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#229ED9] py-3 text-sm font-bold text-white transition hover:brightness-110 sm:w-auto sm:px-8"
-          >
-            CTA Telegram
-          </a>
-        </aside>
+        <AnaliseDetailCommunityAside
+          youtubeSearchQuery={`${a.time_casa} ${a.time_fora} BarbosaTips`}
+        />
       </div>
     </article>
   );

@@ -6,6 +6,7 @@ import { HomePortalHero } from "@/components/home/HomePortalHero";
 import { HomePremiumAnalises } from "@/components/home/HomePremiumAnalises";
 import { HomeQuickPicksRail } from "@/components/home/HomeQuickPicksRail";
 import { HomeSportsHub } from "@/components/home/HomeSportsHub";
+import { HomeCommunityHubStrip } from "@/components/community/HomeCommunityHubStrip";
 import { SportsRibbon } from "@/components/home/SportsRibbon";
 import { SportsTicker } from "@/components/home/SportsTicker";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
@@ -55,6 +56,7 @@ export default async function Home() {
     <div className="commercial-page-bg text-cream">
       <HomePortalHero analise={featured} viewerCanViewPremium={viewerPremium} />
       <SportsTicker items={tickerItems} />
+      <HomeCommunityHubStrip />
       <HomeLivePortalTeaser summary={liveTeaser} />
       <SportsRibbon kicker="BarbosaTips · portal ao vivo" />
 

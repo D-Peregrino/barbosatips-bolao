@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Send } from "lucide-react";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
@@ -57,6 +58,15 @@ export default async function PicksPage() {
               <span className="text-red-400">red</span> ou{" "}
               <span className="text-zinc-400">void</span>.
             </p>
+            <a
+              href={siteConfig.hub.telegramPicks}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-6 text-sm font-bold text-white shadow-lg shadow-[#229ED9]/15 transition hover:brightness-110"
+            >
+              <Send className="h-4 w-4 shrink-0" aria-hidden />
+              Receber picks no Telegram
+            </a>
           </header>
 
           <div className="mb-8 lg:hidden">

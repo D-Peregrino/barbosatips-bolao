@@ -26,9 +26,33 @@ export const siteConfig = {
   social: {
     twitter:   "https://twitter.com/barbosatips",
     instagram: "https://instagram.com/barbosatips",
-    youtube:   "https://youtube.com/@barbosatips",
+    youtube:   "https://www.youtube.com/@barbosatips",
+    /** Canal Telegram (avisos oficiais). */
     telegram:  "https://t.me/barbosatips",
+    /** Grupo / comunidade Telegram — substituir pelo link de convite real. */
+    telegramGrupo: "https://t.me/barbosatips",
     whatsapp:  "https://wa.me/5562999999999",
+  },
+
+  /**
+   * Hub central da comunidade (site como ponto de encontro).
+   * `youtubeChannelRssId`: ID UC… (Sobre do canal → “ID do canal”) para RSS dos últimos vídeos.
+   * `youtubeFallbackVideoIds` / `youtubeShortVideoIds`: IDs de vídeo (11 caracteres) quando não há RSS.
+   */
+  hub: {
+    telegramCanal:   "https://t.me/barbosatips",
+    telegramGrupo:   "https://t.me/barbosatips",
+    telegramPicks:   "https://t.me/barbosatips",
+    youtubeCanalUrl: "https://www.youtube.com/@barbosatips",
+    youtubeChannelRssId: "",
+    youtubeFallbackVideoIds: [],
+    youtubeShortVideoIds: [],
+    /** Roadmap só informativo (sem produto ligado). */
+    roadmap: {
+      vipComunidade:    true,
+      membrosDestaque:  true,
+      livesProgramadas: true,
+    },
   },
 
   // Google AdSense

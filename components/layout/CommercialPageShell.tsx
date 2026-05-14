@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { CommunityHubRail } from "@/components/community/CommunityHubRail";
 
 export type CommercialPageShellProps = {
   children: ReactNode;
@@ -25,7 +26,13 @@ export function CommercialPageShell({
   mainClassName,
 }: CommercialPageShellProps) {
   const left = railLeft ?? <AdSlot variant="sidebar" intent="sponsor" />;
-  const right = railRight ?? <AdSlot variant="sidebar" intent="ads" />;
+  const right =
+    railRight ?? (
+      <>
+        <AdSlot variant="sidebar" intent="ads" />
+        <CommunityHubRail />
+      </>
+    );
 
   return (
     <div className={cn("relative w-full", className)}>

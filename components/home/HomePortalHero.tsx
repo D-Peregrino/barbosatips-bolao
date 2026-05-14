@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight, Send, Sparkles, Youtube } from "lucide-react";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { BrandShield } from "@/components/brand/BrandShield";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
 import { rotuloEsporte, iconeEsporte } from "@/lib/picks/rotulo-esporte";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 type Props = {
   analise: AnaliseRow | null;
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export function HomePortalHero({ analise, viewerCanViewPremium }: Props) {
+  const { hub } = siteConfig;
+
   if (!analise) {
     return (
       <section
@@ -54,6 +57,26 @@ export function HomePortalHero({ analise, viewerCanViewPremium }: Props) {
             >
               Picks rápidas
             </Link>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <a
+              href={hub.telegramCanal}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#229ED9]/35 bg-[#229ED9]/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-sky-100 transition hover:bg-[#229ED9]/25"
+            >
+              <Send className="h-3.5 w-3.5" aria-hidden />
+              Telegram
+            </a>
+            <a
+              href={hub.youtubeCanalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-950/25 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-100 transition hover:border-red-400/45"
+            >
+              <Youtube className="h-3.5 w-3.5" aria-hidden />
+              YouTube
+            </a>
           </div>
         </div>
       </section>
@@ -140,6 +163,24 @@ export function HomePortalHero({ analise, viewerCanViewPremium }: Props) {
             >
               Ver picks rápidas
             </Link>
+            <a
+              href={hub.telegramCanal}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[#229ED9]/40 bg-[#229ED9]/15 px-4 text-sm font-bold text-sky-100 transition hover:bg-[#229ED9]/25"
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              Telegram
+            </a>
+            <a
+              href={hub.youtubeCanalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-950/30 px-4 text-sm font-bold text-red-100 transition hover:border-red-400/50"
+            >
+              <Youtube className="h-4 w-4" aria-hidden />
+              YouTube
+            </a>
           </div>
         </div>
 

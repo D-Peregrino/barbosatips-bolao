@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { Lock, Send, Youtube } from "lucide-react";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
@@ -15,7 +15,7 @@ export function AnalisesSidebar({
   itens,
   viewerCanViewPremium = true,
 }: Props) {
-  const tg = siteConfig.social.telegram;
+  const { hub, social } = siteConfig;
 
   return (
     <aside className="flex flex-col gap-8 lg:sticky lg:top-24">
@@ -65,20 +65,72 @@ export function AnalisesSidebar({
 
       <div className="rounded-2xl border border-[#C9A227]/35 bg-gradient-to-br from-[#1a1610] to-[#0c0b09] p-6 shadow-[0_24px_60px_-28px_rgba(212,175,55,.12)]">
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#E8D48B]">
-          Canal oficial
+          Canal e grupo
         </p>
         <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-          Receba prognósticos, avisos e conteúdo em tempo real no Telegram da
-          BarbosaTips.
+          Avisos oficiais no canal; conversa e alertas rápidos no grupo — o mesmo rigor BarbosaTips.
         </p>
         <a
-          href={tg}
+          href={hub.telegramCanal}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-5 flex w-full items-center justify-center rounded-xl bg-[#229ED9] py-3 text-sm font-bold text-white transition hover:brightness-110"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#229ED9] py-3 text-sm font-bold text-white transition hover:brightness-110"
         >
-          Entrar no Telegram
+          <Send className="h-4 w-4 shrink-0" aria-hidden />
+          Canal Telegram
         </a>
+        <a
+          href={hub.telegramGrupo}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 flex w-full items-center justify-center rounded-xl border border-sky-500/30 bg-sky-950/25 py-2.5 text-xs font-bold text-sky-100 transition hover:border-sky-400/45"
+        >
+          Grupo Telegram
+        </a>
+      </div>
+
+      <div className="rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/25 to-[#0c0b09] p-6 shadow-[0_24px_60px_-28px_rgba(0,0,0,.75)]">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-red-300/90">YouTube</p>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+          Análises em vídeo, resumos e shorts no canal oficial.
+        </p>
+        <a
+          href={hub.youtubeCanalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-950/30 py-3 text-sm font-bold text-red-50 transition hover:border-red-400/50"
+        >
+          <Youtube className="h-4 w-4 shrink-0" aria-hidden />
+          Ver canal
+        </a>
+        <Link
+          href="/comunidade"
+          className="mt-3 block text-center text-xs font-semibold text-gold-300/90 underline-offset-2 hover:underline"
+        >
+          Hub comunidade →
+        </Link>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-[#0c0b09]/90 p-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Mais redes</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a
+            href={social.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 transition hover:border-pink-500/30 hover:text-pink-200"
+          >
+            Instagram
+          </a>
+          <a
+            href={social.twitter}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-200"
+          >
+            X
+          </a>
+        </div>
       </div>
     </aside>
   );
