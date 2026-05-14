@@ -65,6 +65,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Dashboard operacional interno — sem auth; usar só em ambiente confiável. */
+  if (path.startsWith("/operacional")) {
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }

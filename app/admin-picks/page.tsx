@@ -51,6 +51,12 @@ export default async function AdminPicksPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
+              href="/operacional"
+              className="inline-flex items-center justify-center rounded-xl border border-violet-800/50 bg-violet-950/30 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:border-violet-500/55 hover:text-white"
+            >
+              Painel operacional
+            </Link>
+            <Link
               href="/admin-leads"
               className="inline-flex items-center justify-center rounded-xl border border-amber-900/50 bg-amber-950/25 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-600/55 hover:text-white"
             >
