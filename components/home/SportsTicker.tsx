@@ -44,7 +44,7 @@ export function SportsTicker({
         className,
       )}
       role="marquee"
-      aria-label="Destaques ao vivo: odds e resultados"
+      aria-label="Últimas picks, análises e odds em movimento"
     >
       <div
         className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-black to-transparent sm:w-24"
@@ -66,7 +66,7 @@ export function SportsTicker({
             <div
               key={`${item.id}-${i}`}
               className={cn(
-                "flex shrink-0 items-center rounded-xl border shadow-sm transition duration-300 will-change-transform",
+                "flex shrink-0 items-center rounded-xl border shadow-sm transition duration-300 will-change-transform motion-safe:hover:scale-[1.02]",
                 slim
                   ? "gap-2 rounded-lg px-3 py-1.5"
                   : "gap-3 px-4 py-2 hover:border-amber-400/45 hover:shadow-[0_0_28px_-6px_rgba(245,158,11,0.22)]",

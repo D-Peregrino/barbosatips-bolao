@@ -14,6 +14,7 @@ import {
   betaVipHref,
   betaVipUpsellLabel,
 } from "@/lib/beta/cta-hrefs";
+import { relativeTimeAgoPt } from "@/lib/live/time-ago";
 
 function formatarHorario(iso: string): string {
   if (!iso) return "—";
@@ -69,6 +70,32 @@ function badgeResultado(
     return {
       label: "PENDENTE",
       className: "border-amber-400/45 bg-amber-950/50 text-amber-100",
+    };
+  }
+  return null;
+}
+
+function chipRecencia(pick: QuickPickRow, now: number): { label: string; className: string } | null {
+  const t = new Date(pick.created_at).getTime();
+  if (!Number.isFinite(t)) return null;
+  const h = (now - t) / 3_600_000;
+  if (h < 6) {
+    return {
+      label: "NOVA PICK",
+      className:
+        "border-violet-400/40 bg-violet-950/45 text-violet-100 shadow-[0_0_16px_-6px_rgba(167,139,250,0.25)]",
+    };
+  }
+  if (h < 48) {
+    return {
+      label: "RECENTE",
+      className: "border-sky-400/35 bg-sky-950/40 text-sky-100",
+    };
+  }
+  if (pick.status === "ativo" && pick.confianca >= 86) {
+    return {
+      label: "HOT",
+      className: "border-orange-400/40 bg-orange-950/45 text-orange-100",
     };
   }
   return null;
@@ -192,6 +219,9 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
   const badge = badgeResultado(pick);
   const locked = pick.is_premium && !viewerCanViewPremium;
   const tier = pickContentTier(pick);
+  const now = Date.now();
+  const extraChip = chipRecencia(pick, now);
+  const publicadoRel = relativeTimeAgoPt(pick.created_at, now);
 
   return (
     <article
@@ -200,6 +230,12 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
         cardShellClass(pick, locked, tier),
       )}
     >
+      {pick.status === "ativo" && !locked ? (
+        <span
+          className="pointer-events-none absolute inset-0 z-[1] rounded-xl border border-amber-400/30 motion-safe:animate-pulse-soft-ativo sm:rounded-2xl"
+          aria-hidden
+        />
+      ) : null}
       <Link
         href={`/pick/${encodeURIComponent(pick.id)}`}
         className="absolute inset-0 z-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950 sm:rounded-2xl"
@@ -227,6 +263,16 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
           {pick.campeonato?.trim() ? (
             <span className="rounded-full border border-gold-400/22 bg-gold-400/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-gold-200/95">
               {pick.campeonato.trim()}
+            </span>
+          ) : null}
+          {extraChip && !locked ? (
+            <span
+              className={cn(
+                "rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                extraChip.className,
+              )}
+            >
+              {extraChip.label}
             </span>
           ) : null}
           {badge && !locked ? (
@@ -280,6 +326,9 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
             <time dateTime={pick.horario_jogo} className="font-medium text-cream-muted">
               {formatarHorario(pick.horario_jogo)}
             </time>
+            <span className="mt-1 block text-[10px] text-stone-500">
+              Publicada <span className="text-stone-400">{publicadoRel}</span>
+            </span>
           </div>
           <div
             className={cn(

@@ -4,6 +4,7 @@ import { Flame, TrendingUp, Trophy, Newspaper } from "lucide-react";
 import type { AnaliseRow } from "@/lib/analises/types";
 import type { QuickPickRow } from "@/lib/picks/types";
 import { oddParaNumero } from "@/lib/analises/types";
+import { relativeTimeAgoPt } from "@/lib/live/time-ago";
 
 type ColProps = {
   title: string;
@@ -57,6 +58,7 @@ function ColumnEmpty({
 function PickLine({ pick }: { pick: QuickPickRow }) {
   const oddRaw = typeof pick.odd === "number" ? pick.odd : Number(pick.odd);
   const oddSafe = Number.isFinite(oddRaw) ? oddRaw : 0;
+  const when = relativeTimeAgoPt(pick.created_at);
 
   const badge =
     pick.status === "ativo"
@@ -83,7 +85,9 @@ function PickLine({ pick }: { pick: QuickPickRow }) {
             @{oddSafe.toFixed(2)}
           </span>
         </div>
-        <p className="mt-0.5 line-clamp-1 text-[11px] text-stone-500">{pick.mercado}</p>
+        <p className="mt-0.5 line-clamp-1 text-[11px] text-stone-500">
+          {pick.mercado} · <span className="text-stone-600">{when}</span>
+        </p>
       </Link>
     </li>
   );
@@ -91,6 +95,7 @@ function PickLine({ pick }: { pick: QuickPickRow }) {
 
 function AnaliseLine({ a }: { a: AnaliseRow }) {
   const odd = oddParaNumero(a.odd).toFixed(2);
+  const when = relativeTimeAgoPt(a.created_at);
   return (
     <li>
       <Link
@@ -101,7 +106,7 @@ function AnaliseLine({ a }: { a: AnaliseRow }) {
           {a.titulo}
         </p>
         <p className="mt-0.5 text-[11px] text-stone-500">
-          @{odd} · {a.confianca}%
+          @{odd} · {a.confianca}% · <span className="text-stone-600">{when}</span>
         </p>
       </Link>
     </li>

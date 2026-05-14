@@ -19,6 +19,8 @@ export type LivePickSlim = {
   confianca: number;
   esporte: string;
   badges: Array<"HOT" | "PREMIUM">;
+  /** ISO — para badges “ao vivo” / NOVA PICK no cliente. */
+  createdAt?: string;
 };
 
 export type LiveSummaryPayload = {

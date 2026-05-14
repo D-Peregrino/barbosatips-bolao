@@ -4,7 +4,7 @@ import { buildHomeTickerItems } from "@/lib/home/home-ticker";
 import { melhoresGreens, picksQuentes, trendingPicks } from "@/lib/home/home-highlights";
 import type { QuickPickRow } from "@/lib/picks/types";
 import type { LiveActivityLine, LivePickSlim, LiveSummaryPayload } from "@/lib/live/types";
-import { minutosAtrasPt } from "@/lib/live/time-ago";
+import { relativeTimeAgoPt } from "@/lib/live/time-ago";
 
 function parseTime(iso: string): number {
   const t = new Date(iso).getTime();
@@ -30,6 +30,7 @@ function toSlim(p: QuickPickRow): LivePickSlim {
     confianca: p.confianca,
     esporte: p.esporte,
     badges: pickBadges(p),
+    createdAt: p.created_at,
   };
 }
 
@@ -68,7 +69,7 @@ function buildActivityLines(
   );
   const newest = sortedByCreated[0];
   if (newest) {
-    const rel = minutosAtrasPt(newest.created_at, now);
+    const rel = relativeTimeAgoPt(newest.created_at, now);
     lines.push({
       id: `pick-new-${newest.id}`,
       kind: "pick",
@@ -98,12 +99,17 @@ function buildActivityLines(
     });
   }
 
-  const tenis = analises.find((a) => a.esporte === "tenis");
-  if (tenis) {
+  const analisesOrdenadas = [...analises].sort(
+    (a, b) => parseTime(b.created_at) - parseTime(a.created_at),
+  );
+  const novaAnalise = analisesOrdenadas[0];
+  if (novaAnalise) {
+    const relA = relativeTimeAgoPt(novaAnalise.created_at, now);
+    const tit = novaAnalise.titulo.trim();
     lines.push({
-      id: `analise-${tenis.id}`,
+      id: `analise-${novaAnalise.id}`,
       kind: "analise",
-      text: `Nova análise de tênis · ${tenis.titulo.slice(0, 48)}${tenis.titulo.length > 48 ? "…" : ""}`,
+      text: `Nova análise ${relA} · ${tit.slice(0, 48)}${tit.length > 48 ? "…" : ""}`,
     });
   }
 
@@ -165,7 +171,7 @@ export function buildLiveSummaryPayload(
       streakAtual: perf.streakAtual,
       bestGreenStreak: bestGreenStreak(picks),
     },
-    tickerItems: buildHomeTickerItems(picks.slice(0, 14)),
+    tickerItems: buildHomeTickerItems(picks.slice(0, 14), analises.slice(0, 8), now),
     activity: buildActivityLines(picks, analises, now),
     recentPicks: picks.slice(0, 12).map(toSlim),
     trending: trendingRows.map(toSlim),

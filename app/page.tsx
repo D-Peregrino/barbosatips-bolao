@@ -9,6 +9,7 @@ import { HomeSportsHub } from "@/components/home/HomeSportsHub";
 import { HomeCommunityHubStrip } from "@/components/community/HomeCommunityHubStrip";
 import { SportsRibbon } from "@/components/home/SportsRibbon";
 import { SportsTicker } from "@/components/home/SportsTicker";
+import { ActivityPulseTicker } from "@/components/home/ActivityPulseTicker";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
 import {
@@ -49,13 +50,14 @@ export default async function Home() {
   const trending = trendingPicks(picksHome, 4, excludeTrending);
   const perf = buildHomePerformanceSnapshot(picksHome);
   const picksRail = picksHome.slice(0, 14);
-  const tickerItems = buildHomeTickerItems(picksHome.slice(0, 12));
+  const tickerItems = buildHomeTickerItems(picksHome.slice(0, 12), ultimas.slice(0, 8));
   const liveTeaser = buildLiveSummaryPayload(picksHome, ultimas);
 
   return (
     <div className="commercial-page-bg text-cream">
       <HomePortalHero analise={featured} viewerCanViewPremium={viewerPremium} />
       <SportsTicker items={tickerItems} />
+      <ActivityPulseTicker lines={liveTeaser.activity} />
       <HomeCommunityHubStrip />
       <HomeLivePortalTeaser summary={liveTeaser} />
       <SportsRibbon kicker="BarbosaTips · portal ao vivo" />

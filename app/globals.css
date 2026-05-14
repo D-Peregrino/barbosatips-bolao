@@ -398,6 +398,25 @@
   }
 }
 
+@keyframes fade-live {
+  from {
+    opacity: 0.82;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-soft-ativo {
+  0%,
+  100% {
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
 @keyframes brandBreathe {
   0%, 100% {
     opacity: 0.9;
@@ -430,6 +449,20 @@
     .animate-brand-breathe {
       animation: none;
     }
+    .animate-fade-live {
+      animation: none;
+    }
+    .animate-pulse-soft-ativo {
+      animation: none;
+    }
+  }
+
+  .animate-fade-live {
+    animation: fade-live 0.85s ease-out 1;
+  }
+
+  .animate-pulse-soft-ativo {
+    animation: pulse-soft-ativo 2.8s ease-in-out infinite;
   }
 
   .animate-brand-breathe {

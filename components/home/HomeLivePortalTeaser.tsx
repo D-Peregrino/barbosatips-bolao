@@ -16,11 +16,16 @@ export function HomeLivePortalTeaser({
   const activity = summary.activity ?? [];
   const line =
     activity[0]?.text?.trim() ||
-    "Centro live sincronizado com as quick picks.";
+    "Picks e análises em cadência — segue o portal para não perderes o ritmo.";
+  const newest = summary.recentPicks[0];
+  const newestTs = newest?.createdAt ? new Date(newest.createdAt).getTime() : NaN;
+  const showNovaPick =
+    Number.isFinite(newestTs) && Date.now() - newestTs < 6 * 60 * 60 * 1000;
+
   return (
     <div
       className={cn(
-        "border-y border-amber-500/15 bg-gradient-to-r from-zinc-950/80 via-black/90 to-zinc-950/80",
+        "animate-fade-live border-y border-amber-500/15 bg-gradient-to-r from-zinc-950/80 via-black/90 to-zinc-950/80",
         className,
       )}
     >
@@ -28,6 +33,8 @@ export function HomeLivePortalTeaser({
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
           <LiveBadge variant="live" />
           <LiveBadge variant="hot" />
+          <LiveBadge variant="recent" />
+          {showNovaPick ? <LiveBadge variant="novaPick" /> : null}
           <span
             className="min-w-0 flex-1 truncate text-[11px] text-zinc-400 sm:text-xs"
             title={line}

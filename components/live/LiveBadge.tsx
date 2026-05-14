@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 export type LiveBadgeVariant =
   | "live"
   | "hot"
+  | "recent"
+  | "novaPick"
   | "premium"
   | "green"
   | "red";
@@ -14,6 +16,10 @@ const styles: Record<
   live:
     "border-amber-400/45 bg-amber-500/15 text-amber-100 ring-1 ring-amber-500/20",
   hot: "border-orange-400/40 bg-orange-950/40 text-orange-100",
+  recent:
+    "border-sky-400/35 bg-sky-950/40 text-sky-100 ring-1 ring-sky-500/15",
+  novaPick:
+    "border-violet-400/35 bg-violet-950/45 text-violet-100 ring-1 ring-violet-500/12",
   premium:
     "border-gold-400/45 bg-gold-400/[0.12] text-gold-100 shadow-[0_0_18px_-8px_rgba(201,162,39,0.35)]",
   green:
@@ -24,6 +30,8 @@ const styles: Record<
 const labels: Record<LiveBadgeVariant, string> = {
   live: "AO VIVO",
   hot: "HOT",
+  recent: "RECENTE",
+  novaPick: "NOVA PICK",
   premium: "PREMIUM",
   green: "GREEN",
   red: "RED",

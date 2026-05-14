@@ -4,6 +4,7 @@ import type { QuickPickRow } from "@/lib/picks/types";
 import { cn } from "@/lib/utils";
 import { rotuloEsporte, iconeEsporte } from "@/lib/picks/rotulo-esporte";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { relativeTimeAgoPt } from "@/lib/live/time-ago";
 
 type Props = {
   picks: QuickPickRow[];
@@ -64,6 +65,7 @@ export function HomeQuickPicksRail({ picks, viewerCanViewPremium }: Props) {
             const locked = p.is_premium && !viewerCanViewPremium;
             const oddStr = p.odd.toFixed(2).replace(".", ",");
             const res = resultadoVisual(p, locked);
+            const quando = relativeTimeAgoPt(p.created_at);
             return (
               <li
                 key={p.id}
@@ -71,7 +73,7 @@ export function HomeQuickPicksRail({ picks, viewerCanViewPremium }: Props) {
                 style={{ minWidth: "min(88vw, 340px)", maxWidth: "360px", flex: "0 0 auto" }}
               >
                 <Link
-                  href="/picks"
+                  href={`/pick/${encodeURIComponent(p.id)}`}
                   className={cn(
                     "flex h-full min-h-[132px] flex-row overflow-hidden rounded-2xl border p-4 transition duration-300 hover:-translate-y-0.5",
                     railCardClass(p, locked),
@@ -90,7 +92,10 @@ export function HomeQuickPicksRail({ picks, viewerCanViewPremium }: Props) {
                       <p className="mt-2 line-clamp-2 text-left text-[15px] font-bold leading-snug text-cream">
                         {p.jogo}
                       </p>
-                      <p className="mt-1 line-clamp-1 text-left text-xs text-stone-500">{p.mercado}</p>
+                      <p className="mt-1 line-clamp-1 text-left text-xs text-stone-500">
+                        {p.mercado}
+                        <span className="text-stone-600"> · {quando}</span>
+                      </p>
                     </div>
                     <div className="mt-3 flex items-center gap-2">
                       {p.is_premium ? <PremiumLockBadge className="scale-90" /> : null}
