@@ -77,8 +77,9 @@ export function PwaClientMount() {
     return (
       <div
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-[100] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
-          "transition-opacity duration-300 ease-out",
+          "fixed bottom-0 left-0 right-0 z-[100] p-4 transition-opacity duration-300 ease-out",
+          "max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] max-md:pb-2",
+          "md:bottom-0 md:pb-[max(1rem,env(safe-area-inset-bottom))]",
         )}
       >
         <div className="mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-gold-400/25 bg-zinc-950/95 p-4 shadow-[0_-12px_48px_-12px_rgba(0,0,0,0.85)] backdrop-blur-xl">
@@ -113,7 +114,13 @@ export function PwaClientMount() {
 
   if (showIos) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] motion-safe-transition motion-reduce:transition-none duration-300 ease-out">
+      <div
+        className={cn(
+          "fixed left-0 right-0 z-[100] p-4 duration-300 ease-out motion-reduce:transition-none",
+          "max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] max-md:pb-2",
+          "bottom-0 pb-[max(1rem,env(safe-area-inset-bottom))]",
+        )}
+      >
         <div className="mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-gold-400/20 bg-zinc-950/95 p-4 shadow-[0_-12px_48px_-12px_rgba(0,0,0,0.85)] backdrop-blur-xl">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-white">Instalar no iPhone / iPad</p>

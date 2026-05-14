@@ -58,8 +58,8 @@ export default async function Home() {
       <HomeLivePortalTeaser summary={liveTeaser} />
       <SportsRibbon kicker="BarbosaTips · portal ao vivo" />
 
-      <CommercialPageShell mainClassName="pb-20 pt-8 sm:pt-10">
-        <div className="space-y-10 sm:space-y-12 lg:space-y-14">
+      <CommercialPageShell mainClassName="pb-16 max-md:pt-6 sm:pb-20 sm:pt-8 md:pt-10">
+        <div className="space-y-8 sm:space-y-10 lg:space-y-12">
           <div className="lg:hidden">
             <AdSlot variant="banner-horizontal" intent="ads" />
           </div>

@@ -78,6 +78,7 @@ export function TipsterHero({ profile }: Props) {
                 alt=""
                 width={200}
                 height={200}
+                sizes="(max-width: 1024px) 45vw, 260px"
                 className="h-40 w-40 object-contain drop-shadow-[0_0_28px_rgba(201,162,39,0.22)]"
                 priority
                 unoptimized={avatar.endsWith(".svg")}

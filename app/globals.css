@@ -27,6 +27,7 @@
   --transition-slow:   400ms ease;
   --navbar-h:          64px;
   --sidebar-w:         280px;
+  --mobile-nav-h:      3.5rem;
 }
 
 /* ─── BASE RESET ─────────────────────────────────────────────────────────────*/
@@ -49,6 +50,12 @@
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
     scroll-padding-top: calc(var(--navbar-h) + 1rem);
+  }
+
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+    }
   }
 
   body {
@@ -339,6 +346,26 @@
     background: linear-gradient(to bottom, #030303, #030303, #000000);
   }
 
+  @media (max-width: 767px) {
+    .commercial-card-elevated {
+      border-radius: 0.9375rem;
+      border-color: rgba(255, 255, 255, 0.1);
+      background: linear-gradient(
+        165deg,
+        rgba(22, 21, 18, 0.92),
+        rgba(8, 8, 7, 0.98)
+      );
+      box-shadow:
+        0 1px 0 rgba(232, 207, 122, 0.05) inset,
+        0 10px 28px -18px rgba(0, 0, 0, 0.7);
+    }
+
+    .commercial-page-bg {
+      color: #b8b0a3;
+      background: linear-gradient(180deg, #060605 0%, #030303 45%, #020201 100%);
+    }
+  }
+
   /** Textura diagonal discreta (clube / relvado) */
   .texture-club {
     background-image: repeating-linear-gradient(
@@ -595,6 +622,32 @@
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+@keyframes barbosa-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.barbosa-skeleton-line {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(39, 39, 42, 0.72);
+}
+
+.barbosa-skeleton-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(250, 250, 250, 0.07),
+    transparent
+  );
+  animation: barbosa-skeleton-shimmer 1.2s ease-in-out infinite;
 }
 
 @media (max-width: 640px) {

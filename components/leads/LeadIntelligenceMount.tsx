@@ -72,7 +72,7 @@ export function LeadIntelligenceMount() {
     <>
       {showPopup ? (
         <div
-          className="fixed inset-0 z-[110] flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
+          className="fixed inset-0 z-[110] flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:items-center sm:pb-[max(1rem,env(safe-area-inset-bottom))]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="lead-popup-title"
@@ -113,7 +113,7 @@ export function LeadIntelligenceMount() {
       ) : null}
 
       {!stickyDismissed && !showPopup ? (
-        <div className="fixed bottom-0 left-0 right-0 z-[105] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 z-[105] hidden pb-[max(0.5rem,env(safe-area-inset-bottom))] md:block">
           {!stickyOpen ? (
             <button
               type="button"

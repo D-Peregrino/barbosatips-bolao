@@ -190,13 +190,13 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-2xl border p-5 shadow-[0_24px_56px_-30px_rgba(0,0,0,.82)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_60px_-26px_rgba(201,162,39,0.12)]",
+        "group relative overflow-hidden rounded-xl border p-4 shadow-[0_14px_40px_-28px_rgba(0,0,0,0.75)] transition duration-300 sm:rounded-2xl sm:p-5 sm:shadow-[0_24px_56px_-30px_rgba(0,0,0,.82)] md:hover:-translate-y-0.5 md:hover:shadow-[0_28px_60px_-26px_rgba(201,162,39,0.12)]",
         cardShellClass(pick, locked, tier),
       )}
     >
       <Link
         href={`/pick/${encodeURIComponent(pick.id)}`}
-        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950"
+        className="absolute inset-0 z-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950 sm:rounded-2xl"
         aria-label={`Ver pick ${pick.jogo}`}
       />
 
@@ -235,7 +235,7 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
           ) : null}
         </div>
 
-        <h2 className="font-display text-xl font-bold leading-snug text-cream sm:text-2xl">{pick.jogo}</h2>
+        <h2 className="font-display text-lg font-bold leading-snug text-cream sm:text-xl md:text-2xl">{pick.jogo}</h2>
 
         {locked ? (
           <div className="relative mt-4 overflow-hidden rounded-xl border border-gold-400/18 bg-black/50 py-8">
@@ -243,7 +243,7 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
               <div className="flex flex-wrap gap-2">
                 <span className="text-sm text-zinc-400">Mercado</span>
                 <span className="rounded-lg bg-white/5 px-2 py-0.5 text-sm text-zinc-100">{pick.mercado}</span>
-                <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
+                <span className="ml-auto rounded-lg border border-gold-400/28 bg-gradient-to-br from-gold-400/[0.08] to-black/55 px-2.5 py-1 font-mono text-lg font-extrabold tabular-nums tracking-tight text-gold-100 shadow-[0_0_20px_-10px_rgba(201,162,39,0.35)] sm:text-xl">
                   @{pick.odd.toFixed(2)}
                 </span>
               </div>
@@ -253,24 +253,24 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
         ) : (
           <>
             <div className="mt-3 flex flex-wrap items-baseline gap-2 gap-y-2">
-              <span className="text-sm font-medium text-stone-500">Mercado</span>
+              <span className="text-sm font-medium text-stone-400">Mercado</span>
               <span className="rounded-lg border border-gold-400/10 bg-white/[0.03] px-2 py-0.5 text-sm font-semibold text-cream-muted">
                 {pick.mercado}
               </span>
-              <span className="ml-auto rounded-lg border border-gold-400/25 bg-black/50 px-2.5 py-1 font-mono text-xl font-extrabold tabular-nums tracking-tight text-gold-200 shadow-[0_0_24px_-8px_rgba(201,162,39,0.25)]">
+              <span className="ml-auto rounded-lg border border-gold-400/28 bg-gradient-to-br from-gold-400/[0.08] to-black/55 px-2.5 py-1 font-mono text-lg font-extrabold tabular-nums tracking-tight text-gold-100 shadow-[0_0_20px_-10px_rgba(201,162,39,0.35)] sm:text-xl">
                 @{pick.odd.toFixed(2).replace(".", ",")}
               </span>
             </div>
 
-            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-stone-500">
+            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-stone-400">
               {pick.justificativa?.trim() || "Pick rápida — sem justificativa longa."}
             </p>
           </>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gold-400/10 pt-4">
-          <div className="text-xs text-stone-500">
-            <span className="block uppercase tracking-wider text-stone-600">Jogo</span>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gold-400/12 pt-4">
+          <div className="text-xs text-stone-400">
+            <span className="block uppercase tracking-wider text-stone-500">Jogo</span>
             <time dateTime={pick.horario_jogo} className="font-medium text-cream-muted">
               {formatarHorario(pick.horario_jogo)}
             </time>

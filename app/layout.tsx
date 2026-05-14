@@ -9,6 +9,7 @@ import { siteConfig } from "@/config/site";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PwaClientMount } from "@/components/pwa/PwaClientMount";
 import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 const fontDisplay = Oswald({
   subsets: ["latin"],
@@ -114,9 +115,14 @@ export default function RootLayout({
         <Navbar />
         <GlobalLiveBar />
 
-        <main className="pt-[calc(4.5rem+5.5rem)]">{children}</main>
+        <main className="pt-[calc(4.5rem+5.5rem)] pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] transition-[padding] duration-300 ease-out md:pb-0">
+          {children}
+        </main>
 
-        <Footer />
+        <div className="max-md:pb-[calc(3.25rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+          <Footer />
+        </div>
+        <MobileBottomNav />
         <PwaClientMount />
         <LeadIntelligenceMount />
       </body>
