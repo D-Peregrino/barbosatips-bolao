@@ -1,11 +1,31 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { AdminNovaAnaliseForm } from "@/components/admin/analises/AdminNovaAnaliseForm";
+
+const AdminNovaAnaliseForm = dynamic(
+  () =>
+    import("@/components/admin/analises/AdminNovaAnaliseForm").then(
+      (m) => m.AdminNovaAnaliseForm,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="py-14 text-center text-sm text-zinc-400">
+        A carregar formulário e editor…
+      </div>
+    ),
+  },
+);
 
 export const metadata = {
   title: "Nova análise · Admin · BarbosaTips",
 };
 
-export default async function AdminNovaAnalisePage() {
+/**
+ * Autenticação: layout (dashboard) redireciona uma única vez para /admin/analises/login
+ * se a sessão for inválida. O formulário carrega só no cliente para evitar bloqueio
+ * de hidratação / bundle com Tiptap.
+ */
+export default function AdminNovaAnalisePage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] text-white">
       <div
