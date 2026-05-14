@@ -14,6 +14,7 @@ import { buildSportHubStats } from "@/lib/sport-hub-stats";
 import { getLeaguesForSport, isSportSlug } from "@/lib/sport-routes";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
+import { FollowToggleButton } from "@/components/engagement/FollowToggleButton";
 
 export const revalidate = siteConfig.revalidate.analises;
 
@@ -76,6 +77,9 @@ export default async function EsportePage({ params }: Props) {
             title={sport.label}
             subtitle={`Análises e picks rápidas BarbosaTips em ${sport.label}. Escolhe uma competição ou navega pelos cards.`}
             leagues={leagues}
+            actionsSlot={
+              <FollowToggleButton kind="esporte" refKey={esporte} showLabel label={`Seguir ${sport.label}`} />
+            }
           />
 
           <section className="commercial-card-elevated border border-amber-500/12 p-5 sm:p-6">

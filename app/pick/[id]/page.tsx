@@ -6,6 +6,7 @@ import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { JsonLdScript } from "@/components/seo/JsonLdScript";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 import { siteConfig } from "@/config/site";
 import { breadcrumbTrailForPick } from "@/lib/seo/breadcrumbs-model";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
@@ -88,6 +89,7 @@ export default async function PickPublicPage({ params }: Props) {
                   {pick.jogo}
                 </h1>
                 {pick.is_premium ? <PremiumLockBadge className="shrink-0" /> : null}
+                <FavoriteHeartButton kind="pick" refId={pick.id} className="shrink-0" />
               </div>
               {pick.campeonato?.trim() ? (
                 <p className="mt-2 text-sm text-zinc-400">{pick.campeonato.trim()}</p>

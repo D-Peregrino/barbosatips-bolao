@@ -268,3 +268,32 @@ export async function obterQuickPickPorId(rawId: string): Promise<QuickPickRow |
     return null;
   }
 }
+
+/** Picks por ids (favoritos / meu feed). */
+export async function listarQuickPicksPorIds(
+  ids: string[],
+  soGratis = false,
+): Promise<QuickPickRow[]> {
+  const uniq = Array.from(new Set(ids.map((s) => String(s ?? "").trim().toLowerCase()).filter(Boolean)));
+  if (shouldSkipLiveSupabase() || uniq.length === 0) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("quick_picks")
+      .select(COLUNAS)
+      .in("id", uniq)
+      .order("horario_jogo", { ascending: false });
+
+    if (error) {
+      console.error("quick_picks por ids", error);
+      return [];
+    }
+
+    const rows = (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+    if (!soGratis) return rows;
+    return rows.filter((p) => !p.is_premium);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}

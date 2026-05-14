@@ -14,6 +14,7 @@ const FOOTER_LINKS = {
   Comunidade: [
     { href: "/bolao", label: "Bolão" },
     { href: "/bolao", label: "Criar Bolão" },
+    { href: "/meu-feed", label: "Meu feed" },
     { href: "/dashboard", label: "Minha Conta" },
   ],
   Esportes: siteConfig.sports.slice(0, 4).map((s) => ({

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { iconeEsporte, rotuloEsporte } from "@/lib/picks/rotulo-esporte";
 import type { SportHubStats } from "@/lib/sport-hub-stats";
 import type { LeagueEntry } from "@/lib/sport-routes";
@@ -75,11 +76,14 @@ export function SportHero({
   title,
   subtitle,
   leagues,
+  actionsSlot,
 }: {
   esporteSlug: string;
   title: string;
   subtitle: string;
   leagues: LeagueEntry[];
+  /** Botões extra (ex.: seguir esporte). */
+  actionsSlot?: ReactNode;
 }) {
   const icon = iconeEsporte(esporteSlug);
   return (
@@ -103,7 +107,8 @@ export function SportHero({
             {subtitle}
           </p>
         </div>
-        <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap sm:justify-end">
+          {actionsSlot ? <div className="flex flex-wrap gap-2">{actionsSlot}</div> : null}
           <Link
             href="/analises"
             className="inline-flex items-center justify-center rounded-xl border border-zinc-600/80 bg-zinc-950/60 px-5 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-amber-500/35"

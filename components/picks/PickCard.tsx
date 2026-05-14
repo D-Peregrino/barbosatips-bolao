@@ -4,6 +4,7 @@ import type { QuickPickRow } from "@/lib/picks/types";
 import { cn } from "@/lib/utils";
 import { iconeEsporte, rotuloEsporte } from "@/lib/picks/rotulo-esporte";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 
 function formatarHorario(iso: string): string {
   if (!iso) return "—";
@@ -189,6 +190,10 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
         className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950"
         aria-label={`Ver pick ${pick.jogo}`}
       />
+
+      <div className="absolute left-3 top-3 z-30">
+        <FavoriteHeartButton kind="pick" refId={pick.id} />
+      </div>
 
       <div className="relative z-10 pointer-events-none">
         {cantoIcone(pick, locked)}

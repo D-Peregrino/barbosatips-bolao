@@ -7,7 +7,7 @@ import {
 } from "@/lib/admin/bolao-cookie";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
-const PROTECTED_ROUTES = ["/dashboard"];
+const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
 
 const ADMIN_ROUTES = ["/admin"];
 
@@ -18,6 +18,10 @@ export async function middleware(request: NextRequest) {
 
   if (path === "/nba") {
     return NextResponse.redirect(new URL("/basquete/nba", request.url));
+  }
+
+  if (path.startsWith("/auth")) {
+    return NextResponse.next();
   }
 
   /** Ranking público do bolão: sem Supabase Auth, sem redirect para login. */

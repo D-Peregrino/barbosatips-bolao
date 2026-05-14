@@ -22,6 +22,7 @@ import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { viewerPodeVerPremium } from "@/lib/premium/types";
 import { PremiumAnaliseBody } from "@/components/premium/PremiumAnaliseBody";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 
 type Props = { params: { slug: string } };
 
@@ -153,6 +154,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
               {a.titulo}
             </h1>
             {a.is_premium ? <PremiumLockBadge className="shrink-0" /> : null}
+            <FavoriteHeartButton kind="analise" refId={a.slug} className="shrink-0" />
           </div>
           <p className="mt-3 text-lg font-semibold text-zinc-200">
             {a.time_casa}{" "}

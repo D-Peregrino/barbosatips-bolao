@@ -21,6 +21,8 @@ import {
 } from "@/lib/sport-routes";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
+import { FollowToggleButton } from "@/components/engagement/FollowToggleButton";
+import { campeonatoFollowKey } from "@/lib/engagement/types";
 
 export const revalidate = siteConfig.revalidate.analises;
 
@@ -110,6 +112,14 @@ export default async function CampeonatoPage({ params }: Props) {
             title={league.label}
             subtitle={`Análises e picks filtrados para ${league.label} em ${sport.label}.`}
             leagues={getLeaguesForSport(esporte)}
+            actionsSlot={
+              <FollowToggleButton
+                kind="campeonato"
+                refKey={campeonatoFollowKey(esporte, league.slug)}
+                showLabel
+                label={`Seguir ${league.label}`}
+              />
+            }
           />
 
           <section className="commercial-card-elevated border border-amber-500/12 p-5 sm:p-6">

@@ -6,6 +6,7 @@ import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia"
 import { AnaliseCategoriaTags } from "@/components/analises/portal/AnaliseCategoriaTags";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 
 type Props = { analise: AnaliseRow; viewerCanViewPremium?: boolean };
 
@@ -20,6 +21,9 @@ export function AnaliseCardGrid({
   return (
     <article className="commercial-card-elevated group flex h-full flex-col overflow-hidden transition duration-300 ease-out hover:-translate-y-1 hover:border-gold-400/32 hover:shadow-[0_28px_70px_-24px_rgba(201,162,39,0.12)]">
       <div className="relative">
+        <div className="absolute right-3 top-3 z-20">
+          <FavoriteHeartButton kind="analise" refId={analise.slug} />
+        </div>
         {analise.is_premium ? (
           <div className="absolute left-3 top-3 z-10">
             <PremiumLockBadge />

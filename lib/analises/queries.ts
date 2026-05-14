@@ -295,6 +295,41 @@ export async function obterAnalisePorSlug(slug: string): Promise<AnaliseRow | nu
   }
 }
 
+/** Análises publicadas por lista de slugs (favoritos / meu feed). */
+export async function listarAnalisesPorSlugs(
+  slugs: string[],
+  soGratis = false,
+): Promise<AnaliseRow[]> {
+  const uniq = Array.from(new Set(slugs.map((s) => String(s ?? "").trim()).filter(Boolean)));
+  if (shouldSkipLiveSupabase() || uniq.length === 0) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS)
+      .in("slug", uniq)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("analises por slugs", error);
+      return [];
+    }
+
+    const mapped = (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado(
+          (row as Record<string, unknown>).status,
+        ),
+      )
+      .map((row) => mapRow(row as Record<string, unknown>));
+
+    return aplicarFiltroGratis(mapped, soGratis);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
 /** @deprecated Use obterAnalisePorSlug — mantido para compatibilidade. */
 export async function obterAnalisePublicadaPorSlug(
   slug: string,

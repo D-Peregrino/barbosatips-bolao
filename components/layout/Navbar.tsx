@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { BrandShield } from "@/components/brand/BrandShield";
+import { NavbarAccountControls } from "@/components/layout/NavbarAccountControls";
 
 const NAV_LINKS = [
   { href: "/tips", label: "Tips" },
@@ -80,6 +81,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <NavbarAccountControls />
           <Link
             href="/bolao"
             className="rounded-lg px-3 py-2 text-sm font-medium text-cream-muted transition hover:bg-white/[0.04] hover:text-cream"
@@ -135,13 +137,18 @@ export function Navbar() {
               );
             })}
 
-            <div className="mt-4 flex gap-2 border-t border-gold-400/10 pt-4">
-              <Link href="/bolao" className="btn-secondary flex-1 justify-center py-2.5 text-sm">
-                Bolão
-              </Link>
-              <Link href="/bolao/login" className="btn-primary flex-1 justify-center py-2.5 text-xs">
-                Entrar
-              </Link>
+            <div className="mt-4 flex flex-col gap-3 border-t border-gold-400/10 pt-4">
+              <div className="flex flex-wrap items-center gap-2 px-1">
+                <NavbarAccountControls />
+              </div>
+              <div className="flex gap-2">
+                <Link href="/bolao" className="btn-secondary flex-1 justify-center py-2.5 text-sm">
+                  Bolão
+                </Link>
+                <Link href="/bolao/login" className="btn-primary flex-1 justify-center py-2.5 text-xs">
+                  Entrar
+                </Link>
+              </div>
             </div>
           </nav>
         </div>

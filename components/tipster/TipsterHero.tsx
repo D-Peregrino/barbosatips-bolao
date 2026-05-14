@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import type { PublicTipsterProfile } from "@/config/tipsters";
 import { tipsterSportsLabels } from "@/config/tipsters";
 import { BrandShield } from "@/components/brand/BrandShield";
+import { FollowToggleButton } from "@/components/engagement/FollowToggleButton";
 
 type Props = {
   profile: PublicTipsterProfile;
@@ -52,6 +53,7 @@ export function TipsterHero({ profile }: Props) {
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
+            <FollowToggleButton kind="tipster" refKey={profile.slug} showLabel label={`Seguir ${profile.displayName}`} />
             <Link
               href="/picks"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-300 via-gold-200 to-gold-300 px-5 py-2.5 text-sm font-bold text-pitch-950 shadow-gold-sm transition hover:brightness-105"
