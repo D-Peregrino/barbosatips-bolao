@@ -1,15 +1,82 @@
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
-import { obterAnalisePorSlug } from "@/lib/analises/queries";
-import { oddParaNumero } from "@/lib/analises/types";
+import { createAdminClient } from "@/lib/supabase/server";
+import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
+import { oddParaNumero, type AnaliseRow, type AnaliseStatus } from "@/lib/analises/types";
 import { legadoTextoParaHtmlSeguro } from "@/lib/analises/sanitize-html";
 
 type Props = { params: { slug: string } };
 
+const COLUNAS =
+  "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+
+function paraStatus(raw: unknown): AnaliseStatus {
+  return String(raw ?? "").toLowerCase().trim() === "publicado"
+    ? "publicado"
+    : "rascunho";
+}
+
+function mapRow(r: Record<string, unknown>): AnaliseRow {
+  return {
+    id: String(r.id ?? ""),
+    slug: String(r.slug ?? ""),
+    titulo: String(r.titulo ?? ""),
+    campeonato: String(r.campeonato ?? ""),
+    time_casa: String(r.time_casa ?? ""),
+    time_fora: String(r.time_fora ?? ""),
+    odd: r.odd as string | number,
+    confianca: Number(r.confianca ?? 0),
+    resumo: String(r.resumo ?? ""),
+    conteudo: String(r.conteudo ?? ""),
+    imagem_capa: String(r.imagem_capa ?? ""),
+    status: paraStatus(r.status),
+    created_at: String(r.created_at ?? ""),
+  };
+}
+
+/**
+ * Busca na tabela `analises` com slug normalizado (uma query por pedido, partilhada com metadata).
+ */
+const buscarAnaliseNaTabela = cache(async (paramsSlug: string) => {
+  if (shouldSkipLiveSupabase()) {
+    const err = { message: "Supabase indisponível", code: "skip" };
+    console.log("SLUG RECEBIDO", "");
+    console.log("ANALISE ENCONTRADA", null);
+    console.log("ERRO ANALISE", err);
+    console.log(err);
+    return { data: null as AnaliseRow | null, error: err as unknown };
+  }
+
+  const slug = decodeURIComponent(String(paramsSlug ?? ""))
+    .trim()
+    .toLowerCase();
+  console.log("SLUG RECEBIDO", slug);
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("analises")
+    .select(COLUNAS)
+    .eq("slug", slug)
+    .single();
+
+  console.log("ANALISE ENCONTRADA", data);
+  console.log("ERRO ANALISE", error);
+
+  if (error) {
+    console.log(error);
+  }
+
+  if (error || !data) {
+    return { data: null, error };
+  }
+
+  return { data: mapRow(data as Record<string, unknown>), error: null };
+});
+
 export async function generateMetadata({ params }: Props) {
-  const { slug } = params;
-  const data = await obterAnalisePorSlug(slug);
+  const { data } = await buscarAnaliseNaTabela(params.slug);
   if (!data) {
     return { title: "Análise · BarbosaTips" };
   }
@@ -22,11 +89,14 @@ export async function generateMetadata({ params }: Props) {
 export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnaliseSlugPage({ params }: Props) {
-  const { slug } = params;
-  const data = await obterAnalisePorSlug(slug);
-  console.log("ANALISES ENCONTRADAS", data);
+  const { data, error } = await buscarAnaliseNaTabela(params.slug);
 
-  if (!data) notFound();
+  if (!data) {
+    if (error) {
+      console.log(error);
+    }
+    notFound();
+  }
 
   const a = data;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
