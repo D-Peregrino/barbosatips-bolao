@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { atualizarAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
+import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 
@@ -166,20 +167,7 @@ export function EditarAnaliseForm({ initial }: Props) {
             defaultValue={initial.conteudo}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="imagem_capa" className={label}>
-            Imagem de capa (URL)
-          </label>
-          <input
-            id="imagem_capa"
-            name="imagem_capa"
-            type="text"
-            className={input}
-            placeholder="https://… (opcional)"
-            autoComplete="off"
-            defaultValue={initial.imagem_capa}
-          />
-        </div>
+        <EditorialCapaUpload key={initial.slug} defaultValue={initial.imagem_capa} />
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
             Estado

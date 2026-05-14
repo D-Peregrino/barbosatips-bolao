@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { salvarNovaAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
+import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 
 const initial: SalvarAnaliseEditorialResult = { ok: true };
 
@@ -147,19 +148,7 @@ export function NovaAnaliseFormSimple() {
             placeholder="Texto simples ou parágrafos separados por linha em branco."
           />
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="imagem_capa" className={label}>
-            Imagem de capa (URL)
-          </label>
-          <input
-            id="imagem_capa"
-            name="imagem_capa"
-            type="text"
-            className={input}
-            placeholder="https://… (opcional)"
-            autoComplete="off"
-          />
-        </div>
+        <EditorialCapaUpload />
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
             Estado

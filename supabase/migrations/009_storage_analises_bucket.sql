@@ -1,4 +1,4 @@
--- Bucket público para capas das análises (CMS editorial em /admin/analises).
+-- Bucket público para capas das análises (CMS editorial em /admin-editorial).
 -- Após aplicar: uploads feitos pelo servidor com SUPABASE_SERVICE_ROLE_KEY;
 -- leitura via URL pública /storage/v1/object/public/analises/...
 

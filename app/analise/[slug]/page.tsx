@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
+import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { oddParaNumero, type AnaliseRow, type AnaliseStatus } from "@/lib/analises/types";
 import { legadoTextoParaHtmlSeguro } from "@/lib/analises/sanitize-html";
 
@@ -42,17 +43,12 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
 const buscarAnaliseNaTabela = cache(async (paramsSlug: string) => {
   if (shouldSkipLiveSupabase()) {
     const err = { message: "Supabase indisponível", code: "skip" };
-    console.log("SLUG RECEBIDO", "");
-    console.log("ANALISE ENCONTRADA", null);
-    console.log("ERRO ANALISE", err);
-    console.log(err);
     return { data: null as AnaliseRow | null, error: err as unknown };
   }
 
   const slug = decodeURIComponent(String(paramsSlug ?? ""))
     .trim()
     .toLowerCase();
-  console.log("SLUG RECEBIDO", slug);
 
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -60,13 +56,6 @@ const buscarAnaliseNaTabela = cache(async (paramsSlug: string) => {
     .select(COLUNAS)
     .eq("slug", slug)
     .single();
-
-  console.log("ANALISE ENCONTRADA", data);
-  console.log("ERRO ANALISE", error);
-
-  if (error) {
-    console.log(error);
-  }
 
   if (error || !data) {
     return { data: null, error };
@@ -89,12 +78,9 @@ export async function generateMetadata({ params }: Props) {
 export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnaliseSlugPage({ params }: Props) {
-  const { data, error } = await buscarAnaliseNaTabela(params.slug);
+  const { data } = await buscarAnaliseNaTabela(params.slug);
 
   if (!data) {
-    if (error) {
-      console.log(error);
-    }
     notFound();
   }
 
@@ -123,16 +109,15 @@ export default async function AnaliseSlugPage({ params }: Props) {
         ) : null}
 
         <header className="mb-8">
-          {a.imagem_capa ? (
-            <div className="mb-8 overflow-hidden rounded-2xl border border-[#3d3420]/80 bg-zinc-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={a.imagem_capa}
-                alt=""
-                className="max-h-[420px] w-full object-cover"
-              />
-            </div>
-          ) : null}
+          <div
+            className="mb-8 overflow-hidden rounded-2xl border border-[#3d3420]/80 bg-[#080706] shadow-[0_24px_60px_-32px_rgba(0,0,0,.85)]"
+            aria-label="Capa da análise"
+          >
+            <AnaliseCapaMedia
+              analise={a}
+              aspectClass="aspect-[2/1] min-h-[160px] sm:aspect-[21/9] sm:min-h-[200px]"
+            />
+          </div>
 
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
             {a.campeonato || "Campeonato"}
