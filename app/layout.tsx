@@ -14,7 +14,6 @@ import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { IsolatedClientMount } from "@/components/ops/IsolatedClientMount";
 import { BetaLaunchRibbon } from "@/components/portal/BetaLaunchRibbon";
-import { Providers } from "./providers";
 import {
   BRAND_APPLE_TOUCH_PNG,
   BRAND_FAVICON_ICO,
@@ -142,31 +141,29 @@ export default function RootLayout({
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
     >
       <body className="bg-pitch-950 font-body text-cream-muted antialiased touch-manipulation [-webkit-tap-highlight-color:rgba(201,162,39,0.12)]">
-        <Providers>
-          <ProductionScripts />
-          <ProductionGtmNoScript />
-          <SiteWideJsonLd />
-          <Navbar />
-          <IsolatedClientMount scope="global_live_bar">
-            <GlobalLiveBar />
-          </IsolatedClientMount>
+        <ProductionScripts />
+        <ProductionGtmNoScript />
+        <SiteWideJsonLd />
+        <Navbar />
+        <IsolatedClientMount scope="global_live_bar">
+          <GlobalLiveBar />
+        </IsolatedClientMount>
 
-          <main className="pt-[calc(4.5rem+5.5rem)] pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] transition-[padding] duration-300 ease-out md:pb-0">
-            <BetaLaunchRibbon />
-            {children}
-          </main>
+        <main className="pt-[calc(4.5rem+5.5rem)] pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] transition-[padding] duration-300 ease-out md:pb-0">
+          <BetaLaunchRibbon />
+          {children}
+        </main>
 
-          <div className="max-md:pb-[calc(3.25rem+env(safe-area-inset-bottom,0px))] md:pb-0">
-            <Footer />
-          </div>
-          <MobileBottomNav />
-          <IsolatedClientMount scope="pwa_mount">
-            <PwaClientMount />
-          </IsolatedClientMount>
-          <IsolatedClientMount scope="lead_intelligence_mount">
-            <LeadIntelligenceMount />
-          </IsolatedClientMount>
-        </Providers>
+        <div className="max-md:pb-[calc(3.25rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+          <Footer />
+        </div>
+        <MobileBottomNav />
+        <IsolatedClientMount scope="pwa_mount">
+          <PwaClientMount />
+        </IsolatedClientMount>
+        <IsolatedClientMount scope="lead_intelligence_mount">
+          <LeadIntelligenceMount />
+        </IsolatedClientMount>
       </body>
     </html>
   );
