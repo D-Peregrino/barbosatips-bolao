@@ -2,6 +2,9 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseRow } from "@/lib/analises/types";
 
+const COLUNAS =
+  "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+
 function mapRow(r: Record<string, unknown>): AnaliseRow {
   return {
     id: String(r.id ?? ""),
@@ -15,7 +18,10 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     resumo: String(r.resumo ?? ""),
     conteudo: String(r.conteudo ?? ""),
     imagem_capa: String(r.imagem_capa ?? ""),
-    status: r.status === "publicado" ? "publicado" : "rascunho",
+    status:
+      String(r.status ?? "").toLowerCase().trim() === "publicado"
+        ? "publicado"
+        : "rascunho",
     created_at: String(r.created_at ?? ""),
   };
 }
@@ -26,9 +32,7 @@ export async function listarTodasAnalisesAdmin(): Promise<AnaliseRow[]> {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("analises")
-      .select(
-        "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at",
-      )
+      .select(COLUNAS)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -39,5 +43,34 @@ export async function listarTodasAnalisesAdmin(): Promise<AnaliseRow[]> {
   } catch (e) {
     console.error(e);
     return [];
+  }
+}
+
+/** Uma análise pelo slug (admin / service role). Slug normalizado na query. */
+export async function obterAnaliseAdminPorSlug(
+  slugParam: string,
+): Promise<AnaliseRow | null> {
+  if (shouldSkipLiveSupabase()) return null;
+  const slug = decodeURIComponent(String(slugParam ?? ""))
+    .trim()
+    .toLowerCase();
+  if (!slug) return null;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS)
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error) {
+      console.error("admin analises obterPorSlug", error);
+      return null;
+    }
+    if (!data) return null;
+    return mapRow(data as Record<string, unknown>);
+  } catch (e) {
+    console.error(e);
+    return null;
   }
 }

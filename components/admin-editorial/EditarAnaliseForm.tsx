@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
-import { salvarNovaAnaliseEditorialAction } from "@/app/admin-editorial/actions";
+import { atualizarAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
+import type { AnaliseRow } from "@/lib/analises/types";
+import { oddParaNumero } from "@/lib/analises/types";
 
-const initial: SalvarAnaliseEditorialResult = { ok: true };
+const resultadoInicial: SalvarAnaliseEditorialResult = { ok: true };
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -15,7 +17,7 @@ function SubmitButton() {
       disabled={pending}
       className="rounded-xl bg-gradient-to-r from-[#b8860b] to-[#d4af37] px-6 py-2.5 text-sm font-semibold text-[#0a0a0a] shadow-[0_12px_40px_-12px_rgba(212,175,55,.45)] transition enabled:hover:brightness-110 disabled:opacity-50"
     >
-      {pending ? "A gravar…" : "Salvar"}
+      {pending ? "A gravar…" : "Salvar alterações"}
     </button>
   );
 }
@@ -27,16 +29,22 @@ const input =
 const textarea =
   "w-full rounded-xl border border-[#3d3420]/90 bg-[#050608] px-4 py-2.5 text-sm text-white outline-none focus:border-[#C9A227]/60";
 
-export function NovaAnaliseFormSimple() {
+type Props = { initial: AnaliseRow };
+
+export function EditarAnaliseForm({ initial }: Props) {
   const [state, formAction] = useFormState(
-    salvarNovaAnaliseEditorialAction,
-    initial,
+    atualizarAnaliseEditorialAction,
+    resultadoInicial,
   );
 
   const erro = state?.ok === false ? state.error : "";
+  const slugAnterior = String(initial.slug ?? "").trim().toLowerCase();
 
   return (
     <form action={formAction} className="space-y-5">
+      <input type="hidden" name="id" value={initial.id} />
+      <input type="hidden" name="slug_anterior" value={slugAnterior} />
+
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="titulo" className={label}>
@@ -48,6 +56,7 @@ export function NovaAnaliseFormSimple() {
             className={input}
             required
             autoComplete="off"
+            defaultValue={initial.titulo}
           />
         </div>
         <div className="sm:col-span-2">
@@ -58,9 +67,9 @@ export function NovaAnaliseFormSimple() {
             id="slug"
             name="slug"
             className={input}
-            placeholder="ex.: flamengo-x-palmeiras"
             required
             autoComplete="off"
+            defaultValue={initial.slug}
           />
         </div>
         <div className="sm:col-span-2">
@@ -72,6 +81,7 @@ export function NovaAnaliseFormSimple() {
             name="campeonato"
             className={input}
             autoComplete="off"
+            defaultValue={initial.campeonato}
           />
         </div>
         <div>
@@ -83,6 +93,7 @@ export function NovaAnaliseFormSimple() {
             name="time_casa"
             className={input}
             autoComplete="off"
+            defaultValue={initial.time_casa}
           />
         </div>
         <div>
@@ -94,6 +105,7 @@ export function NovaAnaliseFormSimple() {
             name="time_fora"
             className={input}
             autoComplete="off"
+            defaultValue={initial.time_fora}
           />
         </div>
         <div>
@@ -108,6 +120,11 @@ export function NovaAnaliseFormSimple() {
             className={input}
             placeholder="2.10"
             autoComplete="off"
+            defaultValue={
+              Number.isFinite(oddParaNumero(initial.odd))
+                ? oddParaNumero(initial.odd).toString()
+                : ""
+            }
           />
         </div>
         <div>
@@ -122,6 +139,7 @@ export function NovaAnaliseFormSimple() {
             max={100}
             className={input}
             autoComplete="off"
+            defaultValue={String(initial.confianca)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -133,6 +151,7 @@ export function NovaAnaliseFormSimple() {
             name="resumo"
             className={textarea}
             rows={3}
+            defaultValue={initial.resumo}
           />
         </div>
         <div className="sm:col-span-2">
@@ -144,7 +163,7 @@ export function NovaAnaliseFormSimple() {
             name="conteudo"
             className={textarea}
             rows={12}
-            placeholder="Texto simples ou parágrafos separados por linha em branco."
+            defaultValue={initial.conteudo}
           />
         </div>
         <div className="sm:col-span-2">
@@ -158,13 +177,19 @@ export function NovaAnaliseFormSimple() {
             className={input}
             placeholder="https://… (opcional)"
             autoComplete="off"
+            defaultValue={initial.imagem_capa}
           />
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
             Estado
           </label>
-          <select id="status" name="status" className={input}>
+          <select
+            id="status"
+            name="status"
+            className={input}
+            defaultValue={initial.status}
+          >
             <option value="rascunho">Rascunho</option>
             <option value="publicado">Publicado</option>
           </select>
