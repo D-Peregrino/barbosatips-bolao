@@ -1,10 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  ADMIN_ANALISES_COOKIE,
-  adminAnalisesSessionSecret,
-  verifyAdminAnalisesCookieValue,
-} from "@/lib/admin/analises-cookie";
+  ADMIN_PANEL_COOKIE,
+  adminPanelSessionSecret,
+  parseAdminPanelCookie,
+  refreshAdminPanelCookieIfStale,
+} from "@/lib/admin/panel-cookie";
 import {
   ADMIN_BOLAO_COOKIE,
   adminBolaoSessionSecret,
@@ -13,14 +14,22 @@ import {
 import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { applyAdminSecurityHeaders } from "@/lib/middleware/admin-security-headers";
 import {
-  isAdminAnalisesPublicLoginPath,
-  isSupabaseAdminControlledPath,
-} from "@/lib/middleware/supabase-admin-path";
+  requiresAdminPanelSession,
+  shouldRedirectAdminRootToPanel,
+} from "@/lib/middleware/admin-panel-path";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
 
 const AUTH_ROUTES = ["/login", "/registro"];
+
+const PANEL_COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30,
+};
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -34,16 +43,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  /** Ranking público do bolão: sem Supabase Auth, sem redirect para login. */
   if (path === "/ranking" || path.startsWith("/ranking/")) {
     return NextResponse.next();
   }
 
-  /** Página de acesso negado — pública; noindex via metadata/headers. */
   if (path === "/acesso-negado" || path.startsWith("/acesso-negado/")) {
     return NextResponse.next();
   }
 
+  /** Bolão admin — fluxo e cookie existentes (inalterados). */
   if (path.startsWith("/admin/bolao")) {
     if (path.startsWith("/admin/bolao/login")) {
       return applyAdminSecurityHeaders(NextResponse.next());
@@ -61,63 +69,82 @@ export async function middleware(request: NextRequest) {
     return applyAdminSecurityHeaders(NextResponse.next());
   }
 
-  /** `/admin/analises` — sessão por cookie (senha editorial); login público. */
-  if (path.startsWith("/admin/analises")) {
-    if (isAdminAnalisesPublicLoginPath(path)) {
-      return applyAdminSecurityHeaders(NextResponse.next());
-    }
-    const secret = adminAnalisesSessionSecret();
-    if (!secret) {
-      return NextResponse.redirect(
-        new URL("/admin/analises/login?erro=config", request.url),
-      );
-    }
-    const token = request.cookies.get(ADMIN_ANALISES_COOKIE)?.value;
-    if (!(await verifyAdminAnalisesCookieValue(token, secret))) {
-      const loginUrl = new URL("/admin/analises/login", request.url);
-      loginUrl.searchParams.set(
-        "redirect",
-        sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/admin/analises"),
-      );
-      return NextResponse.redirect(loginUrl);
+  /** Login central — se já autenticado, vai ao painel. */
+  if (path === "/admin/login" || path.startsWith("/admin/login/")) {
+    const secret = adminPanelSessionSecret();
+    if (secret) {
+      const tok = request.cookies.get(ADMIN_PANEL_COOKIE)?.value;
+      if (await parseAdminPanelCookie(tok, secret)) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
     }
     return applyAdminSecurityHeaders(NextResponse.next());
   }
 
-  const needsSupabaseAdmin = isSupabaseAdminControlledPath(path);
-
-  if (needsSupabaseAdmin && shouldSkipLiveSupabase()) {
-    return NextResponse.redirect(
-      new URL("/acesso-negado?motivo=config", request.url),
-    );
+  /** Login editorial antigo → painel central. */
+  if (path === "/admin/analises/login" || path.startsWith("/admin/analises/login/")) {
+    const u = new URL("/admin/login", request.url);
+    u.searchParams.set("redirect", "/admin/analises");
+    return NextResponse.redirect(u);
   }
 
-  /** Dashboard operacional interno — sem auth; usar só em ambiente confiável. */
+  const panelNeeded = requiresAdminPanelSession(path);
+
+  if (panelNeeded) {
+    const secret = adminPanelSessionSecret();
+    if (!secret) {
+      return NextResponse.redirect(
+        new URL("/admin/login?erro=config", request.url),
+      );
+    }
+    const token = request.cookies.get(ADMIN_PANEL_COOKIE)?.value;
+    const session = await parseAdminPanelCookie(token, secret);
+    if (!session) {
+      const u = new URL("/admin/login", request.url);
+      u.searchParams.set(
+        "redirect",
+        sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/admin"),
+      );
+      return NextResponse.redirect(u);
+    }
+
+    if (shouldRedirectAdminRootToPanel(path)) {
+      const u = new URL("/admin", request.url);
+      if (path === "/admin-editorial") u.searchParams.set("mod", "editorial");
+      if (path === "/admin-picks") u.searchParams.set("mod", "picks");
+      if (path === "/admin-leads") u.searchParams.set("mod", "leads");
+      return NextResponse.redirect(u);
+    }
+
+    const refreshed = await refreshAdminPanelCookieIfStale(token, secret);
+    let res = NextResponse.next({ request });
+    if (refreshed) {
+      res.cookies.set(ADMIN_PANEL_COOKIE, refreshed, PANEL_COOKIE_OPTS);
+    }
+    return applyAdminSecurityHeaders(res);
+  }
+
   if (path.startsWith("/operacional")) {
     return NextResponse.next();
   }
 
-  /** Central de inteligência esportiva — público; sem auth no middleware. */
   if (path.startsWith("/inteligencia")) {
     return NextResponse.next();
   }
 
-  /** Analytics / inteligência — mesmo modelo (sem login). */
   if (path.startsWith("/analytics")) {
     return NextResponse.next();
   }
 
-  /** Health read-only — sem sessão Supabase no middleware. */
   if (path === "/api/health" || path.startsWith("/api/health/")) {
     return NextResponse.next();
   }
 
-  /** Status humano (noindex) — sem auth. */
   if (path === "/status" || path.startsWith("/status/")) {
     return NextResponse.next();
   }
 
-  if (!needsSupabaseAdmin && shouldSkipLiveSupabase()) {
+  if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
 
@@ -147,32 +174,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (needsSupabaseAdmin) {
-    if (!user) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/login";
-      redirectUrl.searchParams.set(
-        "redirect",
-        sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/meu-feed"),
-      );
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    const { data: profile } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return NextResponse.redirect(
-        new URL("/acesso-negado?motivo=permissao", request.url),
-      );
-    }
-
-    return applyAdminSecurityHeaders(supabaseResponse);
-  }
 
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {

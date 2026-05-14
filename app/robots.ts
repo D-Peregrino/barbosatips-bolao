@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: [
+          "/admin",
           "/admin/",
           "/admin-editorial",
           "/admin-editorial/",
@@ -35,6 +36,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "Googlebot",
         allow: "/",
         disallow: [
+          "/admin",
           "/admin/",
           "/admin-editorial",
           "/admin-editorial/",
