@@ -88,6 +88,7 @@ export const siteConfig = {
   revalidate: {
     tips:    1800,  // 30 min
     analises: 3600, // 1h
+    picks:   60,    // 1 min — picks rápidas
     ranking: 900,   // 15 min
     home:    600,   // 10 min
   },

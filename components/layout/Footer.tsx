@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 const FOOTER_LINKS = {
   "Apostas": [
     { href: "/tips",    label: "Tips do Dia" },
+    { href: "/picks",   label: "Picks rápidas" },
     { href: "/analises", label: "Análises" },
     { href: "/ranking", label: "Ranking Tipsters" },
     { href: "/guias",   label: "Guias de Apostas" },

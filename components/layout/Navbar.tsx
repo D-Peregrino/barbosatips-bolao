@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 
 const NAV_LINKS = [
   { href: "/tips",     label: "Tips" },
+  { href: "/picks",    label: "Picks" },
   { href: "/analises", label: "Análises" },
   { href: "/bolao",    label: "Bolão" },
   { href: "/ranking",  label: "Ranking" },

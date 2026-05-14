@@ -179,3 +179,19 @@ export interface AnaliseFilters {
   page?:      number;
   per_page?:  number;
 }
+
+/** Picks rápidas (`quick_picks` no Supabase). */
+export interface QuickPick {
+  id:             string;
+  esporte:        string;
+  campeonato:     string;
+  jogo:           string;
+  mercado:        string;
+  odd:            number;
+  confianca:      number;
+  justificativa:  string;
+  horario_jogo:   string;
+  status:         "ativo" | "encerrado";
+  resultado:      "green" | "red" | null;
+  created_at:     string;
+}

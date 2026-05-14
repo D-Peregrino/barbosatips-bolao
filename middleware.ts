@@ -48,6 +48,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Admin picks rápidas — mesmo modelo que editorial (ambiente confiável). */
+  if (path.startsWith("/admin-picks")) {
+    return NextResponse.next();
+  }
+
   if (shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
