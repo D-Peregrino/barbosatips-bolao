@@ -98,6 +98,46 @@ export async function listarUltimasAnalisesPublicadas(
   }
 }
 
+const COLUNAS_SITEMAP = "slug,status,created_at" as const;
+
+/** Slugs publicados para `sitemap.xml` (leve). */
+export async function listarAnalisesPublicadasParaSitemap(): Promise<
+  { slug: string; lastModified: Date }[]
+> {
+  if (shouldSkipLiveSupabase()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS_SITEMAP)
+      .order("created_at", { ascending: false })
+      .limit(2000);
+
+    if (error) {
+      console.error("analises sitemap", error);
+      return [];
+    }
+
+    return (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado(
+          (row as Record<string, unknown>).status,
+        ),
+      )
+      .map((row) => {
+        const r = row as Record<string, unknown>;
+        const slug = String(r.slug ?? "").trim();
+        const created = String(r.created_at ?? "");
+        const t = created ? new Date(created) : new Date();
+        return { slug, lastModified: Number.isNaN(t.getTime()) ? new Date() : t };
+      })
+      .filter((x) => x.slug.length > 0);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
 /**
  * Obtém análise por slug (qualquer status) — uso em /analise/[slug] durante testes.
  */

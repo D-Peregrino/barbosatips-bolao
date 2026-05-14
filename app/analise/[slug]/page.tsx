@@ -1,86 +1,91 @@
 import { cache } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
-import { createAdminClient } from "@/lib/supabase/server";
-import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
-import { oddParaNumero, type AnaliseRow, type AnaliseStatus } from "@/lib/analises/types";
+import { obterAnalisePorSlug } from "@/lib/analises/queries";
+import { oddParaNumero } from "@/lib/analises/types";
 import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-analise";
+import {
+  descricaoSeoAnalise,
+  jsonLdArticleAnalise,
+  keywordsSeoAnalise,
+  tituloSeoAnalise,
+  urlAbsolutaImagemCapa,
+  urlCanonicaAnalise,
+  urlOgPadrao,
+} from "@/lib/analises/seo-analise";
 
 type Props = { params: { slug: string } };
 
-const COLUNAS =
-  "id,slug,titulo,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
-
-function paraStatus(raw: unknown): AnaliseStatus {
-  return String(raw ?? "").toLowerCase().trim() === "publicado"
-    ? "publicado"
-    : "rascunho";
+function slugFromParams(paramsSlug: string): string {
+  return decodeURIComponent(String(paramsSlug ?? "")).trim();
 }
 
-function mapRow(r: Record<string, unknown>): AnaliseRow {
-  return {
-    id: String(r.id ?? ""),
-    slug: String(r.slug ?? ""),
-    titulo: String(r.titulo ?? ""),
-    categoria: String(r.categoria ?? ""),
-    tags: String(r.tags ?? ""),
-    campeonato: String(r.campeonato ?? ""),
-    time_casa: String(r.time_casa ?? ""),
-    time_fora: String(r.time_fora ?? ""),
-    odd: r.odd as string | number,
-    confianca: Number(r.confianca ?? 0),
-    resumo: String(r.resumo ?? ""),
-    conteudo: String(r.conteudo ?? ""),
-    imagem_capa: String(r.imagem_capa ?? ""),
-    status: paraStatus(r.status),
-    created_at: String(r.created_at ?? ""),
-  };
-}
-
-/**
- * Busca na tabela `analises` com slug normalizado (uma query por pedido, partilhada com metadata).
- */
+/** Uma leitura por pedido, partilhada entre `generateMetadata` e a página. */
 const buscarAnaliseNaTabela = cache(async (paramsSlug: string) => {
-  if (shouldSkipLiveSupabase()) {
-    const err = { message: "Supabase indisponível", code: "skip" };
-    return { data: null as AnaliseRow | null, error: err as unknown };
-  }
-
-  const slug = decodeURIComponent(String(paramsSlug ?? ""))
-    .trim()
-    .toLowerCase();
-
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("analises")
-    .select(COLUNAS)
-    .eq("slug", slug)
-    .single();
-
-  if (error || !data) {
-    return { data: null, error };
-  }
-
-  return { data: mapRow(data as Record<string, unknown>), error: null };
+  const slug = slugFromParams(paramsSlug);
+  if (!slug) return null;
+  return obterAnalisePorSlug(slug);
 });
 
-export async function generateMetadata({ params }: Props) {
-  const { data } = await buscarAnaliseNaTabela(params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const data = await buscarAnaliseNaTabela(params.slug);
+
   if (!data) {
-    return { title: "Análise · BarbosaTips" };
+    return {
+      title: `Análise não encontrada | ${siteConfig.shortTitle}`,
+      description: siteConfig.description,
+      robots: { index: false, follow: false },
+    };
   }
+
+  const canonical = urlCanonicaAnalise(data.slug);
+  const title = tituloSeoAnalise(data);
+  const description = descricaoSeoAnalise(data);
+  const keywords = keywordsSeoAnalise(data);
+  const capa = urlAbsolutaImagemCapa(data);
+  const ogImage = capa ?? urlOgPadrao();
+  const isDraft = data.status === "rascunho";
+
   return {
-    title: `${data.titulo} · Análises · BarbosaTips`,
-    description: data.resumo || siteConfig.description,
+    title,
+    description,
+    keywords,
+    alternates: { canonical },
+    robots: isDraft
+      ? { index: false, follow: true, googleBot: { index: false, follow: true } }
+      : { index: true, follow: true },
+    openGraph: {
+      type: "article",
+      locale: siteConfig.locale,
+      url: canonical,
+      siteName: siteConfig.name,
+      title: data.titulo,
+      description,
+      images: [
+        {
+          url: ogImage,
+          alt: data.titulo || tituloSeoAnalise(data),
+        },
+      ],
+      publishedTime: data.created_at || undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: siteConfig.twitterHandle,
+      title: data.titulo,
+      description,
+      images: [ogImage],
+    },
   };
 }
 
 export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnaliseSlugPage({ params }: Props) {
-  const { data } = await buscarAnaliseNaTabela(params.slug);
+  const data = await buscarAnaliseNaTabela(params.slug);
 
   if (!data) {
     notFound();
@@ -90,9 +95,16 @@ export default async function AnaliseSlugPage({ params }: Props) {
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const tg = siteConfig.social.telegram;
   const corpoHtml = conteudoAnaliseParaHtmlPublico(a.conteudo);
+  const jsonLd = JSON.stringify(jsonLdArticleAnalise(a));
 
   return (
     <article className="min-h-[calc(100vh-64px)] bg-black pb-20 pt-6 text-zinc-100">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger -- JSON-LD (Schema.org Article)
+        dangerouslySetInnerHTML={{ __html: jsonLd }}
+      />
+
       <div className="container-site max-w-3xl">
         <nav className="mb-6 text-sm text-zinc-500">
           <Link
