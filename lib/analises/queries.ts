@@ -1,6 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseRow } from "@/lib/analises/types";
+
+/** Reconhece publicado com qualquer capitalização ou espaços extra. */
+export function statusPublicadoNormalizado(status: unknown): boolean {
+  return String(status ?? "").toLowerCase().trim() === "publicado";
+}
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
   return {
@@ -15,49 +20,59 @@ function mapRow(r: Record<string, unknown>): AnaliseRow {
     resumo: String(r.resumo ?? ""),
     conteudo: String(r.conteudo ?? ""),
     imagem_capa: String(r.imagem_capa ?? ""),
-    status: r.status === "publicado" ? "publicado" : "rascunho",
+    status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
     created_at: String(r.created_at ?? ""),
   };
 }
 
+const COLUNAS =
+  "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at" as const;
+
+/**
+ * Lista análises visíveis em /analises: status normalizado === "publicado".
+ * Usa service role no servidor para não depender do RLS (que compara texto exacto).
+ */
 export async function listarAnalisesPublicadas(): Promise<AnaliseRow[]> {
   if (shouldSkipLiveSupabase()) return [];
   try {
-    const sb = createClient();
-    const { data, error } = await sb
+    const admin = createAdminClient();
+    const { data, error } = await admin
       .from("analises")
-      .select(
-        "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at",
-      )
-      .eq("status", "publicado")
-      .order("created_at", { ascending: false });
+      .select(COLUNAS)
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (error) {
       console.error("analises listarPublicadas", error);
       return [];
     }
-    return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+
+    return (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado(
+          (row as Record<string, unknown>).status,
+        ),
+      )
+      .map((row) => mapRow(row as Record<string, unknown>));
   } catch (e) {
     console.error(e);
     return [];
   }
 }
 
-export async function obterAnalisePublicadaPorSlug(
-  slug: string,
-): Promise<AnaliseRow | null> {
+/**
+ * Obtém análise por slug (qualquer status) — uso em /analise/[slug] durante testes.
+ */
+export async function obterAnalisePorSlug(slug: string): Promise<AnaliseRow | null> {
   if (shouldSkipLiveSupabase()) return null;
   const s = String(slug ?? "").trim();
   if (!s) return null;
   try {
-    const sb = createClient();
-    const { data, error } = await sb
+    const admin = createAdminClient();
+    const { data, error } = await admin
       .from("analises")
-      .select(
-        "id,slug,titulo,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,created_at",
-      )
+      .select(COLUNAS)
       .eq("slug", s)
-      .eq("status", "publicado")
       .maybeSingle();
 
     if (error) {
@@ -70,4 +85,11 @@ export async function obterAnalisePublicadaPorSlug(
     console.error(e);
     return null;
   }
+}
+
+/** @deprecated Use obterAnalisePorSlug — mantido para compatibilidade. */
+export async function obterAnalisePublicadaPorSlug(
+  slug: string,
+): Promise<AnaliseRow | null> {
+  return obterAnalisePorSlug(slug);
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
-import { obterAnalisePublicadaPorSlug } from "@/lib/analises/queries";
+import { obterAnalisePorSlug } from "@/lib/analises/queries";
 import { oddParaNumero } from "@/lib/analises/types";
 import { legadoTextoParaHtmlSeguro } from "@/lib/analises/sanitize-html";
 
@@ -9,13 +9,13 @@ type Props = { params: { slug: string } };
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = params;
-  const a = await obterAnalisePublicadaPorSlug(slug);
-  if (!a) {
+  const data = await obterAnalisePorSlug(slug);
+  if (!data) {
     return { title: "Análise · BarbosaTips" };
   }
   return {
-    title: `${a.titulo} · Análises · BarbosaTips`,
-    description: a.resumo || siteConfig.description,
+    title: `${data.titulo} · Análises · BarbosaTips`,
+    description: data.resumo || siteConfig.description,
   };
 }
 
@@ -23,9 +23,12 @@ export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnaliseSlugPage({ params }: Props) {
   const { slug } = params;
-  const a = await obterAnalisePublicadaPorSlug(slug);
-  if (!a) notFound();
+  const data = await obterAnalisePorSlug(slug);
+  console.log("ANALISES ENCONTRADAS", data);
 
+  if (!data) notFound();
+
+  const a = data;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const tg = siteConfig.social.telegram;
   const corpoHtml = legadoTextoParaHtmlSeguro(a.conteudo);
@@ -41,6 +44,13 @@ export default async function AnaliseSlugPage({ params }: Props) {
             ← Análises
           </Link>
         </nav>
+
+        {a.status === "rascunho" ? (
+          <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+            Rascunho — visível apenas em modo de teste (slug sem filtro de
+            publicação).
+          </p>
+        ) : null}
 
         <header className="mb-8">
           {a.imagem_capa ? (

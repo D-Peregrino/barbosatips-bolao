@@ -12,7 +12,8 @@ export const metadata = {
 export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnalisesPage() {
-  const lista = await listarAnalisesPublicadas();
+  const data = await listarAnalisesPublicadas();
+  console.log("ANALISES ENCONTRADAS", data);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-black pb-16 pt-6 text-zinc-100">
@@ -30,7 +31,7 @@ export default async function AnalisesPage() {
           </p>
         </header>
 
-        {lista.length === 0 ? (
+        {data.length === 0 ? (
           <div className="rounded-2xl border border-[#3d3420]/60 bg-[#0c0b09]/80 px-6 py-12 text-center">
             <p className="text-zinc-400">
               Em breve as primeiras análises publicadas aparecem aqui. Publique
@@ -53,7 +54,7 @@ export default async function AnalisesPage() {
           </div>
         ) : (
           <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {lista.map((a) => {
+            {data.map((a) => {
               const oddFmt = oddParaNumero(a.odd).toFixed(2);
               return (
                 <li key={a.id}>
