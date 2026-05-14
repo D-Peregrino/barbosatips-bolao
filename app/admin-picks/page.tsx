@@ -49,12 +49,20 @@ export default async function AdminPicksPage() {
               Sem login — use apenas em ambiente confiável (como /admin-editorial).
             </p>
           </div>
-          <Link
-            href="/picks"
-            className="inline-flex items-center justify-center rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-gold/40 hover:text-white"
-          >
-            Ver /picks →
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin-leads"
+              className="inline-flex items-center justify-center rounded-xl border border-amber-900/50 bg-amber-950/25 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-600/55 hover:text-white"
+            >
+              Leads / newsletter
+            </Link>
+            <Link
+              href="/picks"
+              className="inline-flex items-center justify-center rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-gold/40 hover:text-white"
+            >
+              Ver /picks →
+            </Link>
+          </div>
         </div>
 
         <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 shadow-xl sm:p-8">

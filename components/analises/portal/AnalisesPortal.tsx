@@ -3,6 +3,7 @@ import type { AnaliseRow } from "@/lib/analises/types";
 import { AnaliseFeaturedHero } from "@/components/analises/portal/AnaliseFeaturedHero";
 import { AnaliseCardGrid } from "@/components/analises/portal/AnaliseCardGrid";
 import { AnalisesSidebar } from "@/components/analises/portal/AnalisesSidebar";
+import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
 
 type Props = {
   analises: AnaliseRow[];
@@ -52,6 +53,8 @@ export function AnalisesPortal({
           </h2>
           <AnaliseFeaturedHero analise={destaque} viewerCanViewPremium={viewerCanViewPremium} />
         </section>
+
+        <LeadInlineCTA context="analises" className="scroll-mt-28" />
 
         {gridItems.length > 0 ? (
           <section aria-labelledby="analises-grid-heading">

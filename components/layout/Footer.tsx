@@ -12,6 +12,8 @@ const FOOTER_LINKS = {
     { href: "/guias", label: "Guias de Apostas" },
   ],
   Comunidade: [
+    { href: "/newsletter", label: "Newsletter" },
+    { href: "/comunidade", label: "Comunidade" },
     { href: "/bolao", label: "Bolão" },
     { href: "/bolao", label: "Criar Bolão" },
     { href: "/meu-feed", label: "Meu feed" },

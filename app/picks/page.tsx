@@ -10,6 +10,7 @@ import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
+import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
 
 export const revalidate = siteConfig.revalidate.picks;
 
@@ -75,11 +76,21 @@ export default async function PicksPage() {
             </div>
           ) : (
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {picks.map((p) => (
-                <li key={p.id}>
-                  <PickCard pick={p} viewerCanViewPremium={canViewPremium} />
-                </li>
-              ))}
+              {picks.flatMap((p, i) => {
+                const nodes = [
+                  <li key={p.id}>
+                    <PickCard pick={p} viewerCanViewPremium={canViewPremium} />
+                  </li>,
+                ];
+                if (i === 2) {
+                  nodes.push(
+                    <li key="lead-cta-picks" className="sm:col-span-2 xl:col-span-3">
+                      <LeadInlineCTA context="picks" />
+                    </li>,
+                  );
+                }
+                return nodes;
+              })}
             </ul>
           )}
 

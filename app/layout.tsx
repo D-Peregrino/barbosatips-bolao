@@ -8,6 +8,7 @@ import { SiteWideJsonLd } from "@/components/seo/SiteWideJsonLd";
 import { siteConfig } from "@/config/site";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PwaClientMount } from "@/components/pwa/PwaClientMount";
+import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount";
 
 const fontDisplay = Oswald({
   subsets: ["latin"],
@@ -117,6 +118,7 @@ export default function RootLayout({
 
         <Footer />
         <PwaClientMount />
+        <LeadIntelligenceMount />
       </body>
     </html>
   );
