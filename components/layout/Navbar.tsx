@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/performance", label: "Performance" },
   { href: "/analises", label: "Análises" },
   { href: "/premium", label: "Premium" },
+  { href: "/vip", label: "VIP" },
   { href: "/bolao", label: "Bolão" },
   { href: "/ranking", label: "Ranking" },
   { href: "/guias", label: "Guias" },

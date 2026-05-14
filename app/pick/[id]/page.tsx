@@ -6,6 +6,8 @@ import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { JsonLdScript } from "@/components/seo/JsonLdScript";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { VipBadge } from "@/components/premium/VipBadge";
+import { pickContentTier } from "@/lib/premium/content-tier";
 import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 import { siteConfig } from "@/config/site";
 import { breadcrumbTrailForPick } from "@/lib/seo/breadcrumbs-model";
@@ -69,6 +71,7 @@ export default async function PickPublicPage({ params }: Props) {
   const access = await getPremiumAccess();
   const podeVer = viewerPodeVerPremium(access);
   const locked = pick.is_premium && !podeVer;
+  const tier = pickContentTier(pick);
   const crumbs = breadcrumbTrailForPick(pick);
   const graph = jsonLdPickDetailGraph(pick, crumbs);
 
@@ -88,7 +91,12 @@ export default async function PickPublicPage({ params }: Props) {
                 <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
                   {pick.jogo}
                 </h1>
-                {pick.is_premium ? <PremiumLockBadge className="shrink-0" /> : null}
+                {pick.is_premium ? (
+                  <span className="flex shrink-0 flex-wrap items-center gap-1.5">
+                    {tier === "exclusive" ? <VipBadge compact /> : null}
+                    <PremiumLockBadge className="shrink-0" />
+                  </span>
+                ) : null}
                 <FavoriteHeartButton kind="pick" refId={pick.id} className="shrink-0" />
               </div>
               {pick.campeonato?.trim() ? (
@@ -136,14 +144,23 @@ export default async function PickPublicPage({ params }: Props) {
                 </h2>
                 {locked ? (
                   <div className="relative mt-3 overflow-hidden rounded-xl border border-amber-500/25 bg-black/40 p-8 text-center">
-                    <PremiumLockBadge className="mx-auto" />
-                    <p className="mt-3 text-sm text-zinc-400">Justificativa completa no Premium.</p>
-                    <Link
-                      href="/premium"
-                      className="mt-4 inline-block text-sm font-bold text-amber-300 underline-offset-2 hover:underline"
-                    >
-                      Ver Premium
-                    </Link>
+                    {tier === "exclusive" ? (
+                      <div className="flex justify-center">
+                        <VipBadge />
+                      </div>
+                    ) : null}
+                    <PremiumLockBadge className="mx-auto mt-2" />
+                    <p className="mt-3 text-sm text-zinc-400">
+                      Justificativa completa no Premium{tier === "exclusive" ? " / VIP" : ""}.
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-bold">
+                      <Link href="/vip" className="text-gold-300 underline-offset-2 hover:underline">
+                        Programa VIP
+                      </Link>
+                      <Link href="/premium" className="text-amber-300 underline-offset-2 hover:underline">
+                        Premium
+                      </Link>
+                    </div>
                   </div>
                 ) : (
                   <p className="mt-3 text-sm leading-relaxed text-zinc-300">

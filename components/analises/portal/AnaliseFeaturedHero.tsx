@@ -5,7 +5,7 @@ import { oddParaNumero } from "@/lib/analises/types";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { AnaliseCategoriaTags } from "@/components/analises/portal/AnaliseCategoriaTags";
 import { formatAnalisePublicadaDate } from "@/components/analises/portal/date-label";
-import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { AnaliseTierBadges } from "@/components/premium/AnaliseTierBadges";
 
 type Props = { analise: AnaliseRow; viewerCanViewPremium?: boolean };
 
@@ -23,7 +23,7 @@ export function AnaliseFeaturedHero({
         <div className="relative min-h-[220px] lg:min-h-[340px]">
           {analise.is_premium ? (
             <div className="absolute left-4 top-4 z-10">
-              <PremiumLockBadge />
+              <AnaliseTierBadges analise={analise} compact />
             </div>
           ) : null}
           <AnaliseCapaMedia

@@ -3,7 +3,10 @@ import Link from "next/link";
 import type { QuickPickRow } from "@/lib/picks/types";
 import { cn } from "@/lib/utils";
 import { iconeEsporte, rotuloEsporte } from "@/lib/picks/rotulo-esporte";
+import { pickContentTier } from "@/lib/premium/content-tier";
 import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { PremiumPickLockCorner } from "@/components/premium/PremiumPickLockCorner";
+import { VipBadge } from "@/components/premium/VipBadge";
 import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 
 function formatarHorario(iso: string): string {
@@ -65,11 +68,16 @@ function badgeResultado(
   return null;
 }
 
-function cardShellClass(pick: QuickPickRow, premiumLocked: boolean): string {
+function cardShellClass(
+  pick: QuickPickRow,
+  premiumLocked: boolean,
+  tier: ReturnType<typeof pickContentTier>,
+): string {
   if (premiumLocked) {
     return cn(
       "border-amber-600/35 bg-gradient-to-br from-[#0f0c06] to-black",
       "ring-1 ring-amber-500/15",
+      tier === "exclusive" && "ring-gold-400/22 border-gold-500/25",
     );
   }
   if (pick.status === "ativo") {
@@ -105,13 +113,13 @@ function cardShellClass(pick: QuickPickRow, premiumLocked: boolean): string {
   return "border-gold-400/16 bg-gradient-to-br from-pitch-900/95 to-[var(--color-void)] ring-1 ring-gold-400/8";
 }
 
-function cantoIcone(pick: QuickPickRow, premiumLocked: boolean): ReactNode {
+function cantoIcone(
+  pick: QuickPickRow,
+  premiumLocked: boolean,
+  tier: ReturnType<typeof pickContentTier>,
+): ReactNode {
   if (premiumLocked) {
-    return (
-      <div className="absolute right-3 top-3" aria-hidden>
-        <PremiumLockBadge className="scale-95 shadow-md" />
-      </div>
-    );
+    return <PremiumPickLockCorner tier={tier} />;
   }
   if (pick.status === "ativo") {
     return (
@@ -177,12 +185,13 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
   const icon = iconeEsporte(pick.esporte);
   const badge = badgeResultado(pick);
   const locked = pick.is_premium && !viewerCanViewPremium;
+  const tier = pickContentTier(pick);
 
   return (
     <article
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-5 shadow-[0_24px_56px_-30px_rgba(0,0,0,.82)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_60px_-26px_rgba(201,162,39,0.12)]",
-        cardShellClass(pick, locked),
+        cardShellClass(pick, locked, tier),
       )}
     >
       <Link
@@ -196,7 +205,7 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
       </div>
 
       <div className="relative z-10 pointer-events-none">
-        {cantoIcone(pick, locked)}
+        {cantoIcone(pick, locked, tier)}
 
         <div className="mb-3 flex flex-wrap items-center gap-2 pr-12">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-600/70 bg-black/50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
@@ -204,7 +213,10 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
             {sportLabel}
           </span>
           {pick.is_premium && !locked ? (
-            <PremiumLockBadge className="scale-90" />
+            <>
+              {tier === "exclusive" ? <VipBadge compact className="scale-95" /> : null}
+              <PremiumLockBadge className="scale-90" />
+            </>
           ) : null}
           {pick.campeonato?.trim() ? (
             <span className="rounded-full border border-gold-400/22 bg-gold-400/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-gold-200/95">
@@ -276,13 +288,19 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
 
       {locked ? (
         <div className="pointer-events-auto absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-gradient-to-t from-black via-black/85 to-black/40 px-4 text-center">
+          {tier === "exclusive" ? <VipBadge className="mb-1" /> : null}
           <PremiumLockBadge />
-          <Link
-            href="/premium"
-            className="mt-1 text-xs font-bold uppercase tracking-wide text-amber-300 underline-offset-2 hover:underline"
-          >
-            Desbloquear Premium
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] font-bold uppercase tracking-wide">
+            <Link href="/vip" className="text-gold-200 underline-offset-2 hover:underline">
+              Programa VIP
+            </Link>
+            <span className="text-zinc-600" aria-hidden>
+              ·
+            </span>
+            <Link href="/premium" className="text-amber-300 underline-offset-2 hover:underline">
+              Premium
+            </Link>
+          </div>
         </div>
       ) : null}
     </article>

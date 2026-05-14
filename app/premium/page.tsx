@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Lock, Sparkles, Zap, Shield } from "lucide-react";
+import { CreditCard, Lock, Sparkles, Zap, Shield, Crown } from "lucide-react";
+import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
+import { PLACEHOLDER_PLANS, SUBSCRIPTION_STATE_SOURCE } from "@/lib/billing/billing-roadmap";
 
 const base = siteConfig.url.replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: `Premium | ${siteConfig.shortTitle}`,
   description:
-    "Análises e picks exclusivos, odd e confiança — BarbosaTips Premium com acesso total.",
+    "BarbosaTips Premium — camadas público, premium e VIP exclusivo, pré-visualizações e planos futuros (Mercado Pago / Stripe).",
   alternates: { canonical: `${base}/premium` },
   robots: { index: true, follow: true },
 };
@@ -17,17 +19,17 @@ const beneficios = [
   {
     icon: Sparkles,
     titulo: "Conteúdo completo",
-    texto: "Análises longas e picks rápidas sem borrão — leitura integral no portal.",
+    texto: "Análises longas e picks rápidas desbloqueados para assinantes — leitura integral no portal.",
   },
   {
     icon: Zap,
     titulo: "Antecipação",
-    texto: "Linhas de valor e mercados selecionados antes da massa.",
+    texto: "Linhas de valor e mercados seleccionados com contexto e confiança explícitos.",
   },
   {
     icon: Shield,
-    titulo: "Sem ruído",
-    texto: "Foco em prognóstico profissional, odd sugerida e nível de confiança.",
+    titulo: "Disciplina visual",
+    texto: "Experiência premium esportiva: elegante, escura e sofisticada — sem estética de cassino.",
   },
 ];
 
@@ -35,36 +37,76 @@ export default function PremiumPage() {
   const tg = siteConfig.social.telegram;
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#020201] pb-24 pt-10 text-zinc-100 sm:pt-14">
+    <div className="commercial-page-bg pb-24 pt-8 text-zinc-100 sm:pt-10">
       <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_90%_60%_at_50%_-10%,rgba(217,119,6,.18),transparent_50%)]"
+        className="pointer-events-none fixed inset-0 -z-10 opacity-95"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 55% at 50% -8%, rgba(217, 119, 6, 0.14), transparent 50%)",
+        }}
         aria-hidden
       />
 
-      <div className="container-site max-w-4xl">
-        <header className="text-center">
+      <CommercialPageShell>
+        <header className="mb-14 max-w-4xl text-center">
           <p className="inline-flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.28em] text-amber-400">
             <Lock className="h-4 w-4" strokeWidth={2.2} aria-hidden />
             Premium
           </p>
           <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
-            BarbosaTips <span className="text-amber-400">Premium</span>
+            BarbosaTips <span className="text-gold-gradient">Premium</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-zinc-400">
-            Acesso total a análises e picks marcados como premium — o mesmo visual preto e dourado
-            do portal, com conteúdo desbloqueado para assinantes.
+            Três camadas editoriais: <strong className="text-zinc-200">público</strong>,{" "}
+            <strong className="text-zinc-200">premium</strong> (reservado) e{" "}
+            <strong className="text-zinc-200">VIP exclusivo</strong> (marcador em tags / notas
+            internas). Pagamentos recorrentes serão ligados aqui — ainda sem cobrança automática.
           </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/vip"
+              className="inline-flex items-center gap-2 rounded-2xl border border-gold-400/40 bg-gold-400/[0.08] px-6 py-3 text-sm font-bold text-gold-100 transition hover:border-gold-300/55 hover:bg-gold-400/12"
+            >
+              <Crown className="h-4 w-4 text-gold-300" aria-hidden />
+              Programa VIP
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center rounded-2xl border border-white/12 bg-black/40 px-6 py-3 text-sm font-bold text-zinc-200 transition hover:border-gold-400/25"
+            >
+              Área da conta
+            </Link>
+          </div>
         </header>
 
-        <section id="beneficios" className="mt-16 scroll-mt-24">
+        <section className="mb-14 rounded-3xl border border-gold-400/15 bg-zinc-950/40 p-6 sm:p-10">
+          <h2 className="text-center font-display text-xl font-bold text-white sm:text-2xl">
+            Sistema de conteúdo
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-4xl gap-4 sm:grid-cols-3">
+            <TierCard title="Público" subtitle="Aberto" body="Listagens e leitura integral sem assinatura." />
+            <TierCard
+              title="Premium"
+              subtitle="Assinatura"
+              body="Análises e picks com is_premium na base de dados — pré-visualização e corpo parcialmente bloqueado até desbloquear."
+            />
+            <TierCard
+              title="Exclusivo VIP"
+              subtitle="Subconjunto premium"
+              body="Marcado com tags exclusivo ou vip-exclusivo nas análises, ou o mesmo marcador na justificativa das picks. Controlo de acesso idêntico ao premium."
+            />
+          </div>
+        </section>
+
+        <section id="beneficios" className="mb-14 scroll-mt-24">
           <h2 className="text-center font-display text-xl font-bold text-white sm:text-2xl">
             Benefícios
           </h2>
-          <ul className="mt-10 grid gap-6 sm:grid-cols-3">
+          <ul className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-3">
             {beneficios.map(({ icon: Icon, titulo, texto }) => (
               <li
                 key={titulo}
-                className="rounded-2xl border border-amber-900/40 bg-gradient-to-b from-[#0c0a06] to-black p-6 text-center shadow-[0_20px_50px_-28px_rgba(0,0,0,.85)]"
+                className="commercial-card-elevated border border-amber-900/35 bg-gradient-to-b from-[#0c0a06] to-black p-6 text-center shadow-[0_20px_50px_-28px_rgba(0,0,0,.85)]"
               >
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-950/50 text-amber-400">
                   <Icon className="h-6 w-6" strokeWidth={1.8} aria-hidden />
@@ -78,44 +120,75 @@ export default function PremiumPage() {
 
         <section
           id="planos"
-          className="mt-16 scroll-mt-24 rounded-3xl border border-amber-500/25 bg-gradient-to-br from-[#120f08] via-black to-black p-8 text-center shadow-[0_32px_80px_-28px_rgba(217,119,6,.15)] sm:p-12"
+          className="mb-14 scroll-mt-24 rounded-3xl border border-amber-500/25 bg-gradient-to-br from-[#120f08] via-black to-black p-8 text-center shadow-[0_32px_80px_-28px_rgba(217,119,6,.15)] sm:p-12"
         >
-          <h2 className="font-display text-2xl font-bold text-white">Assinatura</h2>
-          <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">
-            O pagamento recorrente (Mercado Pago ou outro) será ligado aqui em breve. Enquanto isso,
-            contacta-nos ou entra no canal VIP no Telegram para filas de acesso antecipado.
+          <div className="mx-auto mb-8 inline-flex items-center gap-2 text-amber-200/90">
+            <CreditCard className="h-5 w-5" strokeWidth={1.8} aria-hidden />
+            <h2 className="font-display text-2xl font-bold text-white">Planos (placeholder)</h2>
+          </div>
+          <p className="mx-auto max-w-lg text-sm text-zinc-500">
+            Estrutura para Mercado Pago e Stripe — preços em definição. O estado de assinatura
+            continuará a ser espelhado em{" "}
+            <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-400">{SUBSCRIPTION_STATE_SOURCE}</code>{" "}
+            até existir tabela dedicada de subscrições.
           </p>
-          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <ul className="mx-auto mt-10 grid max-w-4xl gap-5 text-left sm:grid-cols-2">
+            {PLACEHOLDER_PLANS.map((plan) => (
+              <li
+                key={plan.id}
+                className="rounded-2xl border border-gold-400/18 bg-black/50 p-6 text-sm text-zinc-400"
+              >
+                <p className="font-display text-lg font-bold text-gold-100">{plan.name}</p>
+                <p className="mt-2 leading-relaxed">{plan.description}</p>
+                <p className="mt-3 text-xs uppercase tracking-wider text-zinc-600">
+                  Intervalo: {plan.interval} · Preço BRL:{" "}
+                  {plan.priceCentsBrl != null ? `R$ ${(plan.priceCentsBrl / 100).toFixed(2)}` : "a definir"}
+                </p>
+                <p className="mt-2 text-xs text-zinc-600">
+                  Gateways previstos: {plan.providers.join(", ")}
+                </p>
+                <ul className="mt-3 list-inside list-disc text-xs text-zinc-500">
+                  {plan.highlights.map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <a
               href={tg}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-8 py-3.5 text-sm font-bold text-white shadow-lg transition hover:brightness-110"
             >
-              CTA Telegram VIP
+              Telegram VIP
             </a>
             <Link
               href="/contato"
               className="inline-flex items-center justify-center rounded-xl border border-amber-500/45 bg-black/50 px-8 py-3.5 text-sm font-bold text-amber-100 transition hover:bg-amber-950/30"
             >
-              CTA assinatura — Contacto
+              Contacto comercial
             </Link>
           </div>
-          <p className="mt-6 text-xs text-zinc-600">
-            Conta premium: o administrador activa{" "}
-            <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-400">
-              is_subscriber_premium
-            </code>{" "}
-            no Supabase para o teu utilizador.
-          </p>
         </section>
 
-        <div className="mt-12 text-center">
+        <p className="text-center">
           <Link href="/" className="text-sm font-medium text-amber-500/90 hover:text-amber-400">
             ← Voltar ao início
           </Link>
-        </div>
-      </div>
+        </p>
+      </CommercialPageShell>
+    </div>
+  );
+}
+
+function TierCard(props: { title: string; subtitle: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-white/8 bg-black/45 p-5 text-left">
+      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">{props.subtitle}</p>
+      <p className="mt-2 font-display text-lg font-bold text-white">{props.title}</p>
+      <p className="mt-2 text-sm leading-relaxed text-zinc-500">{props.body}</p>
     </div>
   );
 }

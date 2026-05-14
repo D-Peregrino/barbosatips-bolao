@@ -20,8 +20,9 @@ import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { JsonLdScript } from "@/components/seo/JsonLdScript";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { viewerPodeVerPremium } from "@/lib/premium/types";
+import { analiseContentTier } from "@/lib/premium/content-tier";
 import { PremiumAnaliseBody } from "@/components/premium/PremiumAnaliseBody";
-import { PremiumLockBadge } from "@/components/premium/PremiumLockBadge";
+import { AnaliseTierBadges } from "@/components/premium/AnaliseTierBadges";
 import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton";
 
 type Props = { params: { slug: string } };
@@ -111,6 +112,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
 
   const a = data;
   const podeVerPremium = viewerPodeVerPremium(access);
+  const contentTier = analiseContentTier(a);
   const desbloqueado =
     a.status === "rascunho" || !a.is_premium || podeVerPremium;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
@@ -153,7 +155,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
             <h1 className="font-display text-3xl font-bold leading-tight text-white sm:text-4xl">
               {a.titulo}
             </h1>
-            {a.is_premium ? <PremiumLockBadge className="shrink-0" /> : null}
+            {a.is_premium ? <AnaliseTierBadges analise={a} className="shrink-0" /> : null}
             <FavoriteHeartButton kind="analise" refId={a.slug} className="shrink-0" />
           </div>
           <p className="mt-3 text-lg font-semibold text-zinc-200">
@@ -178,6 +180,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
             corpoHtml={corpoHtml}
             resumo={a.resumo}
             unlocked={desbloqueado}
+            contentTier={contentTier}
           />
         </div>
 
