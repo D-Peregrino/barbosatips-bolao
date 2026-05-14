@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
 
 /**
  * OAuth Google — troca de código por sessão (Supabase).
@@ -9,7 +10,11 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") ?? "/meu-feed";
+  const next = sanitizeInternalRedirect(
+    url.searchParams.get("next"),
+    url.origin,
+    "/meu-feed",
+  );
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?erro=oauth", url.origin));

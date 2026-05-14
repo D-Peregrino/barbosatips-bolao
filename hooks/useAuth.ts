@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { User } from "@supabase/supabase-js";
@@ -13,7 +14,7 @@ interface AuthState {
   isAdmin:            boolean;
   isTipster:          boolean;
   signOut:            () => Promise<void>;
-  signInWithGoogle:   () => Promise<void>;
+  signInWithGoogle:   (nextPath?: string) => Promise<void>;
 }
 
 export function useAuth(): AuthState {
@@ -74,13 +75,23 @@ export function useAuth(): AuthState {
     await supabase.auth.signOut();
   }, [supabase]);
 
-  const signInWithGoogle = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options:  { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  }, [supabase]);
+  const signInWithGoogle = useCallback(
+    async (nextPath?: string) => {
+      if (!supabase) return;
+      const next = sanitizeInternalRedirect(
+        nextPath,
+        window.location.origin,
+        "/meu-feed",
+      );
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        },
+      });
+    },
+    [supabase],
+  );
 
   return {
     user,

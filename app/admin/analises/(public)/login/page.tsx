@@ -5,7 +5,7 @@ export const metadata = {
 };
 
 /**
- * Login editorial: autenticação desativada temporariamente; sem redirects automáticos.
+ * Login editorial: cookie httpOnly após senha correta (middleware protege o painel).
  */
 export default function AdminAnalisesLoginPage() {
   const senhaAdminConfigurada = Boolean(

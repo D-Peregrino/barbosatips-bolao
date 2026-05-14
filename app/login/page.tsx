@@ -26,7 +26,7 @@ function LoginForm() {
           disabled={loading}
           onClick={async () => {
             try {
-              await signInWithGoogle();
+              await signInWithGoogle(redirect);
             } catch {
               setErr("Não foi possível iniciar sessão. Tenta novamente.");
             }

@@ -1,20 +1,30 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  ADMIN_ANALISES_COOKIE,
+  adminAnalisesSessionSecret,
+  verifyAdminAnalisesCookieValue,
+} from "@/lib/admin/analises-cookie";
+import {
   ADMIN_BOLAO_COOKIE,
   adminBolaoSessionSecret,
   verifyAdminBolaoCookieValue,
 } from "@/lib/admin/bolao-cookie";
+import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
+import { applyAdminSecurityHeaders } from "@/lib/middleware/admin-security-headers";
+import {
+  isAdminAnalisesPublicLoginPath,
+  isSupabaseAdminControlledPath,
+} from "@/lib/middleware/supabase-admin-path";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
-
-const ADMIN_ROUTES = ["/admin"];
 
 const AUTH_ROUTES = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const returnPath = `${path}${request.nextUrl.search || ""}`;
 
   if (path === "/nba") {
     return NextResponse.redirect(new URL("/basquete/nba", request.url));
@@ -29,9 +39,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Página de acesso negado — pública; noindex via metadata/headers. */
+  if (path === "/acesso-negado" || path.startsWith("/acesso-negado/")) {
+    return NextResponse.next();
+  }
+
   if (path.startsWith("/admin/bolao")) {
     if (path.startsWith("/admin/bolao/login")) {
-      return NextResponse.next();
+      return applyAdminSecurityHeaders(NextResponse.next());
     }
     const secret = adminBolaoSessionSecret();
     if (!secret) {
@@ -43,26 +58,38 @@ export async function middleware(request: NextRequest) {
     if (!(await verifyAdminBolaoCookieValue(token, secret))) {
       return NextResponse.redirect(new URL("/admin/bolao/login", request.url));
     }
-    return NextResponse.next();
+    return applyAdminSecurityHeaders(NextResponse.next());
   }
 
-  /** Admin editorial desativado: sem Supabase Auth nem checagens neste prefixo. */
+  /** `/admin/analises` — sessão por cookie (senha editorial); login público. */
   if (path.startsWith("/admin/analises")) {
-    return NextResponse.next();
+    if (isAdminAnalisesPublicLoginPath(path)) {
+      return applyAdminSecurityHeaders(NextResponse.next());
+    }
+    const secret = adminAnalisesSessionSecret();
+    if (!secret) {
+      return NextResponse.redirect(
+        new URL("/admin/analises/login?erro=config", request.url),
+      );
+    }
+    const token = request.cookies.get(ADMIN_ANALISES_COOKIE)?.value;
+    if (!(await verifyAdminAnalisesCookieValue(token, secret))) {
+      const loginUrl = new URL("/admin/analises/login", request.url);
+      loginUrl.searchParams.set(
+        "redirect",
+        sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/admin/analises"),
+      );
+      return NextResponse.redirect(loginUrl);
+    }
+    return applyAdminSecurityHeaders(NextResponse.next());
   }
 
-  /** CMS editorial isolado em /admin-editorial — sem auth nem Supabase no middleware. */
-  if (path.startsWith("/admin-editorial")) {
-    return NextResponse.next();
-  }
+  const needsSupabaseAdmin = isSupabaseAdminControlledPath(path);
 
-  if (path.startsWith("/admin-leads")) {
-    return NextResponse.next();
-  }
-
-  /** Admin picks rápidas — mesmo modelo que editorial (ambiente confiável). */
-  if (path.startsWith("/admin-picks")) {
-    return NextResponse.next();
+  if (needsSupabaseAdmin && shouldSkipLiveSupabase()) {
+    return NextResponse.redirect(
+      new URL("/acesso-negado?motivo=config", request.url),
+    );
   }
 
   /** Dashboard operacional interno — sem auth; usar só em ambiente confiável. */
@@ -90,7 +117,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (shouldSkipLiveSupabase()) {
+  if (!needsSupabaseAdmin && shouldSkipLiveSupabase()) {
     return NextResponse.next();
   }
 
@@ -117,13 +144,44 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (needsSupabaseAdmin) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.searchParams.set(
+        "redirect",
+        sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/meu-feed"),
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role !== "admin") {
+      return NextResponse.redirect(
+        new URL("/acesso-negado?motivo=permissao", request.url),
+      );
+    }
+
+    return applyAdminSecurityHeaders(supabaseResponse);
+  }
 
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("redirect", path);
+    redirectUrl.searchParams.set(
+      "redirect",
+      sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/meu-feed"),
+    );
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -132,23 +190,6 @@ export async function middleware(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     return NextResponse.redirect(redirectUrl);
-  }
-
-  if (
-    ADMIN_ROUTES.some((r) => path.startsWith(r)) &&
-    !path.startsWith("/admin/bolao") &&
-    !path.startsWith("/admin/analises") &&
-    user
-  ) {
-    const { data: profile } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
   }
 
   return supabaseResponse;
