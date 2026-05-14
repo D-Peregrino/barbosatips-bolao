@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AdSlot } from "@/components/ads/AdSlot";
+import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { pontuacaoPalpiteContraResultado } from "@/lib/bolao/pontuacao-palpite";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
@@ -260,9 +262,9 @@ export default async function RankingPage() {
   const data = await carregarRankingBolao();
 
   return (
-    <div className="relative min-h-[calc(100vh-72px)] overflow-hidden bg-[#050608] text-white">
+    <div className="commercial-page-bg relative overflow-hidden text-white">
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.28]"
+        className="pointer-events-none absolute inset-0 opacity-[0.32]"
         aria-hidden
         style={{
           backgroundImage:
@@ -270,17 +272,28 @@ export default async function RankingPage() {
         }}
       />
 
-      <div className="relative container-site px-4 py-12 md:py-16">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/90">
-          BarbosaTips · Bolão Copa 2026
-        </p>
-        <h1 className="font-display text-3xl font-bold text-amber-400 md:text-4xl">
-          Ranking
-        </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 md:text-base">
-          Transparência do bolão: 3 pontos placar exato · 1 ponto vencedor ou empate · 0
-          erro ou palpite incompleto nos jogos com resultado oficial.
-        </p>
+      <CommercialPageShell className="relative" mainClassName="py-12 md:py-16">
+        <div className="w-full min-w-0 px-0">
+          <div className="mb-8 lg:hidden">
+            <AdSlot variant="banner-horizontal" intent="ads" />
+          </div>
+
+          <div className="commercial-card-elevated mb-10 max-w-3xl border border-amber-500/15 p-6 sm:p-8">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/90">
+              BarbosaTips · Bolão Copa 2026
+            </p>
+            <h1 className="font-display text-3xl font-bold text-amber-400 md:text-4xl">
+              Ranking
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 md:text-base">
+              Transparência do bolão: 3 pontos placar exato · 1 ponto vencedor ou empate · 0
+              erro ou palpite incompleto nos jogos com resultado oficial.
+            </p>
+          </div>
+
+          <div className="mb-10 lg:hidden">
+            <AdSlot variant="mobile-inline" intent="sponsor" />
+          </div>
 
         {!data.ok ? (
           <p
@@ -369,7 +382,12 @@ export default async function RankingPage() {
             Análises
           </Link>
         </div>
-      </div>
+
+          <div className="mt-10 lg:hidden">
+            <AdSlot variant="banner-horizontal" intent="ads" />
+          </div>
+        </div>
+      </CommercialPageShell>
     </div>
   );
 }

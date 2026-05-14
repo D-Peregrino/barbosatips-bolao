@@ -1,84 +1,126 @@
-"use client";
-
-import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { siteConfig } from "@/config/site";
 
-interface AdSlotProps {
-  slot:      string;
-  format?:  "auto" | "horizontal" | "rectangle" | "vertical";
+export type AdSlotVariant =
+  | "sidebar"
+  | "banner-horizontal"
+  | "card-patrocinado"
+  | "mobile-inline";
+
+export type AdSlotIntent = "sponsor" | "ads";
+
+export type AdSlotProps = {
+  variant: AdSlotVariant;
+  /** Texto do placeholder: patrocinador vs bloco genérico Google Ads. */
+  intent?: AdSlotIntent;
   className?: string;
-  label?:    boolean;
-}
+  /** Reservado para futura integração AdSense (não usado em modo placeholder). */
+  slot?: string;
+};
 
-declare global {
-  interface Window {
-    adsbygoogle: unknown[];
-  }
-}
+const copy = {
+  sponsor: "Espaço para patrocinador",
+  ads: "Google Ads",
+} as const;
 
+/**
+ * Espaços reservados para patrocinadores e Google Ads — sem script AdSense.
+ * Variantes alinham ao layout comercial (rails desktop / banners mobile).
+ */
 export function AdSlot({
-  slot,
-  format    = "auto",
+  variant,
+  intent = "ads",
   className,
-  label     = true,
 }: AdSlotProps) {
-  const adRef = useRef<HTMLModElement>(null);
-  const pushed = useRef(false);
+  const primary = copy[intent];
+  const secondary = intent === "sponsor" ? copy.ads : copy.sponsor;
 
-  useEffect(() => {
-    // Só empurra uma vez por montagem
-    if (pushed.current) return;
+  const baseFrame =
+    "relative flex flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-zinc-900/70 via-pitch-900/80 to-black text-center shadow-[inset_0_1px_0_rgba(251,191,36,.08)]";
 
-    try {
-      if (typeof window !== "undefined") {
-        window.adsbygoogle = window.adsbygoogle || [];
-        window.adsbygoogle.push({});
-        pushed.current = true;
-      }
-    } catch (e) {
-      // AdSense pode falhar em dev — ignorar
-      console.debug("AdSense push failed:", e);
-    }
-  }, []);
+  if (variant === "sidebar") {
+    return (
+      <aside
+        className={cn(
+          baseFrame,
+          "min-h-[280px] w-full px-3 py-6 lg:min-h-[360px] xl:min-h-[420px]",
+          className,
+        )}
+        aria-label={primary}
+      >
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-500/90">
+          {primary}
+        </span>
+        <span className="max-w-[7rem] text-[9px] leading-snug text-zinc-500">{secondary}</span>
+        <div
+          className="mt-2 h-24 w-px bg-gradient-to-b from-transparent via-amber-500/25 to-transparent"
+          aria-hidden
+        />
+      </aside>
+    );
+  }
 
-  // Em desenvolvimento, mostra placeholder visual
-  if (process.env.NODE_ENV === "development") {
+  if (variant === "banner-horizontal") {
     return (
       <div
         className={cn(
-          "ad-slot relative overflow-hidden",
+          baseFrame,
+          "min-h-[88px] w-full flex-row gap-6 px-4 py-4 sm:min-h-[100px] sm:px-8",
           className,
         )}
+        role="region"
+        aria-label={`${primary} · ${secondary}`}
       >
-        {label && (
-          <span className="absolute top-1.5 left-1.5 text-2xs text-neutral-700 uppercase tracking-widest">
-            Anúncio
-          </span>
-        )}
-        <span className="text-neutral-800 font-mono text-xs">
-          Ad · slot/{slot}
+        <span className="rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+          Patrocínio
+        </span>
+        <div className="flex flex-1 flex-col items-center justify-center gap-1">
+          <span className="text-xs font-semibold text-zinc-200">{primary}</span>
+          <span className="text-[11px] text-zinc-500">{secondary}</span>
+        </div>
+        <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-200">
+          Ads
         </span>
       </div>
     );
   }
 
+  if (variant === "card-patrocinado") {
+    return (
+      <div
+        className={cn(
+          baseFrame,
+          "min-h-[140px] w-full max-w-sm px-5 py-6 sm:min-h-[160px]",
+          className,
+        )}
+        role="region"
+        aria-label={primary}
+      >
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-400">
+          Destaque
+        </span>
+        <p className="font-display text-lg font-bold text-white">{primary}</p>
+        <p className="text-xs text-zinc-500">{secondary}</p>
+      </div>
+    );
+  }
+
+  /* mobile-inline */
   return (
-    <div className={cn("ad-slot-wrapper overflow-hidden", className)}>
-      {label && (
-        <p className="text-2xs text-neutral-700 text-center uppercase tracking-widest mb-1">
-          Publicidade
-        </p>
+    <div
+      className={cn(
+        baseFrame,
+        "min-h-[72px] w-full flex-row justify-between gap-3 px-4 py-3 sm:px-5",
+        className,
       )}
-      <ins
-        ref={adRef}
-        className="adsbygoogle block"
-        style={{ display: "block" }}
-        data-ad-client={siteConfig.adsense.publisherId}
-        data-ad-slot={slot}
-        data-ad-format={format}
-        data-full-width-responsive="true"
-      />
+      role="region"
+      aria-label={`${primary} · ${secondary}`}
+    >
+      <span className="text-left text-[11px] font-semibold leading-tight text-zinc-300">
+        {primary}
+      </span>
+      <span className="shrink-0 rounded-md border border-zinc-600/80 bg-black/40 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
+        {secondary}
+      </span>
     </div>
   );
 }

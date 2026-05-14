@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="bg-black text-white">
+      <body className="bg-pitch-950 text-white">
         <Navbar />
 
         <main className="pt-[72px]">

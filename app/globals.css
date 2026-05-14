@@ -46,6 +46,9 @@
 
   body {
     @apply min-h-screen overflow-x-hidden font-body antialiased bg-pitch-950 text-neutral-200;
+    background-image:
+      radial-gradient(ellipse 100% 80% at 50% -30%, rgba(217, 119, 6, 0.12), transparent 45%),
+      linear-gradient(180deg, #050505 0%, #0a0a0c 35%, #050505 100%);
   }
 
   ::selection {
@@ -270,6 +273,22 @@
   /* Fundo premium por página (opcional em wrappers) */
   .page-premium-bg {
     @apply relative bg-gradient-to-b from-pitch-950 via-pitch-900 to-pitch-950;
+  }
+
+  /** Layout comercial: cartões menos pesados + borda dourada suave */
+  .commercial-card-elevated {
+    @apply rounded-2xl border border-amber-500/20 bg-gradient-to-br from-zinc-900/55 via-pitch-900/90 to-pitch-950;
+    box-shadow:
+      0 1px 0 rgba(251, 191, 36, 0.06) inset,
+      0 24px 60px -28px rgba(0, 0, 0, 0.75);
+  }
+
+  .commercial-section-strip {
+    @apply border-y border-amber-500/10 bg-gradient-to-b from-black/40 via-pitch-950/95 to-zinc-950/50;
+  }
+
+  .commercial-page-bg {
+    @apply min-h-[calc(100vh-64px)] bg-gradient-to-b from-pitch-950 via-[#0a0a0c] to-black text-zinc-100;
   }
 }
 
