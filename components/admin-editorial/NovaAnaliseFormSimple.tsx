@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { salvarNovaAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
 import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
+import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
+import type { IaAnaliseDraft } from "@/lib/admin-editorial/ai-analise/types";
 
 const initial: SalvarAnaliseEditorialResult = { ok: true };
 
@@ -31,15 +34,48 @@ const textarea =
   "w-full rounded-xl border border-[#3d3420]/90 bg-[#050608] px-4 py-2.5 text-sm text-white outline-none focus:border-[#C9A227]/60";
 
 export function NovaAnaliseFormSimple() {
-  const [state, formAction] = useFormState(
-    salvarNovaAnaliseEditorialAction,
-    initial,
-  );
+  const [state, formAction] = useFormState(salvarNovaAnaliseEditorialAction, initial);
+
+  const [titulo, setTitulo] = useState("");
+  const [slug, setSlug] = useState("");
+  const [esporte, setEsporte] = useState("futebol");
+  const [campeonato, setCampeonato] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [tags, setTags] = useState("");
+  const [timeCasa, setTimeCasa] = useState("");
+  const [timeFora, setTimeFora] = useState("");
+  const [odd, setOdd] = useState("");
+  const [confianca, setConfianca] = useState("");
+  const [resumo, setResumo] = useState("");
+  const [conteudo, setConteudo] = useState("");
+
+  const aplicarIa = useCallback((d: IaAnaliseDraft) => {
+    setTitulo(d.titulo);
+    setSlug(d.slug);
+    setEsporte(d.esporte);
+    setCampeonato(d.campeonato);
+    setCategoria(d.categoria);
+    setTags(d.tags);
+    setTimeCasa(d.timeCasa);
+    setTimeFora(d.timeFora);
+    setOdd(d.oddReferencia);
+    setConfianca(String(d.confianca));
+    setResumo(d.resumo);
+    setConteudo(d.conteudoMarkdown);
+  }, []);
 
   const erro = state?.ok === false ? state.error : "";
 
   return (
     <form action={formAction} className="space-y-5">
+      <div className="flex flex-col gap-3 rounded-xl border border-[#C9A227]/25 bg-[#080706]/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#C9A227]">Produção</p>
+          <p className="text-xs text-zinc-500">Rascunho local — revê sempre antes de publicar.</p>
+        </div>
+        <EditorialIaAnaliseAssistente onApply={aplicarIa} />
+      </div>
+
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="titulo" className={label}>
@@ -51,6 +87,8 @@ export function NovaAnaliseFormSimple() {
             className={input}
             required
             autoComplete="off"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -64,13 +102,21 @@ export function NovaAnaliseFormSimple() {
             placeholder="ex.: flamengo-x-palmeiras"
             required
             autoComplete="off"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="esporte" className={label}>
             Esporte (hub público)
           </label>
-          <select id="esporte" name="esporte" className={input} defaultValue="futebol">
+          <select
+            id="esporte"
+            name="esporte"
+            className={input}
+            value={esporte}
+            onChange={(e) => setEsporte(e.target.value)}
+          >
             {siteConfig.sports.map((s) => (
               <option key={s.slug} value={s.slug}>
                 {s.icon} {s.label}
@@ -90,6 +136,8 @@ export function NovaAnaliseFormSimple() {
             name="campeonato"
             className={input}
             autoComplete="off"
+            value={campeonato}
+            onChange={(e) => setCampeonato(e.target.value)}
           />
         </div>
         <div>
@@ -102,6 +150,8 @@ export function NovaAnaliseFormSimple() {
             className={input}
             placeholder="ex.: Futebol, NBA, Valor"
             autoComplete="off"
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
           />
         </div>
         <div>
@@ -114,6 +164,8 @@ export function NovaAnaliseFormSimple() {
             className={input}
             placeholder="futebol, over, correct score, valor"
             autoComplete="off"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
           />
         </div>
         <div>
@@ -125,6 +177,8 @@ export function NovaAnaliseFormSimple() {
             name="time_casa"
             className={input}
             autoComplete="off"
+            value={timeCasa}
+            onChange={(e) => setTimeCasa(e.target.value)}
           />
         </div>
         <div>
@@ -136,6 +190,8 @@ export function NovaAnaliseFormSimple() {
             name="time_fora"
             className={input}
             autoComplete="off"
+            value={timeFora}
+            onChange={(e) => setTimeFora(e.target.value)}
           />
         </div>
         <div>
@@ -150,6 +206,8 @@ export function NovaAnaliseFormSimple() {
             className={input}
             placeholder="2.10"
             autoComplete="off"
+            value={odd}
+            onChange={(e) => setOdd(e.target.value)}
           />
         </div>
         <div>
@@ -164,6 +222,8 @@ export function NovaAnaliseFormSimple() {
             max={100}
             className={input}
             autoComplete="off"
+            value={confianca}
+            onChange={(e) => setConfianca(e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -175,11 +235,13 @@ export function NovaAnaliseFormSimple() {
             name="resumo"
             className={textarea}
             rows={3}
+            value={resumo}
+            onChange={(e) => setResumo(e.target.value)}
           />
         </div>
       </div>
 
-      <EditorialVisualEditor />
+      <EditorialVisualEditor value={conteudo} onChange={setConteudo} defaultValue="" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload />
@@ -193,9 +255,7 @@ export function NovaAnaliseFormSimple() {
               className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
             />
             <span>
-              <span className="block text-sm font-semibold text-[#E8D48B]">
-                Conteúdo premium
-              </span>
+              <span className="block text-sm font-semibold text-[#E8D48B]">Conteúdo premium</span>
               <span className="mt-0.5 block text-xs text-zinc-500">
                 Visível na íntegra apenas para assinantes Premium; outros vêem pré-visualização.
               </span>
@@ -214,10 +274,7 @@ export function NovaAnaliseFormSimple() {
       </div>
 
       {erro ? (
-        <p
-          className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
-          role="alert"
-        >
+        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
           {erro}
         </p>
       ) : null}

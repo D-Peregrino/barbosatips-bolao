@@ -55,18 +55,34 @@ function insertBlock(
 type Props = {
   defaultValue?: string;
   textareaId?: string;
+  /** Modo controlado: sincroniza com o estado pai (ex.: assistente IA). */
+  value?: string;
+  onChange?: (markdown: string) => void;
 };
 
 export function EditorialVisualEditor({
   defaultValue = "",
   textareaId = "conteudo",
+  value,
+  onChange,
 }: Props) {
-  const [value, setValue] = useState(defaultValue);
+  const [internal, setInternal] = useState(defaultValue);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const controlled = typeof onChange === "function";
+  const editorValue = controlled ? (value ?? "") : internal;
 
   useEffect(() => {
-    setValue(defaultValue);
-  }, [defaultValue]);
+    if (controlled) return;
+    setInternal(defaultValue);
+  }, [defaultValue, controlled]);
+
+  const commit = useCallback(
+    (next: string) => {
+      if (controlled) onChange?.(next);
+      else setInternal(next);
+    },
+    [controlled, onChange],
+  );
 
   const focusRange = useCallback((start: number, end: number) => {
     const ta = taRef.current;
@@ -84,17 +100,17 @@ export function EditorialVisualEditor({
       const start = ta.selectionStart;
       const end = ta.selectionEnd;
       const { next, selStart, selEnd } = applyWrap(
-        value,
+        editorValue,
         start,
         end,
         before,
         after,
         placeholder,
       );
-      setValue(next);
+      commit(next);
       focusRange(selStart, selEnd);
     },
-    [value, focusRange],
+    [editorValue, commit, focusRange],
   );
 
   const block = useCallback(
@@ -103,11 +119,11 @@ export function EditorialVisualEditor({
       if (!ta) return;
       const start = ta.selectionStart;
       const end = ta.selectionEnd;
-      const { next, selStart, selEnd } = insertBlock(value, start, end, md);
-      setValue(next);
+      const { next, selStart, selEnd } = insertBlock(editorValue, start, end, md);
+      commit(next);
       focusRange(selStart, selEnd);
     },
-    [value, focusRange],
+    [editorValue, commit, focusRange],
   );
 
   const onLink = useCallback(() => {
@@ -115,17 +131,17 @@ export function EditorialVisualEditor({
     if (!ta) return;
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const label = value.slice(start, end).trim() || "texto";
+    const labelText = editorValue.slice(start, end).trim() || "texto";
     const url = window.prompt("URL do link", "https://");
     if (url === null) return;
     const href = url.trim() || "https://";
-    const snippet = `[${label}](${href})`;
-    const next = value.slice(0, start) + snippet + value.slice(end);
-    setValue(next);
+    const snippet = `[${labelText}](${href})`;
+    const next = editorValue.slice(0, start) + snippet + editorValue.slice(end);
+    commit(next);
     focusRange(start + snippet.length, start + snippet.length);
-  }, [value, focusRange]);
+  }, [editorValue, commit, focusRange]);
 
-  const previewHtml = conteudoAnaliseParaHtmlPublico(value);
+  const previewHtml = conteudoAnaliseParaHtmlPublico(editorValue);
   const previewSafe =
     previewHtml ||
     '<p class="text-zinc-500 italic m-0">Pré-visualização vazia. Escreva markdown ou use os botões acima.</p>';
@@ -229,8 +245,8 @@ export function EditorialVisualEditor({
           ref={taRef}
           id={textareaId}
           name="conteudo"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={editorValue}
+          onChange={(e) => commit(e.target.value)}
           className={textareaClass}
           spellCheck
           autoComplete="off"

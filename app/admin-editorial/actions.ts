@@ -9,6 +9,7 @@ import type { AnaliseStatus } from "@/lib/analises/types";
 import { conteudoEditorialParaGravacao } from "@/lib/analises/sanitize-html";
 import { siteConfig } from "@/config/site";
 import { getLeaguesForSport } from "@/lib/sport-routes";
+import { normalizarSlugEditorial } from "@/lib/admin-editorial/normalizar-slug";
 
 const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
 
@@ -24,16 +25,6 @@ function revalidateSportHubs() {
       revalidatePath(`/${s.slug}/${l.slug}`);
     }
   }
-}
-
-function normalizarSlug(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 function parseOddConfianca(formData: FormData): { odd: number; confianca: number } {
@@ -58,7 +49,7 @@ export async function salvarNovaAnaliseEditorialAction(
 
   const titulo = String(formData.get("titulo") ?? "").trim();
   const slugRaw = String(formData.get("slug") ?? "");
-  const slug = normalizarSlug(slugRaw);
+  const slug = normalizarSlugEditorial(slugRaw);
   if (!titulo) {
     return { ok: false, error: "Título é obrigatório." };
   }
@@ -133,7 +124,7 @@ export async function atualizarAnaliseEditorialAction(
   }
 
   const titulo = String(formData.get("titulo") ?? "").trim();
-  const slug = normalizarSlug(String(formData.get("slug") ?? ""));
+  const slug = normalizarSlugEditorial(String(formData.get("slug") ?? ""));
   if (!titulo) {
     return { ok: false, error: "Título é obrigatório." };
   }
