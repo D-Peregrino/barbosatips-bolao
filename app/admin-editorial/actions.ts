@@ -6,6 +6,7 @@ import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseStatus } from "@/lib/analises/types";
+import { conteudoEditorialParaGravacao } from "@/lib/analises/sanitize-html";
 
 function normalizarSlug(raw: string): string {
   return raw
@@ -51,7 +52,7 @@ export async function salvarNovaAnaliseEditorialAction(
   const timeCasa = String(formData.get("time_casa") ?? "").trim();
   const timeFora = String(formData.get("time_fora") ?? "").trim();
   const resumo = String(formData.get("resumo") ?? "").trim();
-  const conteudo = String(formData.get("conteudo") ?? "").trim();
+  const conteudo = conteudoEditorialParaGravacao(formData.get("conteudo"));
   const imagemCapa = String(formData.get("imagem_capa") ?? "").trim();
   const { odd, confianca } = parseOddConfianca(formData);
 
@@ -114,7 +115,7 @@ export async function atualizarAnaliseEditorialAction(
   const timeCasa = String(formData.get("time_casa") ?? "").trim();
   const timeFora = String(formData.get("time_fora") ?? "").trim();
   const resumo = String(formData.get("resumo") ?? "").trim();
-  const conteudo = String(formData.get("conteudo") ?? "").trim();
+  const conteudo = conteudoEditorialParaGravacao(formData.get("conteudo"));
   const imagemCapa = String(formData.get("imagem_capa") ?? "").trim();
   const { odd, confianca } = parseOddConfianca(formData);
 

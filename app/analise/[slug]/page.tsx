@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { oddParaNumero, type AnaliseRow, type AnaliseStatus } from "@/lib/analises/types";
-import { legadoTextoParaHtmlSeguro } from "@/lib/analises/sanitize-html";
+import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/sanitize-html";
 
 type Props = { params: { slug: string } };
 
@@ -87,7 +87,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
   const a = data;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const tg = siteConfig.social.telegram;
-  const corpoHtml = legadoTextoParaHtmlSeguro(a.conteudo);
+  const corpoHtml = conteudoAnaliseParaHtmlPublico(a.conteudo);
 
   return (
     <article className="min-h-[calc(100vh-64px)] bg-black pb-20 pt-6 text-zinc-100">

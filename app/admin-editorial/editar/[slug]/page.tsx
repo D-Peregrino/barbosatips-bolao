@@ -15,7 +15,7 @@ export default async function AdminEditorialEditarPage({ params }: Props) {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] px-4 py-10 text-white">
-      <div className="relative mx-auto max-w-3xl">
+      <div className="relative mx-auto max-w-4xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#E8D48B]">

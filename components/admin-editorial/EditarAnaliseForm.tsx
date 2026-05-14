@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { atualizarAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
+import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 
@@ -155,18 +156,10 @@ export function EditarAnaliseForm({ initial }: Props) {
             defaultValue={initial.resumo}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="conteudo" className={label}>
-            Conteúdo
-          </label>
-          <textarea
-            id="conteudo"
-            name="conteudo"
-            className={textarea}
-            rows={12}
-            defaultValue={initial.conteudo}
-          />
-        </div>
+        <EditorialVisualEditor
+          key={`${initial.id}-conteudo`}
+          defaultValue={initial.conteudo}
+        />
         <EditorialCapaUpload key={initial.slug} defaultValue={initial.imagem_capa} />
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>

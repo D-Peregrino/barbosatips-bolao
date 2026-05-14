@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { salvarNovaAnaliseEditorialAction } from "@/app/admin-editorial/actions";
 import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
+import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
 
 const initial: SalvarAnaliseEditorialResult = { ok: true };
 
@@ -136,18 +137,7 @@ export function NovaAnaliseFormSimple() {
             rows={3}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="conteudo" className={label}>
-            Conteúdo
-          </label>
-          <textarea
-            id="conteudo"
-            name="conteudo"
-            className={textarea}
-            rows={12}
-            placeholder="Texto simples ou parágrafos separados por linha em branco."
-          />
-        </div>
+        <EditorialVisualEditor />
         <EditorialCapaUpload />
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>

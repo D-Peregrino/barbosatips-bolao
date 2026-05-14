@@ -59,3 +59,22 @@ export function legadoTextoParaHtmlSeguro(texto: string): string {
     .join("");
   return sanitizeAnaliseHtml(paragrafos);
 }
+
+/**
+ * HTML seguro para a página pública da análise (alias semântico de
+ * {@link legadoTextoParaHtmlSeguro}).
+ */
+export function conteudoAnaliseParaHtmlPublico(conteudo: string): string {
+  return legadoTextoParaHtmlSeguro(conteudo);
+}
+
+/**
+ * Normaliza o corpo ao gravar no CMS: HTML é sanitizado com DOMPurify;
+ * texto sem tags mantém-se (quebras duplas viram parágrafos na leitura).
+ */
+export function conteudoEditorialParaGravacao(raw: unknown): string {
+  const body = String(raw ?? "");
+  if (!body.trim()) return "";
+  if (/<[a-z][\s\S]*>/i.test(body)) return sanitizeAnaliseHtml(body);
+  return body.trim();
+}
