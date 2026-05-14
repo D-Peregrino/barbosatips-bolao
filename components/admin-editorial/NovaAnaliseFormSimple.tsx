@@ -137,7 +137,11 @@ export function NovaAnaliseFormSimple() {
             rows={3}
           />
         </div>
-        <EditorialVisualEditor />
+      </div>
+
+      <EditorialVisualEditor />
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload />
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>

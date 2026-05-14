@@ -61,16 +61,8 @@ export function legadoTextoParaHtmlSeguro(texto: string): string {
 }
 
 /**
- * HTML seguro para a página pública da análise (alias semântico de
- * {@link legadoTextoParaHtmlSeguro}).
- */
-export function conteudoAnaliseParaHtmlPublico(conteudo: string): string {
-  return legadoTextoParaHtmlSeguro(conteudo);
-}
-
-/**
- * Normaliza o corpo ao gravar no CMS: HTML é sanitizado com DOMPurify;
- * texto sem tags mantém-se (quebras duplas viram parágrafos na leitura).
+ * Normaliza o corpo ao gravar no CMS: HTML legado é sanitizado;
+ * markdown ou texto simples grava-se em texto (sem passar pelo DOMPurify como HTML bruto).
  */
 export function conteudoEditorialParaGravacao(raw: unknown): string {
   const body = String(raw ?? "");

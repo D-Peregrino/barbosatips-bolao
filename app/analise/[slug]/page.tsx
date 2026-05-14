@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { oddParaNumero, type AnaliseRow, type AnaliseStatus } from "@/lib/analises/types";
-import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/sanitize-html";
+import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-analise";
 
 type Props = { params: { slug: string } };
 
@@ -142,7 +142,7 @@ export default async function AnaliseSlugPage({ params }: Props) {
           </div>
         </header>
 
-        <div className="prose prose-invert prose-headings:font-display max-w-none rounded-2xl border border-[#2a2418] bg-[#0c0b09]/90 p-6 text-base leading-relaxed text-zinc-200 sm:p-8 prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-a:text-[#C9A227] prose-blockquote:border-[#C9A227]/50 prose-blockquote:text-zinc-400 prose-hr:border-zinc-600">
+        <div className="prose prose-invert prose-headings:font-display max-w-none rounded-2xl border border-[#2a2418] bg-[#0c0b09]/90 p-6 text-base leading-relaxed text-zinc-200 sm:p-8 prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-h1:text-2xl prose-h2:text-xl prose-a:text-[#C9A227] prose-blockquote:border-[#C9A227]/50 prose-blockquote:text-zinc-400 prose-hr:border-zinc-600">
           {corpoHtml ? (
             <div
               className="analise-conteudo-html"

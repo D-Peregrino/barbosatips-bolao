@@ -1,16 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { legadoTextoParaHtmlSeguro } from "@/lib/analises/sanitize-html";
+import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-analise";
 
 const label =
-  "mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500";
+  "mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#C9A227]";
 
 const textareaClass =
-  "min-h-[280px] w-full resize-y rounded-b-xl border-0 bg-[#050608] px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 outline-none focus:ring-2 focus:ring-inset focus:ring-[#C9A227]/35 sm:min-h-[320px]";
+  "min-h-[280px] w-full resize-y rounded-b-xl border-0 bg-[#050608] px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 outline-none focus:ring-2 focus:ring-inset focus:ring-[#C9A227]/40 sm:min-h-[320px]";
+
+/** Barra visível: contraste alto (preto + dourado). */
+const toolbarWrap =
+  "rounded-t-xl border-2 border-b-0 border-[#d4af37]/70 bg-gradient-to-b from-[#2a2318] to-[#1a1510] px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,215,128,.12)] sm:px-3";
 
 const toolbarBtn =
-  "min-h-[40px] shrink-0 rounded-lg border border-[#3d3420]/90 bg-[#12100c] px-2.5 py-1.5 text-center text-[11px] font-semibold text-[#E8D48B] shadow-sm transition hover:border-[#C9A227]/45 hover:bg-[#1a1610] active:scale-[0.98] sm:px-3 sm:text-xs";
+  "min-h-[44px] min-w-[2.75rem] shrink-0 rounded-lg border-2 border-[#C9A227]/50 bg-[#0f0d0a] px-2.5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-[#ffd966] shadow-[0_2px_8px_rgba(0,0,0,.45)] transition hover:border-[#E8D48B] hover:bg-[#1f1a12] hover:text-white active:scale-[0.97] sm:min-w-0 sm:px-3 sm:text-xs";
 
 function applyWrap(
   value: string,
@@ -39,7 +43,8 @@ function insertBlock(
   end: number,
   block: string,
 ): { next: string; selStart: number; selEnd: number } {
-  const prefix = start > 0 && !/\n\n$/.test(value.slice(0, start)) ? "\n\n" : "";
+  const prefix =
+    start > 0 && !/\n\n$/.test(value.slice(0, start)) ? "\n\n" : "";
   const suffix = "\n\n";
   const insertion = prefix + block + suffix;
   const next = value.slice(0, start) + insertion + value.slice(end);
@@ -47,19 +52,8 @@ function insertBlock(
   return { next, selStart: pos, selEnd: pos };
 }
 
-function safeHrefForAttr(href: string): string {
-  const t = href.trim().replace(/\s+/g, "");
-  let h = t;
-  if (!/^https?:\/\//i.test(h)) {
-    h = `https://${h.replace(/^\/+/, "")}`;
-  }
-  return h.replace(/"/g, "%22").replace(/</g, "%3C").replace(/>/g, "%3E");
-}
-
 type Props = {
-  /** Valor inicial (edição). */
   defaultValue?: string;
-  /** id do textarea (label + acessibilidade). */
   textareaId?: string;
 };
 
@@ -104,12 +98,12 @@ export function EditorialVisualEditor({
   );
 
   const block = useCallback(
-    (html: string) => {
+    (md: string) => {
       const ta = taRef.current;
       if (!ta) return;
       const start = ta.selectionStart;
       const end = ta.selectionEnd;
-      const { next, selStart, selEnd } = insertBlock(value, start, end, html);
+      const { next, selStart, selEnd } = insertBlock(value, start, end, md);
       setValue(next);
       focusRange(selStart, selEnd);
     },
@@ -121,117 +115,114 @@ export function EditorialVisualEditor({
     if (!ta) return;
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const label = value.slice(start, end) || "texto do link";
-    const url = window.prompt("URL do link (https://…)", "https://");
+    const label = value.slice(start, end).trim() || "texto";
+    const url = window.prompt("URL do link", "https://");
     if (url === null) return;
-    const trimmed = url.trim();
-    if (!trimmed) return;
-    const href = safeHrefForAttr(trimmed);
-    const snippet = `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    const href = url.trim() || "https://";
+    const snippet = `[${label}](${href})`;
     const next = value.slice(0, start) + snippet + value.slice(end);
     setValue(next);
     focusRange(start + snippet.length, start + snippet.length);
   }, [value, focusRange]);
 
-  const previewHtml = legadoTextoParaHtmlSeguro(value);
+  const previewHtml = conteudoAnaliseParaHtmlPublico(value);
   const previewSafe =
     previewHtml ||
-    '<p class="text-zinc-600 italic m-0">Sem conteúdo ainda. Use a barra de ferramentas ou escreva HTML permitido.</p>';
+    '<p class="text-zinc-500 italic m-0">Pré-visualização vazia. Escreva markdown ou use os botões acima.</p>';
 
   return (
-    <div className="sm:col-span-2">
+    <div className="w-full min-w-0 space-y-2">
       <label htmlFor={textareaId} className={label}>
-        Conteúdo
+        Conteúdo (markdown)
       </label>
-      <p className="mb-2 text-xs text-zinc-500">
-        Editor simples: a barra insere HTML seguro (negrito, listas, citações, etc.).
-        Parágrafos em texto simples continuam válidos (linha em branco separa blocos).
+      <p className="text-xs text-zinc-400">
+        Barra dourada: insere markdown no cursor. Parágrafos: linha em branco entre
+        blocos. Conteúdo antigo em HTML continua a ser aceite.
       </p>
 
-      <div className="overflow-hidden rounded-xl border border-[#3d3420]/90 bg-[#0c0b09] shadow-inner">
+      <div className="overflow-hidden rounded-xl border-2 border-[#C9A227]/45 bg-[#0a0908] shadow-[0_12px_40px_-8px_rgba(0,0,0,.6)]">
         <div
-          className="flex flex-wrap gap-1 border-b border-[#3d3420]/80 bg-[#080706] p-2"
+          className={toolbarWrap}
           role="toolbar"
-          aria-label="Formatação do conteúdo"
+          aria-label="Inserir markdown"
         >
-          <button
-            type="button"
-            className={toolbarBtn}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="hidden w-full text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a773f] sm:mb-0 sm:inline sm:w-auto sm:pr-2">
+              Formatar
+            </span>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Negrito **texto**"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => wrap("**", "**", "texto")}
+            >
+              Negrito
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Itálico *texto*"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => wrap("*", "*", "texto")}
+            >
+              Itálico
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Título # …"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => block("# Titulo")}
+            >
+              H1
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Subtítulo ## …"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => block("## Subtitulo")}
+            >
+              H2
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Lista com traço"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => block("- item\n- item")}
+            >
+              Lista
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Citação > …"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => block("> texto")}
+            >
+              Citação
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+              title="Link [texto](url)"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onLink}
+            >
+              Link
+            </button>
+            <button
+              type="button"
+              className={toolbarBtn}
+            title="Linha separadora ---"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => wrap("<strong>", "</strong>", "negrito")}
-          >
-            Negrito
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => wrap("<em>", "</em>", "itálico")}
-          >
-            Itálico
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              block('<h2 class="text-xl font-bold text-white mt-6 mb-2">Título</h2>')
-            }
-          >
-            Título
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              block(
-                '<h3 class="text-lg font-semibold text-zinc-100 mt-4 mb-2">Subtítulo</h3>',
-              )
-            }
-          >
-            Subtítulo
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              block(
-                "<ul>\n<li>Primeiro item</li>\n<li>Segundo item</li>\n</ul>",
-              )
-            }
-          >
-            Lista
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              block(
-                '<blockquote class="border-l-4 border-[#C9A227]/60 pl-4 text-zinc-300 italic my-4"><p>Citação</p></blockquote>',
-              )
-            }
-          >
-            Citação
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onLink}
-          >
-            Link
-          </button>
-          <button
-            type="button"
-            className={toolbarBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => block("<hr />")}
+            onClick={() => block("---")}
           >
             Separador
           </button>
+          </div>
         </div>
 
         <textarea
@@ -243,16 +234,16 @@ export function EditorialVisualEditor({
           className={textareaClass}
           spellCheck
           autoComplete="off"
-          placeholder="Escreva o texto da análise ou use os botões acima para inserir formatação."
+          placeholder="Escreva em markdown (negrito, listas, # títulos…) ou cole HTML legado."
         />
       </div>
 
-      <div className="mt-4">
+      <div className="pt-2">
         <p className={label}>Pré-visualização</p>
-        <div className="max-h-[min(420px,55vh)] overflow-y-auto rounded-xl border border-[#3d3420]/80 bg-[#080706] p-4 sm:p-5">
+        <div className="max-h-[min(420px,55vh)] overflow-y-auto rounded-xl border border-[#3d3420]/90 bg-[#080706] p-4 sm:p-5">
           <div
             className="analise-editor-preview prose prose-invert prose-sm max-w-none prose-headings:font-display prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-a:text-[#C9A227] prose-blockquote:border-[#C9A227]/50 prose-blockquote:text-zinc-400 prose-hr:border-zinc-600 prose-li:marker:text-[#C9A227]/80"
-            // eslint-disable-next-line react/no-danger -- mesmo pipeline que /analise/[slug] (DOMPurify)
+            // eslint-disable-next-line react/no-danger -- pipeline com DOMPurify (render-conteudo-analise)
             dangerouslySetInnerHTML={{ __html: previewSafe }}
           />
         </div>

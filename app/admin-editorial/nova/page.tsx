@@ -8,7 +8,7 @@ export const metadata = {
 export default function AdminEditorialNovaPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] px-4 py-10 text-white">
-      <div className="relative mx-auto max-w-4xl">
+      <div className="relative mx-auto w-full max-w-4xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#E8D48B]">
@@ -17,6 +17,10 @@ export default function AdminEditorialNovaPage() {
             <h1 className="font-serif text-2xl font-bold sm:text-3xl">
               Nova análise
             </h1>
+            <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+              Conteúdo com barra dourada de formatação (markdown) e pré-visualização
+              abaixo do campo.
+            </p>
           </div>
           <Link
             href="/admin-editorial"

@@ -156,10 +156,14 @@ export function EditarAnaliseForm({ initial }: Props) {
             defaultValue={initial.resumo}
           />
         </div>
-        <EditorialVisualEditor
-          key={`${initial.id}-conteudo`}
-          defaultValue={initial.conteudo}
-        />
+      </div>
+
+      <EditorialVisualEditor
+        key={`${initial.id}-conteudo`}
+        defaultValue={initial.conteudo}
+      />
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload key={initial.slug} defaultValue={initial.imagem_capa} />
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
