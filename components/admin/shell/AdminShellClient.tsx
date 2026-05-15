@@ -15,13 +15,14 @@ import {
   Radio,
   Send,
   Shield,
+  TrendingUp,
   Trophy,
   Users,
   X,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { logoutAdminPanelAction } from "@/app/admin/actions";
+import { AdminSairButton } from "@/components/admin/shell/AdminSairButton";
 import type { AdminPanelShellSession } from "@/lib/admin/supabase-admin";
 
 type NavItem = {
@@ -42,6 +43,30 @@ const PRIMARY: NavItem[] = [
     icon: FilePlus,
   },
   { href: "/admin-picks", label: "Picks", desc: "Quick picks", icon: Zap },
+  {
+    href: "/admin/gerar-post",
+    label: "Gerar Post",
+    desc: "Redes sociais",
+    icon: Send,
+  },
+  {
+    href: "/admin/football-api",
+    label: "API-Football",
+    desc: "Jogos do dia",
+    icon: Radio,
+  },
+  {
+    href: "/admin/mercados",
+    label: "Mercados EV+",
+    desc: "Valor esperado",
+    icon: TrendingUp,
+  },
+  {
+    href: "/admin/admins",
+    label: "Administradores",
+    desc: "Acesso ao painel",
+    icon: Shield,
+  },
   { href: "/admin/bolao", label: "Bolão", desc: "Sessão própria", icon: Trophy },
 ];
 
@@ -211,15 +236,9 @@ export function AdminShellClient({ session, children }: Props) {
           </div>
         </nav>
 
-        <form action={logoutAdminPanelAction} className="mt-auto border-t border-white/5 pt-4">
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-sm font-semibold text-stone-200 transition hover:border-red-400/30 hover:bg-red-950/25 hover:text-red-100"
-          >
-            <Shield className="h-4 w-4" aria-hidden />
-            Terminar sessão
-          </button>
-        </form>
+        <div className="mt-auto border-t border-white/5 pt-4">
+          <AdminSairButton variant="sidebar" />
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-0">
@@ -239,11 +258,15 @@ export function AdminShellClient({ session, children }: Props) {
             </p>
             <p className="truncate font-display text-lg font-bold text-white">Painel central</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden rounded-full border border-gold-400/15 bg-gold-400/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-100/95 sm:inline">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <AdminSairButton variant="header" className="shrink-0" />
+            <span className="hidden rounded-full border border-gold-400/15 bg-gold-400/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-100/95 md:inline">
               Admin
             </span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold-500/30 to-amber-700/20 text-xs font-black text-gold-50 ring-1 ring-gold-400/20">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold-500/30 to-amber-700/20 text-xs font-black text-gold-50 ring-1 ring-gold-400/20"
+              title={session.email}
+            >
               {initialsFromEmail(session.email)}
             </span>
           </div>

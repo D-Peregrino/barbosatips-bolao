@@ -152,6 +152,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (path === "/api/test-odds" || path.startsWith("/api/test-odds/")) {
+    return NextResponse.next();
+  }
+
+  if (path === "/api/test-ev" || path.startsWith("/api/test-ev/")) {
+    return NextResponse.next();
+  }
+
   if (path === "/status" || path.startsWith("/status/")) {
     return NextResponse.next();
   }

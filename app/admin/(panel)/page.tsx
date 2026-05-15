@@ -4,7 +4,10 @@ import {
   FilePlus,
   LineChart,
   PenLine,
+  Radio,
   Send,
+  Shield,
+  TrendingUp,
   Trophy,
   Users,
   Zap,
@@ -41,6 +44,34 @@ const CARDS: Card[] = [
     href: "/admin-picks",
     cta: "Abrir picks",
     icon: Zap,
+  },
+  {
+    title: "Gerar Post",
+    body: "Textos prontos para Instagram, Telegram e X a partir de picks e análises.",
+    href: "/admin/gerar-post",
+    cta: "Gerar conteúdo",
+    icon: Send,
+  },
+  {
+    title: "API-Football",
+    body: "Consultar jogos do dia, placares e fixtures para futuras análises.",
+    href: "/admin/football-api",
+    cta: "Abrir jogos",
+    icon: Radio,
+  },
+  {
+    title: "Mercados EV+",
+    body: "Tabela de valor esperado cruzando tendências, odds e motor EV.",
+    href: "/admin/mercados",
+    cta: "Ver mercados",
+    icon: TrendingUp,
+  },
+  {
+    title: "Administradores",
+    body: "Promover ou remover acesso admin por email (public.users.role).",
+    href: "/admin/admins",
+    cta: "Gerir admins",
+    icon: Shield,
   },
   {
     title: "Bolão",
@@ -95,21 +126,7 @@ function adminCardsVisiveis(): Card[] {
   return CARDS.filter((c) => !ocultas.has(c.href));
 }
 
-type Props = {
-  searchParams: Record<string, string | string[] | undefined>;
-};
-
-export default function AdminDashboardPage({ searchParams }: Props) {
-  const mod = typeof searchParams.mod === "string" ? searchParams.mod : undefined;
-  const modLabel =
-    mod === "editorial"
-      ? "Editorial"
-      : mod === "picks"
-        ? "Picks"
-        : mod === "leads"
-          ? "Leads"
-          : null;
-
+export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
@@ -120,11 +137,6 @@ export default function AdminDashboardPage({ searchParams }: Props) {
           Atalhos para todos os módulos administrativos. Sessão única com email e senha (Supabase
           Auth) — apenas contas com <code className="text-gold-200/90">role=admin</code>.
         </p>
-        {modLabel ? (
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-gold-400/25 bg-gold-400/10 px-3 py-1 text-xs font-semibold text-gold-100">
-            Redirecionado de: <span className="text-white">{modLabel}</span>
-          </p>
-        ) : null}
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
