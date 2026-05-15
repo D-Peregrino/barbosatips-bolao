@@ -45,7 +45,8 @@ export const sponsorBannerSlots: Record<SponsorSlotKey, SponsorSlotConfig> = {
   },
   feedBetween: {
     enabled: false,
-    imageFile: "feed-between.webp",
+    /** Coloca `public/patrocinadores/feed-between.jpg` para activar o slot. */
+    imageFile: "feed-between.jpg",
     href: siteConfig.url,
     alt: "Patrocinador BarbosaTips",
     position: "between-content",
