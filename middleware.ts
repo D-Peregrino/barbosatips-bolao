@@ -79,8 +79,12 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     const res = getResponse();
-    if (user && (await isUserAdmin(supabase, user.id))) {
-      const target = new URL("/admin", request.url);
+    if (user) {
+      const isAdmin = await isUserAdmin(supabase, user.id);
+      const target = isAdmin
+        ? new URL("/admin", request.url)
+        : new URL("/acesso-negado", request.url);
+      if (!isAdmin) target.searchParams.set("motivo", "permissao");
       return applyAdminSecurityHeaders(
         redirectPreservingSupabaseCookies(request, target, res),
       );
@@ -139,10 +143,6 @@ export async function middleware(request: NextRequest) {
     }
 
     return applyAdminSecurityHeaders(res);
-  }
-
-  if (path.startsWith("/operacional")) {
-    return NextResponse.next();
   }
 
   if (path === "/api/health" || path.startsWith("/api/health/")) {

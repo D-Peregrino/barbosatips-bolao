@@ -1,12 +1,12 @@
 import Link from "next/link";
 import {
   Activity,
-  BarChart3,
-  Brain,
+  FilePlus,
   LineChart,
   PenLine,
   Send,
   Trophy,
+  Users,
   Zap,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
@@ -23,70 +23,69 @@ type Card = {
 const CARDS: Card[] = [
   {
     title: "Editorial",
-    body: "Criar e publicar análises — fluxo completo no CMS.",
-    href: "/admin-editorial/nova",
+    body: "Listar, editar e publicar análises no CMS.",
+    href: "/admin-editorial",
     cta: "Abrir editorial",
     icon: PenLine,
   },
   {
-    title: "Picks rápidas",
+    title: "Nova análise",
+    body: "Criar análise editorial com capa, blocos e IA assistente.",
+    href: "/admin-editorial/nova",
+    cta: "Criar análise",
+    icon: FilePlus,
+  },
+  {
+    title: "Picks",
     body: "Inserir e gerir quick picks com odd e confiança.",
     href: "/admin-picks",
     cta: "Abrir picks",
     icon: Zap,
   },
   {
-    title: "Bolão (sessão própria)",
-    body: "O painel do bolão mantém login dedicado — não altera o bolão público.",
+    title: "Bolão",
+    body: "Painel do bolão com sessão própria (inalterado).",
     href: "/admin/bolao",
     cta: "Ir ao bolão admin",
     icon: Trophy,
   },
   {
-    title: "Análises (painel)",
-    body: "Listagens, nova análise e ferramentas do arquivo.",
-    href: "/admin/analises",
-    cta: "Abrir análises",
-    icon: PenLine,
+    title: "Ranking",
+    body: "Classificação pública do bolão — pré-visualização.",
+    href: "/ranking",
+    cta: "Ver ranking",
+    icon: Trophy,
+    external: true,
   },
   {
     title: "Performance",
-    body: "Dashboard público de ROI e taxa — referência rápida.",
+    body: "Métricas públicas de ROI e taxa de acerto.",
     href: "/performance",
     cta: "Ver performance",
     icon: Activity,
     external: true,
   },
   {
-    title: "Inteligência",
-    body: "Radar e snapshots do portal ao vivo.",
-    href: "/inteligencia",
-    cta: "Abrir inteligência",
-    icon: Brain,
-    external: true,
-  },
-  {
-    title: "Analytics",
-    body: "Métricas e funis (área interna de leitura).",
-    href: "/analytics",
-    cta: "Abrir analytics",
-    icon: BarChart3,
-    external: true,
-  },
-  {
-    title: "Operacional",
-    body: "Checklists e estado interno do produto.",
-    href: "/operacional",
-    cta: "Abrir operacional",
-    icon: LineChart,
+    title: "Comunidade",
+    body: "Hub Telegram, YouTube e CTAs da comunidade.",
+    href: "/comunidade",
+    cta: "Abrir comunidade",
+    icon: Users,
     external: true,
   },
   {
     title: "Distribuição",
-    body: "Canais, parceiros e expansão — roadmap do hub.",
+    body: "Canais, parceiros e expansão multi-canal.",
     href: "/admin/distribuicao",
     cta: "Ver distribuição",
     icon: Send,
+  },
+  {
+    title: "Operacional",
+    body: "Checklists, rotas e estado interno do produto.",
+    href: "/operacional",
+    cta: "Abrir operacional",
+    icon: LineChart,
   },
 ];
 
@@ -118,8 +117,8 @@ export default function AdminDashboardPage({ searchParams }: Props) {
           Painel central
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-400">
-          Navegação rápida para todos os módulos administrativos. Sessão única com email e senha —
-          o bolão admin continua com o fluxo próprio após entrares na respetiva área.
+          Atalhos para todos os módulos administrativos. Sessão única com email e senha (Supabase
+          Auth) — apenas contas com <code className="text-gold-200/90">role=admin</code>.
         </p>
         {modLabel ? (
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-gold-400/25 bg-gold-400/10 px-3 py-1 text-xs font-semibold text-gold-100">

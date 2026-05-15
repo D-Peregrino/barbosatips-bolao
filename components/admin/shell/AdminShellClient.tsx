@@ -7,9 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Activity,
-  BarChart3,
-  BookOpen,
-  Brain,
+  FilePlus,
   LayoutDashboard,
   LineChart,
   Menu,
@@ -18,6 +16,7 @@ import {
   Send,
   Shield,
   Trophy,
+  Users,
   X,
   Zap,
 } from "lucide-react";
@@ -34,68 +33,36 @@ type NavItem = {
 };
 
 const PRIMARY: NavItem[] = [
-  {
-    href: "/admin",
-    label: "Painel",
-    desc: "Visão geral",
-    icon: LayoutDashboard,
-  },
+  { href: "/admin", label: "Painel", desc: "Visão geral", icon: LayoutDashboard },
+  { href: "/admin-editorial", label: "Editorial", desc: "Listagem CMS", icon: PenLine },
   {
     href: "/admin-editorial/nova",
-    label: "Editorial",
-    desc: "Análises & CMS",
-    icon: PenLine,
+    label: "Nova análise",
+    desc: "Criar conteúdo",
+    icon: FilePlus,
   },
   { href: "/admin-picks", label: "Picks", desc: "Quick picks", icon: Zap },
-  {
-    href: "/admin/bolao",
-    label: "Bolão",
-    desc: "Sessão própria",
-    icon: Trophy,
-  },
-  {
-    href: "/admin/analises",
-    label: "Análises",
-    desc: "Painel editorial",
-    icon: BookOpen,
-  },
+  { href: "/admin/bolao", label: "Bolão", desc: "Sessão própria", icon: Trophy },
 ];
 
 const PORTAL: NavItem[] = [
+  { href: "/ranking", label: "Ranking", desc: "Bolão público", icon: Trophy, external: true },
   {
     href: "/performance",
     label: "Performance",
-    desc: "Público",
+    desc: "Métricas públicas",
     icon: Activity,
     external: true,
   },
   {
-    href: "/inteligencia",
-    label: "Inteligência",
-    desc: "Radar",
-    icon: Brain,
+    href: "/comunidade",
+    label: "Comunidade",
+    desc: "Hub social",
+    icon: Users,
     external: true,
   },
-  {
-    href: "/analytics",
-    label: "Analytics",
-    desc: "Tráfego",
-    icon: BarChart3,
-    external: true,
-  },
-  {
-    href: "/operacional",
-    label: "Operacional",
-    desc: "Interno",
-    icon: LineChart,
-    external: true,
-  },
-  {
-    href: "/admin/distribuicao",
-    label: "Distribuição",
-    desc: "Canais",
-    icon: Send,
-  },
+  { href: "/admin/distribuicao", label: "Distribuição", desc: "Canais", icon: Send },
+  { href: "/operacional", label: "Operacional", desc: "Checklists", icon: LineChart },
 ];
 
 function initialsFromEmail(email: string): string {
@@ -133,7 +100,6 @@ export function AdminShellClient({ session, children }: Props) {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)]">
-      {/* Mobile overlay */}
       {open ? (
         <button
           type="button"
@@ -275,7 +241,7 @@ export function AdminShellClient({ session, children }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden rounded-full border border-gold-400/15 bg-gold-400/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-100/95 sm:inline">
-              Atalhos na barra lateral
+              Admin
             </span>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold-500/30 to-amber-700/20 text-xs font-black text-gold-50 ring-1 ring-gold-400/20">
               {initialsFromEmail(session.email)}

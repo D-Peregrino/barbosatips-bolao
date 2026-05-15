@@ -15,49 +15,61 @@ const labelClass =
   "mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.22em] text-stone-500/90";
 
 const frameBase =
-  "relative w-full min-w-0 overflow-hidden rounded-2xl border border-gold-400/18 bg-gradient-to-br from-pitch-900/90 via-[#0a0906] to-[var(--color-void)] shadow-[inset_0_1px_0_rgba(232,207,122,0.06)] transition duration-300 hover:border-gold-400/28 hover:shadow-[0_12px_40px_-24px_rgba(201,162,39,0.12)]";
+  "relative min-w-0 overflow-hidden rounded-2xl border border-gold-400/18 bg-gradient-to-br from-pitch-900/90 via-[#0a0906] to-[var(--color-void)] shadow-[inset_0_1px_0_rgba(232,207,122,0.06)] transition duration-300 hover:border-gold-400/28 hover:shadow-[0_12px_40px_-24px_rgba(201,162,39,0.12)]";
 
-/**
- * Palco da imagem — largura 100%, proporção do slot + altura mínima.
- * Proporções alinhadas aos criativos em public/patrocinadores para object-contain preencher o palco.
- */
+/** Faixa horizontal desktop — largura fluida com tetos (zoom / resolução). */
+const desktopStripShell = "mx-auto w-full max-w-[min(100%,1000px)]";
+const desktopStripMedia = cn(
+  "relative box-border w-full overflow-hidden rounded-xl bg-black/20",
+  "aspect-[1024/380] max-h-[6.25rem] sm:max-h-[7rem] md:max-h-[8rem] lg:max-h-[8.75rem]",
+);
+
+/** Moldura exterior — largura e alinhamento por slot. */
+function shellClass(position: SponsorBannerPosition): string {
+  switch (position) {
+    case "horizontal":
+    case "between-content":
+      return desktopStripShell;
+    case "sidebar":
+      return "mx-auto w-full max-w-[220px] lg:max-w-[240px] xl:max-w-[260px]";
+    case "mobile":
+      return "w-full";
+    default:
+      return desktopStripShell;
+  }
+}
+
+/** Palco da imagem — altura/largura contidas, arte com object-contain. */
 function mediaStageClass(position: SponsorBannerPosition): string {
-  const base =
-    "relative box-border w-full min-w-0 max-w-none overflow-hidden rounded-xl bg-black/20";
+  const base = "relative box-border w-full overflow-hidden rounded-xl bg-black/20";
 
   switch (position) {
     case "horizontal":
-      /* home-horizontal.jpg */
-      return cn(base, "aspect-[1024/380] min-h-[5rem] w-full sm:min-h-[6.25rem]");
-    case "mobile":
-      /* mobile-strip.jpg */
-      return cn(base, "aspect-[2/1] min-h-[4.5rem] w-full sm:min-h-[5.75rem]");
-    case "sidebar":
-      /* sidebar-desktop.jpg — vertical 300×600 */
-      return cn(base, "aspect-[300/600] w-full");
     case "between-content":
-      return cn(base, "aspect-[1024/380] min-h-[4.5rem] w-full sm:min-h-[5.5rem]");
+      return desktopStripMedia;
+    case "mobile":
+      return cn(base, "aspect-[2/1] w-full max-h-[4.5rem] sm:max-h-[5rem]");
+    case "sidebar":
+      return cn(base, "aspect-[300/600] w-full");
     default:
-      return cn(base, "aspect-[1200/250] min-h-[5rem] w-full");
+      return desktopStripMedia;
   }
 }
 
 function positionFrame(position: SponsorBannerPosition): string {
   switch (position) {
     case "horizontal":
-      return cn(frameBase, "px-2 py-2 sm:px-3 sm:py-3");
+    case "between-content":
+      return cn(frameBase, "px-2 py-1.5 sm:px-2.5 sm:py-2");
     case "sidebar":
-      return cn(frameBase, "px-1.5 py-2 sm:px-2 sm:py-2.5");
+      return cn(frameBase, "px-1.5 py-2");
     case "mobile":
       return cn(frameBase, "px-2 py-2");
-    case "between-content":
-      return cn(frameBase, "px-2 py-2 sm:px-3 sm:py-2.5");
     default:
-      return cn(frameBase, "p-2");
+      return cn(frameBase, "px-2 py-1.5 sm:px-2.5 sm:py-2");
   }
 }
 
-/** Preenche 100% do palco; sem max-width nem altura fixa pequena. */
 const imgFillClass =
   "absolute inset-0 block h-full w-full max-h-none max-w-none object-contain object-center";
 
@@ -81,17 +93,21 @@ export function SponsorBanner({ imageFile, link, alt, position, className }: Spo
   );
 
   const inner = (
-    <div className="flex w-full min-w-0 max-w-none flex-col">
+    <div className="flex w-full min-w-0 flex-col">
       <p className={labelClass}>PATROCINADOR</p>
       {mediaStage}
     </div>
   );
 
   const interactiveClass =
-    "block w-full min-w-0 max-w-none outline-none transition-opacity hover:opacity-95 focus-visible:ring-2 focus-visible:ring-gold-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950";
+    "block w-full min-w-0 outline-none transition-opacity hover:opacity-95 focus-visible:ring-2 focus-visible:ring-gold-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-pitch-950";
 
   return (
-    <div className={cn(positionFrame(position), className)} role="complementary" aria-label={alt}>
+    <div
+      className={cn(shellClass(position), positionFrame(position), className)}
+      role="complementary"
+      aria-label={alt}
+    >
       {!navigable ? (
         <div className={interactiveClass}>{inner}</div>
       ) : isExternal ? (
@@ -111,4 +127,3 @@ export function SponsorBanner({ imageFile, link, alt, position, className }: Spo
     </div>
   );
 }
-

@@ -1,5 +1,9 @@
 import { AdminPanelShell } from "@/components/admin/shell/AdminPanelShell";
 
-export default function AdminPanelLayout({ children }: { children: React.ReactNode }) {
+export default function AdminAnalisesDashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <AdminPanelShell>{children}</AdminPanelShell>;
 }

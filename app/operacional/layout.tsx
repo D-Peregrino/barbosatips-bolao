@@ -9,6 +9,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AdminPicksLayout({ children }: { children: React.ReactNode }) {
+export default function OperacionalLayout({ children }: { children: React.ReactNode }) {
   return <AdminPanelShell>{children}</AdminPanelShell>;
 }

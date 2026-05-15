@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminPanelShell } from "@/components/admin/shell/AdminPanelShell";
 
 export const metadata: Metadata = {
   robots: {
@@ -8,10 +9,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AdminLeadsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return children;
+export default function AdminLeadsLayout({ children }: { children: React.ReactNode }) {
+  return <AdminPanelShell>{children}</AdminPanelShell>;
 }

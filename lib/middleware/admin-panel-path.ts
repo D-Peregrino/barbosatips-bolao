@@ -25,6 +25,9 @@ export function requiresAdminPanelSession(pathname: string): boolean {
   if (pathname === "/admin-leads" || pathname.startsWith("/admin-leads/")) {
     return true;
   }
+  if (pathname === "/operacional" || pathname.startsWith("/operacional/")) {
+    return true;
+  }
   return false;
 }
 

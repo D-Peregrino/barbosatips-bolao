@@ -39,7 +39,7 @@ export function CommercialPageShell({
           className={cn(
             "grid gap-4 sm:gap-6 lg:items-start lg:gap-8",
             hasLeftColumn
-              ? "lg:grid-cols-[minmax(0,140px)_minmax(0,1fr)_minmax(0,140px)] xl:grid-cols-[minmax(0,160px)_minmax(0,1fr)_minmax(0,160px)]"
+              ? "lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,140px)] xl:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,160px)]"
               : "lg:grid-cols-[minmax(0,1fr)_minmax(0,140px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,160px)]",
           )}
         >
