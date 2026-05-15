@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { AnaliseCardGrid } from "@/components/analises/portal/AnaliseCardGrid";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PickCard } from "@/components/picks/PickCard";
@@ -104,7 +104,7 @@ export default async function CampeonatoPage({ params }: Props) {
       <CommercialPageShell>
         <div className="w-full min-w-0 space-y-8">
           <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <SportHero
@@ -187,7 +187,7 @@ export default async function CampeonatoPage({ params }: Props) {
           </section>
 
           <div className="lg:hidden">
-            <AdSlot variant="mobile-inline" intent="sponsor" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
         </div>
       </CommercialPageShell>

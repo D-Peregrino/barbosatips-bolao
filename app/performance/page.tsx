@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Activity } from "lucide-react";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PerformanceDashboard } from "@/components/performance/PerformanceDashboard";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
@@ -60,7 +60,7 @@ export default async function PerformancePage() {
       <CommercialPageShell>
         <div className="w-full min-w-0 space-y-8">
           <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <header className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-zinc-900/50 via-black/90 to-zinc-950 p-6 sm:p-10">
@@ -90,10 +90,6 @@ export default async function PerformancePage() {
               )}
             </p>
           </header>
-
-          <div className="lg:hidden">
-            <AdSlot variant="mobile-inline" intent="sponsor" />
-          </div>
 
           {semDados ? (
             <PortalEmptyState

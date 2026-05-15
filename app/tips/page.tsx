@@ -1,6 +1,6 @@
 import { TipCard } from "@/components/tips/TipCard";
 import type { TipCardData } from "@/components/tips/TipCard";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 
@@ -42,7 +42,7 @@ export default function TipsPage() {
       <CommercialPageShell>
         <div className="w-full min-w-0 space-y-8">
           <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <header className="commercial-card-elevated max-w-3xl border-b border-gold-400/12 p-6 pb-8 sm:p-8">
@@ -58,10 +58,6 @@ export default function TipsPage() {
             </p>
           </header>
 
-          <div className="mb-2 lg:hidden">
-            <AdSlot variant="mobile-inline" intent="sponsor" />
-          </div>
-
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {TIPS_MOCK.map((tip) => (
               <TipCard key={tip.id} tip={tip} />
@@ -71,7 +67,7 @@ export default function TipsPage() {
           <PortalSocialCtaBand kicker="Quando o feed editorial sincronizar, avisamos primeiro no Telegram." />
 
           <div className="hidden sm:block">
-            <AdSlot variant="banner-horizontal" intent="sponsor" />
+            <SponsorSlot slot="homeHorizontal" />
           </div>
         </div>
       </CommercialPageShell>

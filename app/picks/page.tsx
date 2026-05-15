@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Send, Zap } from "lucide-react";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
 import { listarQuickPicks, listarQuickPicksRecentes } from "@/lib/picks/queries";
@@ -54,7 +54,7 @@ export default async function PicksPage() {
       <CommercialPageShell>
         <div className="w-full min-w-0">
           <div className="mb-8 lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <header className="commercial-card-elevated mb-10 max-w-3xl border-b border-emerald-500/15 p-6 pb-8 sm:p-8">
@@ -83,9 +83,7 @@ export default async function PicksPage() {
             </a>
           </header>
 
-          <div className="mb-8 lg:hidden">
-            <AdSlot variant="mobile-inline" intent="sponsor" />
-          </div>
+          <SponsorSlot slot="feedBetween" className="mb-8" />
 
           {picks.length > 0 ? <PicksStatsBar stats={stats} /> : null}
 
@@ -126,7 +124,7 @@ export default async function PicksPage() {
           <PortalSocialCtaBand className="mt-10" />
 
           <div className="mt-10 lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
         </div>
       </CommercialPageShell>

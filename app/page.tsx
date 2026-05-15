@@ -1,4 +1,4 @@
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { HomeLivePortalTeaser } from "@/components/home/HomeLivePortalTeaser";
 import { HomeHighlightsGrid } from "@/components/home/HomeHighlightsGrid";
 import { HomePerformanceBar } from "@/components/home/HomePerformanceBar";
@@ -65,7 +65,7 @@ export default async function Home() {
       <CommercialPageShell mainClassName="pb-16 max-md:pt-6 sm:pb-20 sm:pt-8 md:pt-10">
         <div className="space-y-8 sm:space-y-10 lg:space-y-12">
           <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <HomeHighlightsGrid
@@ -76,14 +76,10 @@ export default async function Home() {
           />
 
           <div className="hidden md:block">
-            <AdSlot variant="banner-horizontal" intent="sponsor" />
+            <SponsorSlot slot="homeHorizontal" />
           </div>
 
           <HomePerformanceBar stats={perf} />
-
-          <div className="lg:hidden">
-            <AdSlot variant="mobile-inline" intent="ads" />
-          </div>
 
           <SportsRibbon kicker="Picks rápidas">
             <span className="text-stone-500">Odds em destaque · scroll horizontal no mobile</span>
@@ -91,24 +87,14 @@ export default async function Home() {
 
           <HomeQuickPicksRail picks={picksRail} viewerCanViewPremium={viewerPremium} />
 
-          <div className="hidden sm:block">
-            <AdSlot variant="banner-horizontal" intent="ads" />
-          </div>
+          <SponsorSlot slot="feedBetween" className="my-2" />
 
           <HomePremiumAnalises
             analises={premiumAnalises}
             viewerCanViewPremium={viewerPremium}
           />
 
-          <div className="hidden lg:flex lg:justify-center">
-            <AdSlot variant="card-patrocinado" intent="sponsor" className="max-w-md" />
-          </div>
-
           <HomeSportsHub />
-
-          <div className="md:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
-          </div>
         </div>
       </CommercialPageShell>
     </div>

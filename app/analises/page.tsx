@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { AnalisesPortal } from "@/components/analises/portal/AnalisesPortal";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
@@ -90,7 +90,7 @@ export default async function AnalisesPage() {
       <CommercialPageShell>
         <div className="w-full min-w-0">
           <div className="mb-8 lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <header className="commercial-card-elevated mb-12 max-w-3xl border-b border-amber-500/15 p-6 pb-8 sm:p-8">
@@ -106,9 +106,7 @@ export default async function AnalisesPage() {
             </p>
           </header>
 
-          <div className="mb-10 lg:hidden">
-            <AdSlot variant="mobile-inline" intent="sponsor" />
-          </div>
+          <SponsorSlot slot="feedBetween" className="mb-10" />
 
           <AnalisesPortal
             analises={data}
@@ -120,7 +118,7 @@ export default async function AnalisesPage() {
           </div>
 
           <div className="mt-10 lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
         </div>
       </CommercialPageShell>

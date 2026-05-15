@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Trophy } from "lucide-react";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { siteConfig } from "@/config/site";
@@ -282,7 +282,7 @@ export default async function RankingPage() {
       <CommercialPageShell className="relative" mainClassName="py-12 md:py-16">
         <div className="w-full min-w-0 px-0">
           <div className="mb-8 lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <div className="commercial-card-elevated mb-10 max-w-3xl border border-amber-500/15 p-6 sm:p-8">
@@ -296,10 +296,6 @@ export default async function RankingPage() {
               Transparência do bolão: 3 pontos placar exato · 1 ponto vencedor ou empate · 0
               erro ou palpite incompleto nos jogos com resultado oficial.
             </p>
-          </div>
-
-          <div className="mb-10 lg:hidden">
-            <AdSlot variant="mobile-inline" intent="sponsor" />
           </div>
 
         {!data.ok ? (
@@ -412,7 +408,7 @@ export default async function RankingPage() {
         </div>
 
           <div className="mt-10 lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
         </div>
       </CommercialPageShell>

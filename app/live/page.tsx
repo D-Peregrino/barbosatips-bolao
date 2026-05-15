@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { LiveCenterClient } from "@/components/live/LiveCenterClient";
 import { PickCard } from "@/components/picks/PickCard";
@@ -42,7 +42,7 @@ export default async function LivePage() {
       <CommercialPageShell>
         <div className="w-full min-w-0 space-y-10">
           <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <header className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-zinc-900/50 via-black/90 to-zinc-950 p-6 sm:p-10">
@@ -86,7 +86,7 @@ export default async function LivePage() {
           </LiveCenterClient>
 
           <div className="hidden md:block">
-            <AdSlot variant="banner-horizontal" intent="sponsor" />
+            <SponsorSlot slot="homeHorizontal" />
           </div>
         </div>
       </CommercialPageShell>

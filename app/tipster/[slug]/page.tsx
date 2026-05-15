@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AdSlot } from "@/components/ads/AdSlot";
+import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { TipsterAnalisesSection } from "@/components/tipster/TipsterAnalisesSection";
 import { TipsterChartsSection } from "@/components/tipster/TipsterChartsSection";
@@ -93,13 +93,13 @@ export default async function TipsterProfilePage({ params }: Props) {
       <CommercialPageShell mainClassName="pb-20 pt-8 sm:pt-10">
         <div className="space-y-10 sm:space-y-12">
           <div className="lg:hidden">
-            <AdSlot variant="banner-horizontal" intent="ads" />
+            <SponsorSlot slot="mobileStrip" />
           </div>
 
           <TipsterKpiStrip snapshot={data.snapshot} />
 
           <div className="hidden md:block">
-            <AdSlot variant="banner-horizontal" intent="sponsor" />
+            <SponsorSlot slot="homeHorizontal" />
           </div>
 
           <TipsterChartsSection
@@ -110,17 +110,10 @@ export default async function TipsterProfilePage({ params }: Props) {
 
           <TipsterLeaderboards markets={data.bestMarkets} sports={data.bestSports} />
 
-          <div className="lg:hidden">
-            <AdSlot variant="mobile-inline" intent="ads" />
-          </div>
-
           <TipsterPicksSection picks={data.lastPicks} viewerCanViewPremium={viewerPremium} />
 
           <TipsterAnalisesSection analises={data.lastAnalises} viewerCanViewPremium={viewerPremium} />
 
-          <div className="hidden lg:flex lg:justify-center">
-            <AdSlot variant="card-patrocinado" intent="sponsor" className="max-w-md" />
-          </div>
         </div>
       </CommercialPageShell>
     </div>
