@@ -8,10 +8,7 @@ import {
 import { isUserAdmin } from "@/lib/admin/supabase-admin";
 import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { applyAdminSecurityHeaders } from "@/lib/middleware/admin-security-headers";
-import {
-  requiresAdminPanelSession,
-  shouldRedirectAdminRootToPanel,
-} from "@/lib/middleware/admin-panel-path";
+import { requiresAdminPanelSession } from "@/lib/middleware/admin-panel-path";
 import {
   createSupabaseMiddlewareClient,
   redirectPreservingSupabaseCookies,
@@ -20,11 +17,23 @@ import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase
 
 const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
 
-const AUTH_ROUTES = ["/login", "/registro"];
+const AUTH_ROUTES = ["/login"];
+
+const SIGNUP_REDIRECT_PREFIXES = ["/registro", "/signup", "/register", "/entrar"] as const;
+
+function isSignupPath(pathname: string): boolean {
+  return SIGNUP_REDIRECT_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const returnPath = `${path}${request.nextUrl.search || ""}`;
+
+  if (isSignupPath(path)) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
   if (path === "/nba") {
     return NextResponse.redirect(new URL("/basquete/nba", request.url));
@@ -132,20 +141,14 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    if (shouldRedirectAdminRootToPanel(path)) {
-      const u = new URL("/admin", request.url);
-      if (path === "/admin-editorial") u.searchParams.set("mod", "editorial");
-      if (path === "/admin-picks") u.searchParams.set("mod", "picks");
-      if (path === "/admin-leads") u.searchParams.set("mod", "leads");
-      return applyAdminSecurityHeaders(
-        redirectPreservingSupabaseCookies(request, u, res),
-      );
-    }
-
     return applyAdminSecurityHeaders(res);
   }
 
   if (path === "/api/health" || path.startsWith("/api/health/")) {
+    return NextResponse.next();
+  }
+
+  if (path === "/api/test-football" || path.startsWith("/api/test-football/")) {
     return NextResponse.next();
   }
 
