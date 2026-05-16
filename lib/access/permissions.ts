@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { STORE_PRODUCT_TO_ENTITLEMENT } from "@/lib/access/entitlement-types";
 import { fetchAdminProfileRole, isAdminDbRole } from "@/lib/admin/supabase-admin";
+import { userHasActiveEntitlement } from "@/lib/access/entitlements";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 export type StoreProductId = "discord-ouvinte" | "bot-barbosa" | "discord-voz";
@@ -38,30 +40,17 @@ export async function isPremiumUser(): Promise<boolean> {
   const user = await getCurrentUser();
   if (!user) return false;
 
-  if (await isAdminUser()) return true;
-
-  try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("users")
-      .select("is_subscriber_premium")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (error) return false;
-    return Boolean((data as { is_subscriber_premium?: boolean } | null)?.is_subscriber_premium);
-  } catch {
-    return false;
-  }
+  return userHasActiveEntitlement(user.id, "vip_premium");
 }
 
 export async function hasBolaoAccess(): Promise<boolean> {
-  // O bolão mantém fluxo próprio por inscrição/login separado do Supabase Auth.
-  return false;
+  const user = await getCurrentUser();
+  if (!user) return false;
+  return userHasActiveEntitlement(user.id, "bolao_copa");
 }
 
 export async function hasStoreProductAccess(productId: StoreProductId): Promise<boolean> {
-  void productId;
-  // Produtos da loja serão liberados por compra individual quando o checkout existir.
-  return false;
+  const user = await getCurrentUser();
+  if (!user) return false;
+  return userHasActiveEntitlement(user.id, STORE_PRODUCT_TO_ENTITLEMENT[productId]);
 }

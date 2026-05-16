@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Activity,
   FilePlus,
+  KeyRound,
   LineChart,
   PenLine,
   Radio,
@@ -72,6 +73,13 @@ const CARDS: Card[] = [
     href: "/admin/admins",
     cta: "Gerir admins",
     icon: Shield,
+  },
+  {
+    title: "Acessos comerciais",
+    body: "Conceder ou remover VIP, Bolão e produtos da Lojinha por email.",
+    href: "/admin/acessos",
+    cta: "Gerir acessos",
+    icon: KeyRound,
   },
   {
     title: "Bolão",
