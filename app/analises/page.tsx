@@ -4,16 +4,50 @@ import { AnalisesPortal } from "@/components/analises/portal/AnalisesPortal";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
-import { listarAnalisesPublicadas } from "@/lib/analises/queries";
+import { mapAnaliseRow } from "@/lib/analises/map-analise-row";
+import type { AnaliseRow } from "@/lib/analises/types";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
 import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
 import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+type AnalisesDiretasResult = {
+  rows: AnaliseRow[];
+  error: string | null;
+};
+
+async function carregarAnalisesDireto(soGratis = false): Promise<AnalisesDiretasResult> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("analises")
+      .select("*")
+      .in("status", ["publicado", "published", "ativo"])
+      .order("created_at", { ascending: false });
+
+    console.warn("[ANALISES PAGE DIRETO]", { count: data?.length, error });
+
+    if (error) {
+      return { rows: [], error: error.message || "Erro ao carregar análises." };
+    }
+
+    const rows = ((data ?? []) as Record<string, unknown>[])
+      .map((row) => mapAnaliseRow(row))
+      .filter((row) => !soGratis || !row.is_premium);
+
+    return { rows, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[ANALISES PAGE DIRETO]", { count: 0, error: message });
+    return { rows: [], error: message };
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const lista = await listarAnalisesPublicadas();
+  const { rows: lista } = await carregarAnalisesDireto();
   const n = lista.length;
   const primary = lista[0];
 
@@ -81,7 +115,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AnalisesPage() {
   const access = await getPremiumAccess();
-  const data = await listarAnalisesPublicadas(filtroListagemSoGratis(access));
+  const { rows: data, error } = await carregarAnalisesDireto(filtroListagemSoGratis(access));
+  const shouldShowError = Boolean(error) && process.env.NODE_ENV !== "production";
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -107,6 +142,12 @@ export default async function AnalisesPage() {
           </header>
 
           <SponsorSlot slot="feedBetween" className="mb-10" />
+
+          {shouldShowError ? (
+            <pre className="mb-6 overflow-x-auto rounded-xl border border-red-900/50 bg-red-950/30 p-4 text-xs leading-relaxed text-red-200">
+              {error}
+            </pre>
+          ) : null}
 
           <AnalisesPortal
             analises={data}
