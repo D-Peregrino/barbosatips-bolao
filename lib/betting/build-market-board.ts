@@ -9,8 +9,12 @@ import type {
 import { generateMarketInsight } from "@/lib/betting/ev-engine";
 import type { EvTier } from "@/lib/betting/ev-engine";
 import {
-  findOddsEventForFixture,
+  formatKickoffDebugLine,
+  formatKickoffDelta,
   formatMatchDebugNoEvent,
+  MATCH_TIME_WINDOW_MS,
+  normalizeTeamName,
+  resolveOddsMatchForFixture,
   teamsMatch,
 } from "@/lib/betting/match-football-odds";
 import { fetchSportOddsEvents, getOddsApiKey } from "@/services/the-odds-api";
@@ -164,6 +168,23 @@ async function loadTrendsForFixture(fixture: FootballFixtureSummary) {
   return { trends, homeForm, awayForm };
 }
 
+type PipelineTrySkip = {
+  fixtureId: number;
+  matchLabel: string;
+  marketLabel: BoardMarketLabel;
+  reason: string;
+  detail?: string;
+};
+
+type PipelineTrySuccess = {
+  fixtureId: number;
+  matchLabel: string;
+  marketLabel: BoardMarketLabel;
+  ev: number;
+  edge: number;
+  tier: EvTier;
+};
+
 function tryAddRow(
   rows: MarketBoardRow[],
   params: {
@@ -173,10 +194,39 @@ function tryAddRow(
     realProbability: number | null;
     quote: BestQuote | null;
   },
+  pipelineRecorder?: {
+    skips: PipelineTrySkip[];
+    successes: PipelineTrySuccess[];
+    maxSkips: number;
+    maxSuccesses: number;
+  },
 ) {
   const { fixture, oddsEvent, marketLabel, realProbability, quote } = params;
-  if (realProbability == null || realProbability <= 0 || realProbability >= 100) return;
-  if (!quote || !isValidDecimalOdd(quote.odd)) return;
+  const recordSkip = (reason: string, detail?: string) => {
+    if (!pipelineRecorder || pipelineRecorder.skips.length >= pipelineRecorder.maxSkips) return;
+    pipelineRecorder.skips.push({
+      fixtureId: fixture.fixtureId,
+      matchLabel: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      marketLabel,
+      reason,
+      detail,
+    });
+  };
+
+  if (realProbability == null || realProbability <= 0 || realProbability >= 100) {
+    recordSkip(
+      "probability_out_of_range_or_missing",
+      `realProbability=${realProbability === null ? "null" : String(realProbability)}`,
+    );
+    return;
+  }
+  if (!quote || !isValidDecimalOdd(quote.odd)) {
+    recordSkip(
+      "no_quote_or_invalid_odd",
+      quote ? `odd=${String(quote.odd)}` : "quote=null",
+    );
+    return;
+  }
 
   try {
     const insight = generateMarketInsight({
@@ -206,8 +256,24 @@ function tryAddRow(
       tier: insight.tier,
       bookmaker: quote.bookmaker,
     });
-  } catch {
-    /* odd ou probabilidade inválida */
+    if (
+      pipelineRecorder &&
+      pipelineRecorder.successes.length < pipelineRecorder.maxSuccesses
+    ) {
+      pipelineRecorder.successes.push({
+        fixtureId: fixture.fixtureId,
+        matchLabel: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+        marketLabel,
+        ev: insight.ev,
+        edge: insight.edge,
+        tier: insight.tier,
+      });
+    }
+  } catch (err) {
+    recordSkip(
+      "ev_engine_exception",
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }
 
@@ -249,52 +315,182 @@ export async function buildMarketBoard(options?: {
   const rows: MarketBoardRow[] = [];
   let matched = 0;
   const matchDebug = process.env.MARKET_BOARD_MATCH_DEBUG === "1";
+  const pipelineDebug = process.env.MARKET_BOARD_PIPELINE_DEBUG === "1";
   let matchDebugLines = 0;
   const maxMatchDebugFixtures = 10;
 
+  const pipelineRecorder = pipelineDebug
+    ? {
+        skips: [] as PipelineTrySkip[],
+        successes: [] as PipelineTrySuccess[],
+        maxSkips: 48,
+        maxSuccesses: 14,
+      }
+    : undefined;
+
+  let fixturesNoOddsMatch = 0;
+  let fixturesOddsButNoTrends = 0;
+  let marketsTryAddInvoked = 0;
+  const noOddsMatchSamples: string[] = [];
+  const oddsMatchOkSamples: string[] = [];
+  const noTrendsSamples: string[] = [];
+
+  let kickoffForcedCount = 0;
+  let kickoffDetailLogs = 0;
+  const maxKickoffDetailLogs = 5;
+
   for (const fixture of fixturesResult.fixtures) {
-    const oddsEvent = findOddsEventForFixture(fixture, allOddsEvents);
+    const { event: oddsEvent, ranked, rejectReason, kickoffForcedAccept } =
+      resolveOddsMatchForFixture(fixture, allOddsEvents);
     if (!oddsEvent) {
+      fixturesNoOddsMatch += 1;
       if (matchDebug && matchDebugLines < maxMatchDebugFixtures) {
         matchDebugLines += 1;
         for (const line of formatMatchDebugNoEvent(fixture, allOddsEvents)) {
           console.warn(line);
         }
       }
+      if (pipelineDebug && noOddsMatchSamples.length < 6 && rejectReason) {
+        noOddsMatchSamples.push(
+          `#${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} @ ${fixture.dateIso} → ${rejectReason}`,
+        );
+      }
       continue;
     }
+
     matched += 1;
+    if (kickoffForcedAccept) {
+      kickoffForcedCount += 1;
+    }
+    const best = ranked[0];
+    if (pipelineDebug && kickoffDetailLogs < maxKickoffDetailLogs && oddsEvent) {
+      kickoffDetailLogs += 1;
+      console.warn(
+        formatKickoffDebugLine(
+          fixture.dateIso,
+          oddsEvent.commenceTime,
+          `fixture#${fixture.fixtureId}`,
+        ),
+      );
+      for (const c of ranked.slice(0, 3)) {
+        const dm = Math.round(c.ms / 60000);
+        console.warn(
+          `[kickoff_candidate] score=${c.score.toFixed(3)} swapped=${c.swapped} Δmin=${dm} ` +
+            `id=${c.event.id} ${c.event.homeTeam} vs ${c.event.awayTeam} @ ${c.event.commenceTime}`,
+        );
+      }
+    }
+    if (pipelineDebug && oddsMatchOkSamples.length < 5 && best) {
+      const kd = formatKickoffDelta(fixture.dateIso, oddsEvent.commenceTime);
+      oddsMatchOkSamples.push(
+        `match_ok #${fixture.fixtureId} score=${best.score.toFixed(3)} swapped=${String(best.swapped)} kickoff=${kd} | ` +
+          `norm F[${normalizeTeamName(fixture.homeTeam)},${normalizeTeamName(fixture.awayTeam)}] ` +
+          `↔ O[${normalizeTeamName(oddsEvent.homeTeam)},${normalizeTeamName(oddsEvent.awayTeam)}] | id=${oddsEvent.id}`,
+      );
+    }
 
     const trendData = await loadTrendsForFixture(fixture);
-    if (!trendData) continue;
+    if (!trendData) {
+      fixturesOddsButNoTrends += 1;
+      if (pipelineDebug && noTrendsSamples.length < 5) {
+        noTrendsSamples.push(
+          `no_trends #${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} | homeId=${fixture.homeTeamId ?? "null"} awayId=${fixture.awayTeamId ?? "null"}`,
+        );
+      }
+      continue;
+    }
+
+    marketsTryAddInvoked += 3;
 
     const { trends, homeForm, awayForm } = trendData;
     const homeWinPct = winRatePct(homeForm);
     const awayWinPct = winRatePct(awayForm);
 
-    tryAddRow(rows, {
-      fixture,
-      oddsEvent,
-      marketLabel: "Over 2.5",
-      realProbability: trends.sampleSize > 0 ? trends.over25Pct : null,
-      quote: collectOver25(oddsEvent),
-    });
+    tryAddRow(
+      rows,
+      {
+        fixture,
+        oddsEvent,
+        marketLabel: "Over 2.5",
+        realProbability: trends.sampleSize > 0 ? trends.over25Pct : null,
+        quote: collectOver25(oddsEvent),
+      },
+      pipelineRecorder,
+    );
 
-    tryAddRow(rows, {
-      fixture,
-      oddsEvent,
-      marketLabel: "Home Win",
-      realProbability: homeWinPct,
-      quote: collectH2H(oddsEvent, fixture.homeTeam),
-    });
+    tryAddRow(
+      rows,
+      {
+        fixture,
+        oddsEvent,
+        marketLabel: "Home Win",
+        realProbability: homeWinPct,
+        quote: collectH2H(oddsEvent, fixture.homeTeam),
+      },
+      pipelineRecorder,
+    );
 
-    tryAddRow(rows, {
-      fixture,
-      oddsEvent,
-      marketLabel: "Away Win",
-      realProbability: awayWinPct,
-      quote: collectH2H(oddsEvent, fixture.awayTeam),
-    });
+    tryAddRow(
+      rows,
+      {
+        fixture,
+        oddsEvent,
+        marketLabel: "Away Win",
+        realProbability: awayWinPct,
+        quote: collectH2H(oddsEvent, fixture.awayTeam),
+      },
+      pipelineRecorder,
+    );
+  }
+
+  warnings.push(
+    `[kickoff] fixtures_matched_odds_real=${matched} forced_score_gt_0_8=${kickoffForcedCount} window_ms=${MATCH_TIME_WINDOW_MS} (parseToUtcMs) runtime_tz=${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
+  );
+
+  if (pipelineDebug) {
+    const rowsBeforeSort = rows.length;
+    const summary = [
+      `[mercados-pipeline] — resumo (MARKET_BOARD_PIPELINE_DEBUG=1)`,
+      `[mercados-pipeline] 1) odds: sportKeys=${sportKeys.join(",")} | events_total=${allOddsEvents.length} | api_warnings=${warnings.filter((w) => w.startsWith("Odds")).length}`,
+      `[mercados-pipeline] 2) fixtures API-Football: ${fixturesResult.fixtures.length}`,
+      `[mercados-pipeline] 3) matching: fixtures_matched_odds=${matched} (forced_gt0_8=${kickoffForcedCount}) | fixtures_sem_match_odds=${fixturesNoOddsMatch} | odds_ok_sem_trends=${fixturesOddsButNoTrends}`,
+      `[mercados-pipeline] 4) tryAddRow calls=${marketsTryAddInvoked} (3 por jogo com trends)`,
+      `[mercados-pipeline] 5) ev_rows_geradas=${rowsBeforeSort} (antes sort/limit)`,
+    ];
+    for (const line of summary) console.warn(line);
+    for (const s of oddsMatchOkSamples) console.warn(`[mercados-pipeline] exemplo_match: ${s}`);
+    for (const s of noOddsMatchSamples) console.warn(`[mercados-pipeline] exemplo_sem_odds: ${s}`);
+    for (const s of noTrendsSamples) console.warn(`[mercados-pipeline] exemplo_sem_trends: ${s}`);
+    if (pipelineRecorder) {
+      for (const s of pipelineRecorder.successes) {
+        console.warn(
+          `[mercados-pipeline] ev_ok #${s.fixtureId} ${s.marketLabel} ev=${s.ev.toFixed(3)} edge=${s.edge.toFixed(2)} tier=${s.tier}`,
+        );
+      }
+      for (const s of pipelineRecorder.skips) {
+        console.warn(
+          `[mercados-pipeline] tryAdd_skip #${s.fixtureId} ${s.marketLabel} | ${s.reason}${s.detail ? ` | ${s.detail}` : ""}`,
+        );
+      }
+    }
+
+    warnings.push(
+      `[pipeline] fixtures=${fixturesResult.fixtures.length} oddsEvents=${allOddsEvents.length} matched_odds_real=${matched} forced_gt0_8=${kickoffForcedCount} semMatchOdds=${fixturesNoOddsMatch} semTrends=${fixturesOddsButNoTrends} tryAdds=${marketsTryAddInvoked} rows=${rowsBeforeSort} window_ms=${MATCH_TIME_WINDOW_MS}`,
+    );
+    for (const s of oddsMatchOkSamples.slice(0, 2)) {
+      warnings.push(`[pipeline] ${s}`);
+    }
+    for (const s of noTrendsSamples.slice(0, 2)) {
+      warnings.push(`[pipeline] ${s}`);
+    }
+    if (pipelineRecorder && pipelineRecorder.skips.length > 0) {
+      warnings.push(
+        `[pipeline] primeiros skips tryAdd: ${pipelineRecorder.skips
+          .slice(0, 4)
+          .map((x) => `${x.marketLabel}:${x.reason}`)
+          .join(" | ")}`,
+      );
+    }
   }
 
   const sorted = rows.sort((a, b) => b.ev - a.ev);

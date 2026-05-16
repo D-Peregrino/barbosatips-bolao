@@ -6,8 +6,13 @@
 import type { FootballFixtureSummary } from "@/lib/api-football/types";
 import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
-/** ±4h entre kickoff Football e commence Odds (fusos / arredondamentos). */
-export const MATCH_TIME_WINDOW_MS = 4 * 60 * 60 * 1000;
+/**
+ * Janela temporal entre kickoff (API-Football) e commence (Odds API), após normalizar em UTC.
+ * Temporariamente ±12h para absorver fusos / strings sem timezone.
+ */
+export const MATCH_TIME_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+const FORCE_MATCH_MIN_SCORE = 0.8;
 
 const STOP_WORDS =
   /\b(fc|cf|sc|ac|ec|cd|sv|fk|sk|club|clube|a\.?\s*c\.?|a\/c|athletic|atletico)\b/gi;
@@ -92,11 +97,32 @@ function fixtureEventPairScore(
   return { score: straight, swapped: false };
 }
 
-function msDiff(isoA: string, isoB: string): number {
-  const t1 = new Date(isoA).getTime();
-  const t2 = new Date(isoB).getTime();
-  if (!Number.isFinite(t1) || !Number.isFinite(t2)) return 0;
-  return Math.abs(t1 - t2);
+/**
+ * Converte ISO da API-Football / Odds para instante UTC em ms.
+ * Strings sem sufixo de fuso (ex.: `2025-05-15T20:00:00`) são tratadas como **UTC**
+ * (evita `Date` interpretar como hora local do servidor).
+ */
+export function parseToUtcMs(iso: string): number | null {
+  const s = iso.trim();
+  if (!s) return null;
+  if (/[zZ]$|[+-]\d{2}:\d{2}$|[+-]\d{2}\d{2}$/.test(s)) {
+    const t = Date.parse(s);
+    return Number.isFinite(t) ? t : null;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?$/.test(s)) {
+    const t = Date.parse(`${s}Z`);
+    return Number.isFinite(t) ? t : null;
+  }
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
+}
+
+/** Diferença absoluta entre dois instantes ISO, sempre em UTC. */
+export function msDiffUtc(isoA: string, isoB: string): number {
+  const a = parseToUtcMs(isoA);
+  const b = parseToUtcMs(isoB);
+  if (a == null || b == null) return Number.POSITIVE_INFINITY;
+  return Math.abs(a - b);
 }
 
 export function kickoffsWithinWindow(
@@ -104,14 +130,8 @@ export function kickoffsWithinWindow(
   commenceIso: string,
   windowMs = MATCH_TIME_WINDOW_MS,
 ): boolean {
-  const d = msDiff(fixtureIso, commenceIso);
-  if (
-    d === 0 &&
-    (!Number.isFinite(new Date(fixtureIso).getTime()) ||
-      !Number.isFinite(new Date(commenceIso).getTime()))
-  ) {
-    return true;
-  }
+  const d = msDiffUtc(fixtureIso, commenceIso);
+  if (!Number.isFinite(d)) return false;
   return d <= windowMs;
 }
 
@@ -119,38 +139,50 @@ const PRIMARY_MIN = 0.78;
 const FALLBACK_MIN = 0.58;
 const HARD_REJECT = 0.52;
 
+export type OddsMatchScored = {
+  event: OddsFixtureEvent;
+  score: number;
+  swapped: boolean;
+  ms: number;
+};
+
+export type ResolveOddsMatchResult = {
+  event: OddsFixtureEvent | null;
+  ranked: OddsMatchScored[];
+  rejectReason: string | null;
+  /** Match aceite só pelo atalho score > 0.8 (validação de pipeline). */
+  kickoffForcedAccept?: boolean;
+};
+
 /**
- * 1) Janela ±4h.
- * 2) Melhor score entre orientação normal e casa/fora trocados.
- * 3) Fallback: mesmo critério, aceita score mais baixo com desempate por horário.
+ * Resolve o melhor evento Odds para um fixture, com ranking e motivo de rejeição.
  */
-export function findOddsEventForFixture(
+export function resolveOddsMatchForFixture(
   fixture: FootballFixtureSummary,
   events: OddsFixtureEvent[],
-): OddsFixtureEvent | null {
+): ResolveOddsMatchResult {
   const inWindow = events.filter((e) =>
     kickoffsWithinWindow(fixture.dateIso, e.commenceTime),
   );
 
-  type Scored = {
-    event: OddsFixtureEvent;
-    score: number;
-    swapped: boolean;
-    ms: number;
-  };
-
-  const scored: Scored[] = [];
+  const scored: OddsMatchScored[] = [];
   for (const e of inWindow) {
     const { score, swapped } = fixtureEventPairScore(fixture, e);
     scored.push({
       event: e,
       score,
       swapped,
-      ms: msDiff(fixture.dateIso, e.commenceTime),
+      ms: msDiffUtc(fixture.dateIso, e.commenceTime),
     });
   }
 
-  if (scored.length === 0) return null;
+  if (scored.length === 0) {
+    return {
+      event: null,
+      ranked: [],
+      rejectReason: "no_odds_events_in_kickoff_window_12h_utc",
+    };
+  }
 
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
@@ -158,25 +190,90 @@ export function findOddsEventForFixture(
   });
 
   const top = scored[0];
-  if (top.score < HARD_REJECT) return null;
+  let event: OddsFixtureEvent | null = null;
+  let rejectReason: string | null = null;
 
-  if (top.score >= PRIMARY_MIN) {
-    return top.event;
-  }
-
-  if (top.score >= FALLBACK_MIN) {
+  if (top.score < HARD_REJECT) {
+    rejectReason = `best_score_below_hard_reject (${top.score.toFixed(3)} < ${HARD_REJECT})`;
+  } else if (top.score >= PRIMARY_MIN) {
+    event = top.event;
+  } else if (top.score >= FALLBACK_MIN) {
     if (scored.length > 1) {
       const sec = scored[1];
       const closeScore = sec.score >= top.score - 0.05;
       const closeTime = Math.abs(top.ms - sec.ms) < 25 * 60 * 1000;
       if (top.score < 0.72 && closeScore && closeTime) {
-        return null;
+        rejectReason = "ambiguous_fallback_close_score_and_time";
+      } else {
+        event = top.event;
       }
+    } else {
+      event = top.event;
     }
-    return top.event;
+  } else {
+    rejectReason = `best_score_below_fallback_min (${top.score.toFixed(3)} < ${FALLBACK_MIN})`;
   }
 
-  return null;
+  let kickoffForcedAccept = false;
+  if (!event && top.score > FORCE_MATCH_MIN_SCORE) {
+    event = top.event;
+    rejectReason = "temp_forced_score_gt_0.8";
+    kickoffForcedAccept = true;
+  }
+
+  return {
+    event,
+    ranked: scored,
+    rejectReason: event ? null : rejectReason,
+    kickoffForcedAccept,
+  };
+}
+
+/**
+ * 1) Janela ±12h (UTC).
+ * 2) Melhor score entre orientação normal e casa/fora trocados.
+ * 3) Fallback + atalho temporário score > 0.8.
+ */
+export function findOddsEventForFixture(
+  fixture: FootballFixtureSummary,
+  events: OddsFixtureEvent[],
+): OddsFixtureEvent | null {
+  return resolveOddsMatchForFixture(fixture, events).event;
+}
+
+/** Diferença de kickoff legível (ambos normalizados em UTC). */
+export function formatKickoffDelta(fixtureIso: string, commenceIso: string): string {
+  const a = parseToUtcMs(fixtureIso);
+  const b = parseToUtcMs(commenceIso);
+  if (a == null || b == null) {
+    return "kickoff_invalid_iso";
+  }
+  const d = Math.abs(a - b);
+  const min = Math.round(d / 60000);
+  const h = (d / (60 * 60 * 1000)).toFixed(2);
+  return `${min}min (~${h}h)`;
+}
+
+/** Linha de diagnóstico: raw ISO, instantes UTC, Δ minutos, timezone do runtime. */
+export function formatKickoffDebugLine(
+  fixtureIso: string,
+  commenceIso: string,
+  label = "kickoff",
+): string {
+  const ta = parseToUtcMs(fixtureIso);
+  const tb = parseToUtcMs(commenceIso);
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const rawA = JSON.stringify(fixtureIso);
+  const rawB = JSON.stringify(commenceIso);
+  if (ta == null || tb == null) {
+    return `[${label}] fixture.date=${rawA} commence=${rawB} | utc_parse_fail | runtime_tz=${tz}`;
+  }
+  const dm = Math.round(Math.abs(ta - tb) / 60000);
+  return (
+    `[${label}] fixture.date=${rawA} commence=${rawB} | ` +
+    `utc_fixture=${new Date(ta).toISOString()} utc_commence=${new Date(tb).toISOString()} | ` +
+    `Δ=${dm}min | runtime_tz=${tz}`
+  );
 }
 
 /** Linhas para console quando MARKET_BOARD_MATCH_DEBUG=1 */
@@ -193,20 +290,20 @@ export function formatMatchDebugNoEvent(
   );
   if (inWindow.length === 0) {
     lines.push(
-      `[mercados-match] fixture: ${label} | nenhum evento odds na janela ±4h (${events.length} eventos totais)`,
+      `[mercados-match] fixture: ${label} | nenhum evento odds na janela ±12h UTC (${events.length} eventos totais)`,
     );
     const byTime = [...events]
       .map((e) => ({
         e,
-        ms: msDiff(fixture.dateIso, e.commenceTime),
+        ms: msDiffUtc(fixture.dateIso, e.commenceTime),
       }))
       .sort((a, b) => a.ms - b.ms)
       .slice(0, maxEvents);
     for (const { e, ms } of byTime) {
-      const h = Math.round(ms / (60 * 60 * 1000));
+      const h = (ms / (60 * 60 * 1000)).toFixed(1);
       const { score } = fixtureEventPairScore(fixture, e);
       lines.push(
-        `  ↳ mais próximo: ${e.homeTeam} vs ${e.awayTeam} @ ${e.commenceTime} | Δ≈${h}h | score=${score.toFixed(2)} (fora da janela 4h)`,
+        `  ↳ mais próximo: ${e.homeTeam} vs ${e.awayTeam} @ ${e.commenceTime} | Δ≈${h}h | score=${score.toFixed(2)} (fora da janela 12h UTC)`,
       );
     }
     return lines;
@@ -215,7 +312,7 @@ export function formatMatchDebugNoEvent(
   const ranked = inWindow
     .map((e) => {
       const { score, swapped } = fixtureEventPairScore(fixture, e);
-      return { e, score, swapped, ms: msDiff(fixture.dateIso, e.commenceTime) };
+      return { e, score, swapped, ms: msDiffUtc(fixture.dateIso, e.commenceTime) };
     })
     .sort((a, b) => b.score - a.score || a.ms - b.ms);
 
