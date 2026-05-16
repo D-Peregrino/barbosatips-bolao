@@ -17,8 +17,20 @@ const FORCE_MATCH_MIN_SCORE = 0.8;
 const STOP_WORDS =
   /\b(fc|cf|sc|ac|ec|cd|sv|fk|sk|club|clube|a\.?\s*c\.?|a\/c|athletic|atletico)\b/gi;
 
-/** Normaliza nomes de equipas para comparação. */
-export function normalizeTeamName(name: string): string {
+/** Aliases → nome canónico (chave), após normalização base. */
+const TEAM_ALIASES: Record<string, string[]> = {
+  "atletico mineiro": ["atlético mineiro", "atletico mg"],
+  internazionale: ["inter milan", "inter"],
+  "paris saint germain": ["psg"],
+  "manchester united": ["man utd"],
+  "manchester city": ["man city"],
+  "newcastle united": ["newcastle"],
+  "tottenham hotspur": ["tottenham", "spurs"],
+  "atletico madrid": ["atlético madrid"],
+  "borussia monchengladbach": ["gladbach"],
+};
+
+function baseNormalizeTeamName(name: string): string {
   let s = name.trim().toLowerCase();
   s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   s = s.replace(/-/g, " ");
@@ -28,6 +40,28 @@ export function normalizeTeamName(name: string): string {
   s = s.replace(/[^a-z0-9\s]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
   return s.replace(/[^a-z0-9]/g, "");
+}
+
+function buildTeamAliasToCanonical(): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [canonical, aliases] of Object.entries(TEAM_ALIASES)) {
+    const canonKey = baseNormalizeTeamName(canonical);
+    if (canonKey) map.set(canonKey, canonKey);
+    for (const alt of aliases) {
+      const k = baseNormalizeTeamName(alt);
+      if (k) map.set(k, canonKey);
+    }
+  }
+  return map;
+}
+
+const TEAM_ALIAS_TO_CANONICAL = buildTeamAliasToCanonical();
+
+/** Normaliza nomes de equipas para comparação (incl. aliases manuais). */
+export function normalizeTeamName(name: string): string {
+  const s = baseNormalizeTeamName(name);
+  if (!s) return s;
+  return TEAM_ALIAS_TO_CANONICAL.get(s) ?? s;
 }
 
 function diceBigramSimilarity(a: string, b: string): number {
@@ -135,9 +169,10 @@ export function kickoffsWithinWindow(
   return d <= windowMs;
 }
 
-const PRIMARY_MIN = 0.78;
-const FALLBACK_MIN = 0.58;
-const HARD_REJECT = 0.52;
+const PRIMARY_MIN = 0.7;
+const FALLBACK_MIN = 0.5;
+/** Abaixo disto nunca entra em fallback (mantém abaixo de FALLBACK_MIN). */
+const HARD_REJECT = 0.47;
 
 export type OddsMatchScored = {
   event: OddsFixtureEvent;
@@ -168,6 +203,20 @@ export function resolveOddsMatchForFixture(
   const scored: OddsMatchScored[] = [];
   for (const e of inWindow) {
     const { score, swapped } = fixtureEventPairScore(fixture, e);
+    if (score > 0.6) {
+      console.warn(
+        "[MATCH]",
+        fixture.homeTeam,
+        "vs",
+        fixture.awayTeam,
+        "=>",
+        e.homeTeam,
+        "vs",
+        e.awayTeam,
+        "score:",
+        score,
+      );
+    }
     scored.push({
       event: e,
       score,
