@@ -22,13 +22,13 @@ import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
 console.warn("[EV PIPELINE] arquivo carregado");
 
-/** Ligas API-Football incluídas no board EV+ (substring case-insensitive em leagueName). */
-const allowLeagues = [
-  "Brazil Serie A",
-  "Premier League",
-  "La Liga",
-  "Serie A",
-  "Ligue 1",
+/** Ligas API-Football (league.id) incluídas no board EV+. */
+const ALLOWED_LEAGUE_IDS = [
+  71, // Brazil Serie A
+  39, // Premier League
+  140, // La Liga
+  135, // Serie A
+  61, // Ligue 1
 ];
 
 export const MARKET_BOARD_LIMIT = 30;
@@ -351,13 +351,21 @@ export async function buildMarketBoard(options?: {
 
   console.warn("[EV PIPELINE] fixtures", fixturesResult.fixtures.length);
 
-  const filteredFixtures = fixturesResult.fixtures.filter((fixture) =>
-    allowLeagues.some((name) =>
-      fixture.leagueName?.toLowerCase().includes(name.toLowerCase()),
-    ),
+  const filteredFixtures = fixturesResult.fixtures.filter(
+    (fixture) =>
+      fixture.leagueId != null && ALLOWED_LEAGUE_IDS.includes(fixture.leagueId),
   );
 
-  console.warn("[EV PIPELINE] fixtures apos filtro", filteredFixtures.length);
+  console.warn(
+    "[EV PIPELINE] fixtures apos filtro ids",
+    filteredFixtures.length,
+    filteredFixtures.slice(0, 10).map((f) => ({
+      leagueId: f.leagueId,
+      league: f.leagueName,
+      home: f.homeTeam,
+      away: f.awayTeam,
+    })),
+  );
 
   const sportKeys = sportKeysFromEnv();
   const oddsResults = await Promise.all(sportKeys.map((key) => fetchSportOddsEvents(key)));
@@ -516,7 +524,7 @@ export async function buildMarketBoard(options?: {
     const summary = [
       `[mercados-pipeline] — resumo (MARKET_BOARD_PIPELINE_DEBUG=1)`,
       `[mercados-pipeline] 1) odds: sportKeys=${sportKeys.join(",")} | events_total=${allOddsEvents.length} | api_warnings=${warnings.filter((w) => w.startsWith("Odds")).length}`,
-      `[mercados-pipeline] 2) fixtures API-Football (após filtro ligas): ${filteredFixtures.length} (total API: ${fixturesResult.fixtures.length})`,
+      `[mercados-pipeline] 2) fixtures API-Football (após filtro league.id): ${filteredFixtures.length} (total API: ${fixturesResult.fixtures.length})`,
       `[mercados-pipeline] 3) matching: fixtures_matched_odds=${matched} (forced_gt0_8=${kickoffForcedCount}) | fixtures_sem_match_odds=${fixturesNoOddsMatch} | odds_ok_sem_trends=${fixturesOddsButNoTrends}`,
       `[mercados-pipeline] 4) tryAddRow calls=${marketsTryAddInvoked} (3 por jogo com trends)`,
       `[mercados-pipeline] 5) ev_rows_geradas=${rowsBeforeSort} (antes sort/limit)`,

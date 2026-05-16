@@ -23,12 +23,17 @@ function mapFixture(raw: ApiFootballRawFixture): FootballFixtureSummary | null {
   const venueCity = raw.fixture?.venue?.city?.trim() || null;
   const venueParts = [venueName, venueCity].filter(Boolean);
 
+  const leagueIdRaw = raw.league?.id;
+  const leagueId =
+    leagueIdRaw != null && Number.isFinite(leagueIdRaw) ? Number(leagueIdRaw) : null;
+
   return {
     fixtureId: id,
     dateIso,
     kickoffLabel: dateIso ? formatKickoffPt(dateIso) : "—",
     statusShort: raw.fixture?.status?.short ?? "—",
     statusLong: raw.fixture?.status?.long ?? raw.fixture?.status?.short ?? "—",
+    leagueId,
     leagueName: raw.league?.name ?? "—",
     country: raw.league?.country ?? "—",
     round: raw.league?.round?.trim() || null,

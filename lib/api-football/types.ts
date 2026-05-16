@@ -33,6 +33,7 @@ export type FootballFixtureSummary = {
   kickoffLabel: string;
   statusShort: string;
   statusLong: string;
+  leagueId: number | null;
   leagueName: string;
   country: string;
   round: string | null;
