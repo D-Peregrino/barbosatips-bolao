@@ -5,9 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { BrandShield } from "@/components/brand/BrandShield";
 import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
 
 function LoginForm() {
-  const { signInWithEmail, signInWithGoogle, loading } = useAuth();
+  const { signInWithGoogle, loading } = useAuth();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("next") || searchParams.get("redirect") || "/acesso";
   const [email, setEmail] = useState("");
@@ -25,25 +26,33 @@ function LoginForm() {
         </p>
         {sent ? (
           <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">
-            Enviamos um link de acesso para o seu e-mail. Abra o link neste navegador
-            para concluir o login.
+            Link enviado para seu e-mail. Abra o link neste navegador para concluir o login.
           </p>
         ) : null}
         {err ? <p className="mt-4 text-sm text-rose-300">{err}</p> : null}
         <form
           className="mt-8 space-y-3 text-left"
           onSubmit={async (event) => {
+            console.log("[LOGIN] submit");
             event.preventDefault();
             setErr(null);
             setSent(false);
             const cleanEmail = email.trim().toLowerCase();
+            console.log("[LOGIN] email", cleanEmail);
             if (!cleanEmail || !cleanEmail.includes("@")) {
               setErr("Informe um e-mail válido.");
               return;
             }
             setSending(true);
             try {
-              await signInWithEmail(cleanEmail, redirect);
+              const supabase = createClient();
+              const { error } = await supabase.auth.signInWithOtp({
+                email: cleanEmail,
+                options: {
+                  emailRedirectTo: `${window.location.origin}/auth/callback`,
+                },
+              });
+              if (error) throw error;
               setSent(true);
             } catch {
               setErr("Não foi possível enviar o link de acesso. Tente novamente.");
@@ -65,7 +74,7 @@ function LoginForm() {
           />
           <button
             type="submit"
-            disabled={loading || sending}
+            disabled={sending}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 py-3 text-sm font-bold text-pitch-950 transition hover:brightness-105 disabled:opacity-50"
           >
             {sending ? "Enviando..." : "Receber link de acesso"}
