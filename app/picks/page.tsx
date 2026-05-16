@@ -8,14 +8,12 @@ import { listarQuickPicks, listarQuickPicksRecentes } from "@/lib/picks/queries"
 import { calcularEstatisticasQuickPicksEncerradas } from "@/lib/picks/stats";
 import { PickCard } from "@/components/picks/PickCard";
 import { PicksStatsBar } from "@/components/picks/PicksStatsBar";
-import { getPremiumAccess } from "@/lib/premium/get-premium-access";
-import { viewerPodeVerPremium } from "@/lib/premium/types";
 import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
-import { isPremiumUser } from "@/lib/access/permissions";
+import { getCurrentUser, isPremiumUser } from "@/lib/access/permissions";
 
 export const revalidate = siteConfig.revalidate.picks;
 
@@ -43,10 +41,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PicksPage() {
-  const [access, premiumAllowed] = await Promise.all([getPremiumAccess(), isPremiumUser()]);
+  const user = await getCurrentUser();
+  const premiumAllowed = user ? await isPremiumUser(user.id) : false;
   const picks = premiumAllowed ? await listarQuickPicks(false) : [];
   const stats = calcularEstatisticasQuickPicksEncerradas(picks);
-  const canViewPremium = premiumAllowed || viewerPodeVerPremium(access);
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -127,7 +125,7 @@ export default async function PicksPage() {
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {picks.map((p) => (
                 <li key={p.id}>
-                  <PickCard pick={p} viewerCanViewPremium={canViewPremium} />
+                  <PickCard pick={p} viewerCanViewPremium={premiumAllowed} />
                 </li>
               ))}
             </ul>

@@ -11,7 +11,7 @@ type CurrentUser = {
   email: string | null;
 };
 
-async function getCurrentUser(): Promise<CurrentUser | null> {
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (shouldSkipLiveSupabase()) return null;
 
   try {
@@ -36,10 +36,12 @@ export async function isAdminUser(): Promise<boolean> {
   return isAdminDbRole(role);
 }
 
-export async function isPremiumUser(): Promise<boolean> {
+export async function isPremiumUser(userId?: string): Promise<boolean> {
+  const id = userId?.trim();
+  if (id) return userHasActiveEntitlement(id, "vip_premium");
+
   const user = await getCurrentUser();
   if (!user) return false;
-
   return userHasActiveEntitlement(user.id, "vip_premium");
 }
 
