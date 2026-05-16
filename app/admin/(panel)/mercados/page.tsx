@@ -6,7 +6,6 @@ import { buildMarketBoard } from "@/lib/betting/build-market-board";
 import { getMarketEvSnapshotSummary } from "@/lib/betting/market-ev-snapshots";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: `Mercados EV+ · Admin · ${siteConfig.shortTitle}`,
@@ -33,8 +32,8 @@ export default async function AdminMercadosPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-400">
               Cruza fixtures da API-Football, odds da The Odds API e o motor EV para
-              destacar Over 2.5, BTTS e vitórias com edge positivo — ordenado por valor
-              esperado.
+              destacar Over 2.5 e vitórias com edge positivo — ordenado por valor esperado.
+              BTTS não está disponível na The Odds API (endpoint v4/odds) para estes mercados.
             </p>
           </div>
         </div>

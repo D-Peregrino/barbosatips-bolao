@@ -13,6 +13,7 @@ import { betaPremiumHref } from "@/lib/beta/cta-hrefs";
 type Props = {
   analises: AnaliseRow[];
   viewerCanViewPremium: boolean;
+  embedded?: boolean;
 };
 
 function labelCategoria(a: AnaliseRow): string {
@@ -96,9 +97,27 @@ function CardPremium({
   );
 }
 
-export function HomePremiumAnalises({ analises, viewerCanViewPremium }: Props) {
+export function HomePremiumAnalises({
+  analises,
+  viewerCanViewPremium,
+  embedded = false,
+}: Props) {
   if (analises.length === 0) {
-    return <PremiumSpotlightPlaceholders />;
+    return embedded ? null : <PremiumSpotlightPlaceholders />;
+  }
+
+  const grid = (
+    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {analises.map((a) => (
+        <li key={a.id}>
+          <CardPremium a={a} viewerCanViewPremium={viewerCanViewPremium} />
+        </li>
+      ))}
+    </ul>
+  );
+
+  if (embedded) {
+    return grid;
   }
 
   return (
@@ -137,13 +156,7 @@ export function HomePremiumAnalises({ analises, viewerCanViewPremium }: Props) {
           </Link>
         </div>
 
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {analises.map((a) => (
-            <li key={a.id}>
-              <CardPremium a={a} viewerCanViewPremium={viewerCanViewPremium} />
-            </li>
-          ))}
-        </ul>
+        {grid}
       </div>
     </section>
   );

@@ -9,8 +9,6 @@ import { SiteWideJsonLd } from "@/components/seo/SiteWideJsonLd";
 import { getPublicProductionConfig } from "@/config/production-public";
 import { siteConfig } from "@/config/site";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
-import { PwaClientMount } from "@/components/pwa/PwaClientMount";
-import { LeadIntelligenceMount } from "@/components/leads/LeadIntelligenceMount";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { IsolatedClientMount } from "@/components/ops/IsolatedClientMount";
 import { BetaLaunchRibbon } from "@/components/portal/BetaLaunchRibbon";
@@ -167,12 +165,6 @@ export default function RootLayout({
           <Footer />
         </div>
         <MobileBottomNav />
-        <IsolatedClientMount scope="pwa_mount">
-          <PwaClientMount />
-        </IsolatedClientMount>
-        <IsolatedClientMount scope="lead_intelligence_mount">
-          <LeadIntelligenceMount />
-        </IsolatedClientMount>
       </body>
     </html>
   );

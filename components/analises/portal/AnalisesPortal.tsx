@@ -5,7 +5,6 @@ import { AnaliseFeaturedHero } from "@/components/analises/portal/AnaliseFeature
 import { AnaliseCardGrid } from "@/components/analises/portal/AnaliseCardGrid";
 import { AnalisesSidebar } from "@/components/analises/portal/AnalisesSidebar";
 import { AnalisesCommunityDeck } from "@/components/community/AnalisesCommunityDeck";
-import { LeadInlineCTA } from "@/components/leads/LeadInlineCTA";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { siteConfig } from "@/config/site";
 import { betaPremiumHref } from "@/lib/beta/cta-hrefs";
@@ -52,8 +51,6 @@ export function AnalisesPortal({
         </section>
 
         <AnalisesCommunityDeck />
-
-        <LeadInlineCTA context="analises" className="scroll-mt-28" />
 
         {gridItems.length > 0 ? (
           <section aria-labelledby="analises-grid-heading">

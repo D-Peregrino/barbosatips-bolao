@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { AnaliseCapaMedia } from "@/components/analises/portal/AnaliseCapaMedia";
 import { AnaliseDetailCommunityAside } from "@/components/community/AnaliseDetailCommunityAside";
-import { obterAnalisePorSlug } from "@/lib/analises/queries";
+import { resolverAnalisePaginaPublica } from "@/lib/analises/resolve-public-page";
 import { oddParaNumero } from "@/lib/analises/types";
 import { conteudoAnaliseParaHtmlPublico } from "@/lib/analises/render-conteudo-analise";
 import {
@@ -29,19 +29,14 @@ import { FavoriteHeartButton } from "@/components/engagement/FavoriteHeartButton
 
 type Props = { params: { slug: string } };
 
-function slugFromParams(paramsSlug: string): string {
-  return decodeURIComponent(String(paramsSlug ?? "")).trim();
-}
-
 /** Uma leitura por pedido, partilhada entre `generateMetadata` e a página. */
 const buscarAnaliseNaTabela = cache(async (paramsSlug: string) => {
-  const slug = slugFromParams(paramsSlug);
-  if (!slug) return null;
-  return obterAnalisePorSlug(slug);
+  return resolverAnalisePaginaPublica(paramsSlug);
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const data = await buscarAnaliseNaTabela(params.slug);
+  const resolved = await buscarAnaliseNaTabela(params.slug);
+  const data = resolved?.analise ?? null;
 
   if (!data) {
     return {
@@ -57,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const keywords = keywordsSeoAnalise(data);
   const capa = urlAbsolutaImagemCapa(data);
   const ogImage = capa ?? urlOgPadrao();
-  const isDraft = data.status === "rascunho";
+  const isDraft = resolved?.previewRascunho ?? false;
 
   return {
     title,
@@ -105,18 +100,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export const revalidate = siteConfig.revalidate.analises;
 
 export default async function AnaliseSlugPage({ params }: Props) {
-  const data = await buscarAnaliseNaTabela(params.slug);
+  const resolved = await buscarAnaliseNaTabela(params.slug);
   const access = await getPremiumAccess();
 
-  if (!data) {
+  if (!resolved) {
     notFound();
   }
 
-  const a = data;
+  const a = resolved.analise;
+  const previewRascunho = resolved.previewRascunho;
   const podeVerPremium = viewerPodeVerPremium(access);
   const contentTier = analiseContentTier(a);
-  const desbloqueado =
-    a.status === "rascunho" || !a.is_premium || podeVerPremium;
+  const desbloqueado = previewRascunho || !a.is_premium || podeVerPremium;
   const oddFmt = oddParaNumero(a.odd).toFixed(2);
   const corpoHtml = conteudoAnaliseParaHtmlPublico(a.conteudo);
   const crumbs = breadcrumbTrailForAnalise(a);
@@ -131,10 +126,10 @@ export default async function AnaliseSlugPage({ params }: Props) {
           <Breadcrumbs items={crumbs} className="text-zinc-500" />
         </div>
 
-        {a.status === "rascunho" ? (
+        {previewRascunho ? (
           <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
-            Rascunho — visível apenas em modo de teste (slug sem filtro de
-            publicação).
+            Pré-visualização de rascunho — só visível para administradores. O público
+            não vê esta página até publicar.
           </p>
         ) : null}
 

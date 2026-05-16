@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/server";
-import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
+import { listarTodasAnalisesAdmin } from "@/lib/analises/admin-queries";
+import { statusPublicadoNormalizado } from "@/lib/analises/queries";
 
 export const metadata = {
   title: "Admin Editorial · BarbosaTips",
@@ -11,30 +11,6 @@ export const dynamic = "force-dynamic";
 type Props = {
   searchParams: Record<string, string | string[] | undefined>;
 };
-
-type AnaliseListaAdmin = {
-  id: string;
-  titulo: string;
-  slug: string;
-  status: string;
-  campeonato: string;
-  categoria: string;
-  tags: string;
-  created_at: string;
-};
-
-function mapRow(r: Record<string, unknown>): AnaliseListaAdmin {
-  return {
-    id: String(r.id ?? ""),
-    titulo: String(r.titulo ?? ""),
-    slug: String(r.slug ?? ""),
-    status: String(r.status ?? ""),
-    campeonato: String(r.campeonato ?? ""),
-    categoria: String(r.categoria ?? ""),
-    tags: String(r.tags ?? ""),
-    created_at: String(r.created_at ?? ""),
-  };
-}
 
 function formatarData(iso: string): string {
   if (!iso.trim()) return "—";
@@ -53,27 +29,17 @@ function formatarData(iso: string): string {
   }
 }
 
-async function buscarTodasAnalises(): Promise<AnaliseListaAdmin[]> {
-  if (shouldSkipLiveSupabase()) return [];
-  try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("analises")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("admin-editorial analises", error);
-      return [];
-    }
-
-    return (data ?? []).map((row) =>
-      mapRow(row as Record<string, unknown>),
-    );
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
+function statusBadge(status: string) {
+  const pub = statusPublicadoNormalizado(status);
+  return pub ? (
+    <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+      publicado
+    </span>
+  ) : (
+    <span className="rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">
+      rascunho
+    </span>
+  );
 }
 
 export default async function AdminEditorialPage({ searchParams }: Props) {
@@ -81,15 +47,17 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
   const gravado = g === "1" || (Array.isArray(g) && g[0] === "1");
   const u = searchParams?.atualizado;
   const atualizado = u === "1" || (Array.isArray(u) && u[0] === "1");
+  const e = searchParams?.excluido;
+  const excluido = e === "1" || (Array.isArray(e) && e[0] === "1");
   const s = searchParams?.slug;
   const slugGravado =
     typeof s === "string" ? s : Array.isArray(s) ? s[0] ?? "" : "";
 
-  const lista = await buscarTodasAnalises();
+  const lista = await listarTodasAnalisesAdmin();
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050608] px-4 py-10 text-white">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         {gravado ? (
           <p className="mb-6 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
             Análise gravada
@@ -104,7 +72,7 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                 >
                   Ver no site
                 </Link>{" "}
-                (só se estiver publicada).
+                (público só se status = publicado; admin vê rascunho).
               </>
             ) : null}
           </p>
@@ -130,15 +98,19 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
           </p>
         ) : null}
 
+        {excluido ? (
+          <p className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            Análise excluída com sucesso.
+          </p>
+        ) : null}
+
         <h1 className="font-serif text-3xl font-bold text-[#E8D48B]">
           Admin Editorial BarbosaTips
         </h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Todas as linhas da tabela{" "}
-          <code className="text-zinc-300">analises</code>, sem filtro de
-          estado, ordenadas por{" "}
-          <code className="text-zinc-300">created_at</code> (mais recentes
-          primeiro).
+          CMS editorial — criar, editar, publicar e excluir análises. Schema:{" "}
+          <code className="text-zinc-300">public.analises</code> + bucket{" "}
+          <code className="text-zinc-300">analises</code> (Storage).
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -152,74 +124,101 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
             href="/analises"
             className="inline-flex items-center rounded-xl border border-[#5c4d28]/90 px-6 py-3 text-sm font-medium text-[#E8D48B] transition hover:border-[#C9A227]/50"
           >
-            Ver análises publicadas
+            Ver portal /analises
           </Link>
         </div>
 
         <section className="mt-12">
           <h2 className="mb-4 text-lg font-semibold text-zinc-200">
-            Todas as análises
+            Todas as análises ({lista.length})
           </h2>
           {lista.length === 0 ? (
             <p className="text-sm text-zinc-500">
-              Nenhuma análise cadastrada.
+              Nenhuma análise cadastrada. Execute{" "}
+              <code className="text-zinc-400">019_analises_editorial_ensure.sql</code> no
+              Supabase se a tabela ainda não existir.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-[#3d3420]/90">
-              <table className="w-full min-w-[960px] text-left text-sm">
+              <table className="w-full min-w-[1080px] text-left text-sm">
                 <thead className="bg-[#14120e] text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   <tr>
                     <th className="px-4 py-3">Título</th>
                     <th className="px-4 py-3">Slug</th>
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Destaque</th>
+                    <th className="px-4 py-3">Esporte</th>
                     <th className="px-4 py-3">Campeonato</th>
-                    <th className="px-4 py-3">Categoria</th>
-                    <th className="px-4 py-3">Tags</th>
                     <th className="px-4 py-3">Criado em</th>
                     <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="border-t border-[#2a2418]/90 odd:bg-[#0c0b09]/50"
-                    >
-                      <td className="max-w-[200px] truncate px-4 py-3 font-medium text-white">
-                        {row.titulo || "—"}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
-                        {row.slug || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-zinc-300">
-                        {row.status.trim() ? row.status : "—"}
-                      </td>
-                      <td className="max-w-[140px] truncate px-4 py-3 text-zinc-400">
-                        {row.campeonato.trim() ? row.campeonato : "—"}
-                      </td>
-                      <td className="max-w-[120px] truncate px-4 py-3 text-[#C9A227]/90">
-                        {row.categoria.trim() ? row.categoria : "—"}
-                      </td>
-                      <td className="max-w-[180px] truncate px-4 py-3 text-xs text-zinc-500">
-                        {row.tags.trim() ? row.tags : "—"}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
-                        {formatarData(row.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {row.slug ? (
-                          <Link
-                            href={`/admin-editorial/editar/${encodeURIComponent(row.slug)}`}
-                            className="text-xs font-semibold text-[#C9A227] underline-offset-2 hover:underline"
-                          >
-                            Editar
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-zinc-600">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {lista.map((row) => {
+                    const publicada = statusPublicadoNormalizado(row.status);
+                    return (
+                      <tr
+                        key={row.id}
+                        className="border-t border-[#2a2418]/90 odd:bg-[#0c0b09]/50"
+                      >
+                        <td className="max-w-[220px] truncate px-4 py-3 font-medium text-white">
+                          {row.titulo || "—"}
+                          {row.is_premium ? (
+                            <span className="ml-2 text-[10px] font-bold uppercase text-[#C9A227]">
+                              premium
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                          {row.slug || "—"}
+                        </td>
+                        <td className="px-4 py-3">{statusBadge(row.status)}</td>
+                        <td className="px-4 py-3 text-xs text-zinc-400">
+                          {row.destaque_principal ? (
+                            <span className="block font-semibold text-[#C9A227]">Hero</span>
+                          ) : null}
+                          {row.destaque_home && !row.destaque_principal ? (
+                            <span className="block text-zinc-300">Home</span>
+                          ) : null}
+                          {!row.destaque_home && !row.destaque_principal ? "—" : null}
+                          {row.prioridade > 0 ? (
+                            <span className="mt-0.5 block text-zinc-600">P{row.prioridade}</span>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 text-zinc-400">{row.esporte || "—"}</td>
+                        <td className="max-w-[160px] truncate px-4 py-3 text-zinc-400">
+                          {row.campeonato.trim() ? row.campeonato : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
+                          {formatarData(row.created_at)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          <div className="flex flex-wrap justify-end gap-3">
+                            {row.slug ? (
+                              <>
+                                <Link
+                                  href={`/admin-editorial/editar/${encodeURIComponent(row.slug)}`}
+                                  className="text-xs font-semibold text-[#C9A227] underline-offset-2 hover:underline"
+                                >
+                                  Editar
+                                </Link>
+                                <Link
+                                  href={`/analise/${encodeURIComponent(row.slug)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-medium text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                                >
+                                  {publicada ? "Portal" : "Prévia"}
+                                </Link>
+                              </>
+                            ) : (
+                              <span className="text-xs text-zinc-600">—</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

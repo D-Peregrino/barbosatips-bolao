@@ -58,6 +58,46 @@ const nextConfig = {
         destination: "/bolao",
         permanent: true,
       },
+      {
+        source: "/registro",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/registro/:path*",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/signup",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/signup/:path*",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/register",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/register/:path*",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/entrar",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/entrar/:path*",
+        destination: "/login",
+        permanent: false,
+      },
     ];
   },
 

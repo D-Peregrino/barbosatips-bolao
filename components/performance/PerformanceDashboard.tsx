@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { BreakdownRow, PerformanceModel, UltimoResultado } from "@/lib/picks/performance-compute";
 import { PerformanceCharts } from "@/components/performance/PerformanceCharts";
+import { PerformancePeriodCards } from "@/components/performance/PerformancePeriodCards";
+import { PerformancePeriodNav } from "@/components/performance/PerformancePeriodNav";
+import type { PerformancePeriodId, PerformancePeriodStats } from "@/lib/picks/performance-periods";
 import { cn } from "@/lib/utils";
 
 function Kpi({
@@ -187,21 +190,25 @@ function UltimosResultados({ items }: { items: UltimoResultado[] }) {
   );
 }
 
-export function PerformanceDashboard({ model }: { model: PerformanceModel }) {
-  const fmtPct = (v: number | null) => (v != null ? `${v}%` : "—");
-  const fmtRoi = (v: number | null) =>
-    v != null ? `${v > 0 ? "+" : ""}${v}%` : "—";
-  const fmtOdd = (v: number | null) => (v != null ? String(v) : "—");
+type PerformanceDashboardProps = {
+  model: PerformanceModel;
+  period: PerformancePeriodId;
+  periodStats: PerformancePeriodStats;
+};
 
-  const seqLabel =
-    model.sequenciaAtualTipo === "green"
-      ? `${model.sequenciaAtual} green${model.sequenciaAtual !== 1 ? "s" : ""} seguidos`
-      : model.sequenciaAtualTipo === "red"
-        ? `${model.sequenciaAtual} red${model.sequenciaAtual !== 1 ? "s" : ""} seguidos`
-        : "—";
+export function PerformanceDashboard({
+  model,
+  period,
+  periodStats,
+}: PerformanceDashboardProps) {
+  const fmtOdd = (v: number | null) => (v != null ? String(v) : "—");
 
   return (
     <div className="space-y-12">
+      <PerformancePeriodNav active={period} />
+
+      <PerformancePeriodCards stats={periodStats} />
+
       <div className="flex flex-wrap items-center gap-2">
         {model.hotStreak ? (
           <span className="inline-flex items-center rounded-full border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200 shadow-[0_0_24px_-6px_rgba(52,211,153,0.35)]">
@@ -222,54 +229,16 @@ export function PerformanceDashboard({ model }: { model: PerformanceModel }) {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Kpi
-          label="Total de picks"
+          label="Picks no período"
           value={String(model.totalPicks)}
           hint={`${model.ativas} ativas · ${model.encerradas} encerradas`}
           accent="neutral"
         />
-        <Kpi label="Greens" value={String(model.greens)} accent="green" />
-        <Kpi label="Reds" value={String(model.reds)} accent="red" />
-        <Kpi
-          label="Voids"
-          value={String(model.voids)}
-          hint="Lucro 0u no modelo ROI"
-          accent="neutral"
-        />
-        <Kpi
-          label="Taxa de acerto"
-          value={fmtPct(model.taxaAcertoPct)}
-          hint={`Amostra: ${model.apostasComResultado} (green+red)`}
-          accent="gold"
-        />
-        <Kpi
-          label="ROI estimado"
-          value={fmtRoi(model.roiEstimadoPct)}
-          hint="Média por aposta green/red · void = 0"
-          accent="gold"
-        />
         <Kpi label="Odd média" value={fmtOdd(model.oddMedia)} hint="Encerradas com resultado" accent="neutral" />
-        <Kpi
-          label="Sequência atual"
-          value={seqLabel}
-          hint="Do resultado mais recente (void não conta)"
-          accent={
-            model.sequenciaAtualTipo === "red"
-              ? "red"
-              : model.sequenciaAtualTipo === "green"
-                ? "green"
-                : "neutral"
-          }
-        />
-        <Kpi
-          label="Maior sequência green"
-          value={String(model.melhorSequenciaGreen)}
-          hint="Recorde histórico"
-          accent="green"
-        />
         <Kpi
           label="Maior sequência red"
           value={String(model.maiorSequenciaRed)}
-          hint="Recorde histórico"
+          hint="No período seleccionado"
           accent="red"
         />
       </div>

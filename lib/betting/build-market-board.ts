@@ -8,6 +8,11 @@ import type {
 } from "@/lib/api-football/types";
 import { generateMarketInsight } from "@/lib/betting/ev-engine";
 import type { EvTier } from "@/lib/betting/ev-engine";
+import {
+  findOddsEventForFixture,
+  formatMatchDebugNoEvent,
+  teamsMatch,
+} from "@/lib/betting/match-football-odds";
 import { fetchSportOddsEvents, getOddsApiKey } from "@/services/the-odds-api";
 import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
@@ -15,7 +20,6 @@ export const MARKET_BOARD_LIMIT = 30;
 
 export const BOARD_MARKET_LABELS = [
   "Over 2.5",
-  "BTTS",
   "Home Win",
   "Away Win",
 ] as const;
@@ -77,58 +81,12 @@ function sportKeysFromEnv(): string[] {
     .filter(Boolean);
 }
 
-function normalizeTeamName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\b(fc|cf|sc|ac|ec|cd|sv|fk|sk)\b/gi, "")
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function teamsMatch(a: string, b: string): boolean {
-  const na = normalizeTeamName(a);
-  const nb = normalizeTeamName(b);
-  if (!na || !nb) return false;
-  if (na === nb) return true;
-  if (na.length >= 4 && nb.length >= 4) {
-    return na.includes(nb) || nb.includes(na);
-  }
-  return false;
-}
-
-function datesClose(fixtureIso: string, commenceIso: string): boolean {
-  const a = new Date(fixtureIso).getTime();
-  const b = new Date(commenceIso).getTime();
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return true;
-  const diff = Math.abs(a - b);
-  return diff <= 36 * 60 * 60 * 1000;
-}
-
 function isValidDecimalOdd(price: number): boolean {
   return Number.isFinite(price) && price > 1 && price < 100;
 }
 
 function outcomeMatchesTeam(outcomeName: string, teamName: string): boolean {
   return teamsMatch(outcomeName, teamName);
-}
-
-function findOddsEvent(
-  fixture: FootballFixtureSummary,
-  events: OddsFixtureEvent[],
-): OddsFixtureEvent | null {
-  for (const event of events) {
-    const homeOk =
-      teamsMatch(fixture.homeTeam, event.homeTeam) &&
-      teamsMatch(fixture.awayTeam, event.awayTeam);
-    const swapped =
-      teamsMatch(fixture.homeTeam, event.awayTeam) &&
-      teamsMatch(fixture.awayTeam, event.homeTeam);
-    if ((homeOk || swapped) && datesClose(fixture.dateIso, event.commenceTime)) {
-      return event;
-    }
-  }
-  return null;
 }
 
 type BestQuote = { odd: number; bookmaker: string };
@@ -161,22 +119,6 @@ function collectOver25(event: OddsFixtureEvent): BestQuote | null {
       for (const o of market.outcomes) {
         if (!/^over/i.test(o.name)) continue;
         if (o.point != null && Math.abs(o.point - 2.5) > 0.01) continue;
-        if (isValidDecimalOdd(o.price)) {
-          quotes.push({ odd: o.price, bookmaker: bm.title });
-        }
-      }
-    }
-  }
-  return pickBest(quotes);
-}
-
-function collectBttsYes(event: OddsFixtureEvent): BestQuote | null {
-  const quotes: BestQuote[] = [];
-  for (const bm of event.bookmakers) {
-    for (const market of bm.markets) {
-      if (market.key !== "btts") continue;
-      for (const o of market.outcomes) {
-        if (!/^yes|sim/i.test(o.name)) continue;
         if (isValidDecimalOdd(o.price)) {
           quotes.push({ odd: o.price, bookmaker: bm.title });
         }
@@ -306,10 +248,21 @@ export async function buildMarketBoard(options?: {
 
   const rows: MarketBoardRow[] = [];
   let matched = 0;
+  const matchDebug = process.env.MARKET_BOARD_MATCH_DEBUG === "1";
+  let matchDebugLines = 0;
+  const maxMatchDebugFixtures = 10;
 
   for (const fixture of fixturesResult.fixtures) {
-    const oddsEvent = findOddsEvent(fixture, allOddsEvents);
-    if (!oddsEvent) continue;
+    const oddsEvent = findOddsEventForFixture(fixture, allOddsEvents);
+    if (!oddsEvent) {
+      if (matchDebug && matchDebugLines < maxMatchDebugFixtures) {
+        matchDebugLines += 1;
+        for (const line of formatMatchDebugNoEvent(fixture, allOddsEvents)) {
+          console.warn(line);
+        }
+      }
+      continue;
+    }
     matched += 1;
 
     const trendData = await loadTrendsForFixture(fixture);
@@ -325,14 +278,6 @@ export async function buildMarketBoard(options?: {
       marketLabel: "Over 2.5",
       realProbability: trends.sampleSize > 0 ? trends.over25Pct : null,
       quote: collectOver25(oddsEvent),
-    });
-
-    tryAddRow(rows, {
-      fixture,
-      oddsEvent,
-      marketLabel: "BTTS",
-      realProbability: trends.sampleSize > 0 ? trends.bttsPct : null,
-      quote: collectBttsYes(oddsEvent),
     });
 
     tryAddRow(rows, {

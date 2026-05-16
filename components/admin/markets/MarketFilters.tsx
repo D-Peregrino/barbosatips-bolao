@@ -16,7 +16,7 @@ export type MarketFilterState = {
 type Props = {
   leagues: string[];
   value: MarketFilterState;
-  onChange: (next: MarketFilterState) => void;
+  onChange: (value: MarketFilterState) => void;
   totalCount: number;
   filteredCount: number;
 };

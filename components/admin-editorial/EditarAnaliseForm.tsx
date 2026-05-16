@@ -10,6 +10,8 @@ import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaU
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
 import { EditorialStatBlocksBuilder } from "@/components/admin-editorial/EditorialStatBlocksBuilder";
 import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
+import { EditorialExcluirAnalise } from "@/components/admin-editorial/EditorialExcluirAnalise";
+import { EditorialDestaqueFields } from "@/components/admin-editorial/EditorialDestaqueFields";
 import type { AnaliseRow } from "@/lib/analises/types";
 import { oddParaNumero } from "@/lib/analises/types";
 import type { IaAnaliseDraft } from "@/lib/admin-editorial/ai-analise/types";
@@ -78,6 +80,7 @@ export function EditarAnaliseForm({ initial }: Props) {
   const slugAnterior = String(initial.slug ?? "").trim().toLowerCase();
 
   return (
+    <>
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="id" value={initial.id} />
       <input type="hidden" name="slug_anterior" value={slugAnterior} />
@@ -262,6 +265,11 @@ export function EditarAnaliseForm({ initial }: Props) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload key={initial.slug} defaultValue={initial.imagem_capa} />
+        <EditorialDestaqueFields
+          defaultDestaqueHome={initial.destaque_home}
+          defaultDestaquePrincipal={initial.destaque_principal}
+          defaultPrioridade={initial.prioridade}
+        />
         <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-[#3d3420]/60 bg-[#080706]/80 px-4 py-3">
           <label className="flex cursor-pointer items-start gap-3">
             <input type="hidden" name="is_premium" value="0" />
@@ -297,15 +305,27 @@ export function EditarAnaliseForm({ initial }: Props) {
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <SubmitButton />
         <Link
-          href="/admin-editorial"
+          href={`/analise/${encodeURIComponent(initial.slug)}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded-xl border border-[#5c4d28]/90 px-6 py-2.5 text-sm font-medium text-[#E8D48B] transition hover:border-[#C9A227]/50"
+        >
+          Ver no portal
+        </Link>
+        <Link
+          href="/admin-editorial"
+          className="rounded-xl border border-[#5c4d28]/90 px-6 py-2.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-200"
         >
           Cancelar
         </Link>
       </div>
+
     </form>
+
+    <EditorialExcluirAnalise id={initial.id} slug={initial.slug} titulo={initial.titulo} />
+    </>
   );
 }

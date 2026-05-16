@@ -30,12 +30,3 @@ export function requiresAdminPanelSession(pathname: string): boolean {
   }
   return false;
 }
-
-/** Raízes antigas → painel central (sub-rotas mantêm URL direta). */
-export function shouldRedirectAdminRootToPanel(pathname: string): boolean {
-  return (
-    pathname === "/admin-editorial" ||
-    pathname === "/admin-picks" ||
-    pathname === "/admin-leads"
-  );
-}

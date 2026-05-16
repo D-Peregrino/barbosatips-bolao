@@ -11,7 +11,7 @@ export function HomeCommunityHubStrip() {
   return (
     <section
       aria-label="Junta-te à comunidade"
-      className="border-y border-gold-400/15 bg-gradient-to-r from-[#0f0d08] via-[#080706] to-[#0f0d08]"
+      className="border-y border-white/[0.06] bg-gradient-to-r from-[#12141c]/90 via-[#0a0b10]/95 to-[#12141c]/90 backdrop-blur-sm"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-5 sm:py-7">
         <div className="flex min-w-0 items-start gap-4 sm:items-center">

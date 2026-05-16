@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-result";
+import type {
+  ExcluirAnaliseEditorialResult,
+  SalvarAnaliseEditorialResult,
+} from "@/lib/admin-editorial/salvar-result";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseStatus } from "@/lib/analises/types";
@@ -11,6 +14,11 @@ import { siteConfig } from "@/config/site";
 import { getLeaguesForSport } from "@/lib/sport-routes";
 import { normalizarSlugEditorial } from "@/lib/admin-editorial/normalizar-slug";
 import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
+import { parseDestaqueForm } from "@/lib/analises/destaque";
+import {
+  garantirUnicoDestaquePrincipal,
+  payloadDestaqueCampos,
+} from "@/lib/admin-editorial/destaque-save";
 
 const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
 
@@ -25,6 +33,20 @@ function revalidateSportHubs() {
     for (const l of getLeaguesForSport(s.slug)) {
       revalidatePath(`/${s.slug}/${l.slug}`);
     }
+  }
+}
+
+function revalidateAnalisePortal(slug: string, slugAnterior?: string) {
+  revalidatePath("/admin-editorial");
+  revalidatePath("/analises");
+  revalidatePath(`/analise/${slug}`);
+  revalidatePath("/premium");
+  revalidatePath("/");
+  revalidateSportHubs();
+  const ant = slugAnterior?.trim().toLowerCase();
+  if (ant && ant !== slug) {
+    revalidatePath(`/analise/${ant}`);
+    revalidatePath(`/admin-editorial/editar/${encodeURIComponent(ant)}`);
   }
 }
 
@@ -76,8 +98,13 @@ export async function salvarNovaAnaliseEditorialAction(
   const isPremium = String(formData.get("is_premium") ?? "") === "1";
 
   const statBlocks = parseStatBlocksPayload(String(formData.get("stat_blocks") ?? "[]"));
+  const destaque = parseDestaqueForm(formData);
 
   const admin = createAdminClient();
+  if (destaque.destaque_principal) {
+    await garantirUnicoDestaquePrincipal(admin, null);
+  }
+
   const { error } = await admin.from("analises").insert({
     slug,
     titulo,
@@ -95,6 +122,7 @@ export async function salvarNovaAnaliseEditorialAction(
     status,
     is_premium: isPremium,
     stat_blocks: statBlocks,
+    ...payloadDestaqueCampos(destaque),
   });
 
   if (error) {
@@ -104,11 +132,7 @@ export async function salvarNovaAnaliseEditorialAction(
     return { ok: false, error: error.message || "Erro ao gravar." };
   }
 
-  revalidatePath("/analises");
-  revalidatePath(`/analise/${slug}`);
-  revalidatePath("/premium");
-  revalidatePath("/");
-  revalidateSportHubs();
+  revalidateAnalisePortal(slug);
   redirect(
     `/admin-editorial?gravado=1&slug=${encodeURIComponent(slug)}`,
   );
@@ -154,6 +178,7 @@ export async function atualizarAnaliseEditorialAction(
   const isPremium = String(formData.get("is_premium") ?? "") === "1";
 
   const statBlocks = parseStatBlocksPayload(String(formData.get("stat_blocks") ?? "[]"));
+  const destaque = parseDestaqueForm(formData);
 
   const slugAnterior = String(formData.get("slug_anterior") ?? "")
     .trim()
@@ -178,6 +203,10 @@ export async function atualizarAnaliseEditorialAction(
     };
   }
 
+  if (destaque.destaque_principal) {
+    await garantirUnicoDestaquePrincipal(admin, id);
+  }
+
   const { error } = await admin
     .from("analises")
     .update({
@@ -197,6 +226,7 @@ export async function atualizarAnaliseEditorialAction(
       status,
       is_premium: isPremium,
       stat_blocks: statBlocks,
+      ...payloadDestaqueCampos(destaque),
     })
     .eq("id", id);
 
@@ -207,15 +237,50 @@ export async function atualizarAnaliseEditorialAction(
     return { ok: false, error: error.message || "Erro ao atualizar." };
   }
 
-  revalidatePath("/analises");
-  revalidatePath(`/analise/${slug}`);
-  revalidatePath("/premium");
-  revalidatePath("/");
-  revalidateSportHubs();
-  if (slugAnterior && slugAnterior !== slug) {
-    revalidatePath(`/analise/${slugAnterior}`);
-  }
+  revalidateAnalisePortal(slug, slugAnterior);
   redirect(
     `/admin-editorial?atualizado=1&slug=${encodeURIComponent(slug)}`,
   );
+}
+
+export async function excluirAnaliseEditorialAction(
+  _prev: ExcluirAnaliseEditorialResult | undefined,
+  formData: FormData,
+): Promise<ExcluirAnaliseEditorialResult> {
+  if (shouldSkipLiveSupabase()) {
+    return { ok: false, error: "Supabase não configurado neste ambiente." };
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  const slugConfirm = normalizarSlugEditorial(String(formData.get("slug_confirm") ?? ""));
+  if (!id) {
+    return { ok: false, error: "Identificador da análise em falta." };
+  }
+  if (!slugConfirm) {
+    return { ok: false, error: "Confirme o slug para excluir." };
+  }
+
+  const admin = createAdminClient();
+  const { data: row, error: errFetch } = await admin
+    .from("analises")
+    .select("id,slug")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (errFetch || !row) {
+    return { ok: false, error: "Análise não encontrada." };
+  }
+
+  const slugDb = normalizarSlugEditorial(String((row as { slug?: string }).slug ?? ""));
+  if (slugDb !== slugConfirm) {
+    return { ok: false, error: "Slug de confirmação não coincide." };
+  }
+
+  const { error } = await admin.from("analises").delete().eq("id", id);
+  if (error) {
+    return { ok: false, error: error.message || "Erro ao excluir." };
+  }
+
+  revalidateAnalisePortal(slugDb, slugDb);
+  redirect("/admin-editorial?excluido=1");
 }

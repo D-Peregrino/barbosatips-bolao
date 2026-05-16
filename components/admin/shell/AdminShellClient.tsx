@@ -62,6 +62,12 @@ const PRIMARY: NavItem[] = [
     icon: TrendingUp,
   },
   {
+    href: "/admin/mercados/resultados",
+    label: "EV+ Resultados",
+    desc: "Tracking liquidado",
+    icon: LineChart,
+  },
+  {
     href: "/admin/admins",
     label: "Administradores",
     desc: "Acesso ao painel",

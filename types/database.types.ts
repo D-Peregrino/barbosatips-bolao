@@ -197,4 +197,7 @@ export interface QuickPick {
   resultado:      "pendente" | "green" | "red" | "void";
   is_premium:     boolean;
   created_at:     string;
+  resolved_at:    string | null;
+  placar_final:   string | null;
+  observacao_resultado: string | null;
 }

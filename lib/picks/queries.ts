@@ -4,7 +4,7 @@ import type { QuickPickRow, QuickPickResultado, QuickPickStatus } from "@/lib/pi
 import { textoMatchesLiga } from "@/lib/sport-routes";
 
 const COLUNAS =
-  "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,is_premium,created_at" as const;
+  "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,is_premium,created_at,resolved_at,placar_final,observacao_resultado" as const;
 
 const COLUNAS_SITEMAP = "id,horario_jogo,created_at" as const;
 
@@ -55,6 +55,11 @@ function mapRow(r: Record<string, unknown>): QuickPickRow {
     resultado: normalizarResultado(r.resultado),
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
+    resolved_at: r.resolved_at ? String(r.resolved_at) : null,
+    placar_final: r.placar_final ? String(r.placar_final).trim() || null : null,
+    observacao_resultado: r.observacao_resultado
+      ? String(r.observacao_resultado).trim() || null
+      : null,
   };
 }
 

@@ -226,7 +226,7 @@ export function PickCard({ pick, viewerCanViewPremium = true }: PickCardProps) {
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-xl border p-4 shadow-[0_14px_40px_-28px_rgba(0,0,0,0.75)] transition duration-300 sm:rounded-2xl sm:p-5 sm:shadow-[0_24px_56px_-30px_rgba(0,0,0,.82)] md:hover:-translate-y-0.5 md:hover:shadow-[0_28px_60px_-26px_rgba(201,162,39,0.12)]",
+        "group relative overflow-hidden rounded-2xl border p-4 shadow-[0_16px_44px_-28px_rgba(0,0,0,0.7)] transition duration-300 sm:rounded-[1.25rem] sm:p-5 md:hover:-translate-y-1 md:hover:shadow-[0_28px_56px_-24px_rgba(201,162,39,0.14),0_0_32px_-20px_rgba(59,130,246,0.08)]",
         cardShellClass(pick, locked, tier),
       )}
     >

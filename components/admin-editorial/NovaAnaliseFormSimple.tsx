@@ -10,6 +10,7 @@ import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaU
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
 import { EditorialStatBlocksBuilder } from "@/components/admin-editorial/EditorialStatBlocksBuilder";
 import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
+import { EditorialDestaqueFields } from "@/components/admin-editorial/EditorialDestaqueFields";
 import type { IaAnaliseDraft } from "@/lib/admin-editorial/ai-analise/types";
 
 const initial: SalvarAnaliseEditorialResult = { ok: true };
@@ -248,6 +249,7 @@ export function NovaAnaliseFormSimple() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload />
+        <EditorialDestaqueFields />
         <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-[#3d3420]/60 bg-[#080706]/80 px-4 py-3">
           <label className="flex cursor-pointer items-start gap-3">
             <input type="hidden" name="is_premium" value="0" />

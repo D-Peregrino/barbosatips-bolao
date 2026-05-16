@@ -1,9 +1,15 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
+import {
+  buildEstadoFechamento,
+  buildPayloadFechamento,
+  buildPayloadReabrir,
+  parseResultadoOperacional,
+} from "@/lib/picks/admin-pick-resultado";
 import { parseHorarioJogoBrasilia } from "@/lib/picks/parse-horario";
+import { revalidateAfterQuickPickChange } from "@/lib/picks/revalidate-after-pick";
 import type { QuickPickResultado, QuickPickStatus } from "@/lib/picks/types";
 
 export type SalvarQuickPickResult =
@@ -41,18 +47,43 @@ function parseStatus(raw: string): QuickPickStatus | null {
   return STATUS.includes(s as QuickPickStatus) ? (s as QuickPickStatus) : null;
 }
 
+function optionalText(formData: FormData, key: string): string | null {
+  const v = String(formData.get(key) ?? "").trim();
+  return v || null;
+}
+
 /** Regras: ao vivo → só pendente; green/red/void → sempre encerrado. */
 function normalizarEstadoGuardado(
   status: QuickPickStatus,
   resultado: QuickPickResultado,
-): { status: QuickPickStatus; resultado: QuickPickResultado } {
+): {
+  status: QuickPickStatus;
+  resultado: QuickPickResultado;
+  resolved_at: string | null;
+  clearMeta: boolean;
+} {
   if (status === "ativo") {
-    return { status: "ativo", resultado: "pendente" };
+    return {
+      status: "ativo",
+      resultado: "pendente",
+      resolved_at: null,
+      clearMeta: true,
+    };
   }
   if (resultado === "green" || resultado === "red" || resultado === "void") {
-    return { status: "encerrado", resultado };
+    return {
+      status: "encerrado",
+      resultado,
+      resolved_at: new Date().toISOString(),
+      clearMeta: false,
+    };
   }
-  return { status: "encerrado", resultado };
+  return {
+    status: "encerrado",
+    resultado,
+    resolved_at: null,
+    clearMeta: true,
+  };
 }
 
 export async function criarQuickPickAction(
@@ -107,11 +138,52 @@ export async function criarQuickPickAction(
     return { ok: false, error: error.message || "Erro ao gravar pick." };
   }
 
-  revalidatePath("/picks");
-  revalidatePath("/admin-picks");
-  revalidatePath("/premium");
-  revalidatePath("/");
+  revalidateAfterQuickPickChange();
   return { ok: true, message: "Pick publicada." };
+}
+
+/** Fecho rápido: green / red / void + metadados opcionais. */
+export async function marcarResultadoQuickPickAction(
+  _prev: SalvarQuickPickResult | undefined,
+  formData: FormData,
+): Promise<SalvarQuickPickResult> {
+  if (shouldSkipLiveSupabase()) {
+    return { ok: false, error: "Supabase não configurado neste ambiente." };
+  }
+
+  const id = String(formData.get("pick_id") ?? "").trim();
+  const resultadoOp = parseResultadoOperacional(
+    String(formData.get("resultado") ?? ""),
+  );
+
+  if (!id) return { ok: false, error: "Pick inválida." };
+  if (!resultadoOp) return { ok: false, error: "Resultado inválido." };
+
+  const placar = optionalText(formData, "placar_final");
+  const observacao = optionalText(formData, "observacao");
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("quick_picks")
+    .update(
+      buildPayloadFechamento(resultadoOp, {
+        placar_final: placar,
+        observacao,
+      }),
+    )
+    .eq("id", id);
+
+  if (error) {
+    console.error("marcarResultadoQuickPick", error);
+    return { ok: false, error: error.message || "Erro ao gravar resultado." };
+  }
+
+  revalidateAfterQuickPickChange();
+  const { resultado } = buildEstadoFechamento(resultadoOp);
+  return {
+    ok: true,
+    message: `Marcado como ${resultado.toUpperCase()}.`,
+  };
 }
 
 export async function guardarEstadoQuickPickAction(
@@ -130,22 +202,53 @@ export async function guardarEstadoQuickPickAction(
   if (!statusIn) return { ok: false, error: "Estado inválido." };
   if (!resultadoIn) return { ok: false, error: "Resultado inválido." };
 
-  const { status, resultado } = normalizarEstadoGuardado(statusIn, resultadoIn);
+  const norm = normalizarEstadoGuardado(statusIn, resultadoIn);
+
+  const update: Record<string, unknown> = {
+    status: norm.status,
+    resultado: norm.resultado,
+    resolved_at: norm.resolved_at,
+  };
+  if (norm.clearMeta) {
+    update.placar_final = null;
+    update.observacao_resultado = null;
+  }
 
   const admin = createAdminClient();
-  const { error } = await admin
-    .from("quick_picks")
-    .update({ status, resultado })
-    .eq("id", id);
+  const { error } = await admin.from("quick_picks").update(update).eq("id", id);
 
   if (error) {
     console.error("guardarEstadoQuickPick", error);
     return { ok: false, error: error.message || "Erro ao guardar." };
   }
 
-  revalidatePath("/picks");
-  revalidatePath("/admin-picks");
-  revalidatePath("/premium");
-  revalidatePath("/");
+  revalidateAfterQuickPickChange();
   return { ok: true, message: "Estado atualizado." };
+}
+
+/** Reabre pick para pendente (remove resultado e metadados). */
+export async function reabrirQuickPickAction(
+  _prev: SalvarQuickPickResult | undefined,
+  formData: FormData,
+): Promise<SalvarQuickPickResult> {
+  if (shouldSkipLiveSupabase()) {
+    return { ok: false, error: "Supabase não configurado neste ambiente." };
+  }
+
+  const id = String(formData.get("pick_id") ?? "").trim();
+  if (!id) return { ok: false, error: "Pick inválida." };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("quick_picks")
+    .update(buildPayloadReabrir())
+    .eq("id", id);
+
+  if (error) {
+    console.error("reabrirQuickPick", error);
+    return { ok: false, error: error.message || "Erro ao reabrir." };
+  }
+
+  revalidateAfterQuickPickChange();
+  return { ok: true, message: "Pick reaberta (pendente)." };
 }

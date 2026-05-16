@@ -31,6 +31,7 @@ export async function saveMarketEvSnapshotAction(): Promise<SaveSnapshotActionRe
 
   revalidatePath("/admin/mercados");
   revalidatePath("/admin/mercados/historico");
+  revalidatePath("/admin/mercados/resultados");
 
   return {
     ok: true,

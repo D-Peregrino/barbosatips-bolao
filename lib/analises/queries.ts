@@ -1,64 +1,19 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 import type { AnaliseRow } from "@/lib/analises/types";
-import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
-import { siteConfig } from "@/config/site";
+import { slugParaConsulta } from "@/lib/analises/slug-query";
+import { COLUNAS_ANALISE, mapAnaliseRow } from "@/lib/analises/map-analise-row";
+import { ordenarPorPrioridadeDestaque } from "@/lib/analises/destaque";
+import { statusPublicadoNormalizado } from "@/lib/analises/status";
 import { textoMatchesLiga } from "@/lib/sport-routes";
 
-const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
+export { statusPublicadoNormalizado } from "@/lib/analises/status";
 
-/** Fallback quando a coluna `esporte` ainda não existe ou está vazia (linhas antigas). */
-function inferEsporteFromCategoria(categoria: string): string {
-  const c = categoria.trim().toLowerCase();
-  if (!c) return "futebol";
-  for (const s of siteConfig.sports) {
-    if (c.includes(s.slug) || c.includes(s.label.toLowerCase())) return s.slug;
-  }
-  return "futebol";
-}
-
-/** Reconhece publicado com qualquer capitalização ou espaços extra. */
-export function statusPublicadoNormalizado(status: unknown): boolean {
-  return String(status ?? "").toLowerCase().trim() === "publicado";
-}
+const COLUNAS = COLUNAS_ANALISE;
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
-  const prem = r.is_premium;
-  const isPremium =
-    prem === true ||
-    prem === "true" ||
-    String(prem ?? "").toLowerCase() === "t";
-
-  let esporte = String(r.esporte ?? "").trim().toLowerCase();
-  if (!esporte || !SPORT_SLUG_SET.has(esporte)) {
-    esporte = inferEsporteFromCategoria(String(r.categoria ?? ""));
-  }
-  if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
-
-  return {
-    id: String(r.id ?? ""),
-    slug: String(r.slug ?? ""),
-    titulo: String(r.titulo ?? ""),
-    esporte,
-    categoria: String(r.categoria ?? ""),
-    tags: String(r.tags ?? ""),
-    campeonato: String(r.campeonato ?? ""),
-    time_casa: String(r.time_casa ?? ""),
-    time_fora: String(r.time_fora ?? ""),
-    odd: r.odd as string | number,
-    confianca: Number(r.confianca ?? 0),
-    resumo: String(r.resumo ?? ""),
-    conteudo: String(r.conteudo ?? ""),
-    imagem_capa: String(r.imagem_capa ?? ""),
-    status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
-    is_premium: isPremium,
-    created_at: String(r.created_at ?? ""),
-    stat_blocks: parseStatBlocksPayload(r.stat_blocks),
-  };
+  return mapAnaliseRow(r);
 }
-
-const COLUNAS =
-  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at,stat_blocks" as const;
 
 function aplicarFiltroGratis(
   rows: AnaliseRow[],
@@ -133,6 +88,42 @@ export async function listarAnalisesPremiumPublicadas(
       )
       .map((row) => mapRow(row as Record<string, unknown>))
       .slice(0, limit);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+/**
+ * Análises com destaque editorial na home (`destaque_home` ou `destaque_principal`).
+ * Ordenadas por `prioridade` desc e `created_at` desc.
+ */
+export async function listarAnalisesDestaqueHomePublicadas(
+  soGratis = false,
+): Promise<AnaliseRow[]> {
+  if (shouldSkipLiveSupabase()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("analises")
+      .select(COLUNAS)
+      .or("destaque_home.eq.true,destaque_principal.eq.true")
+      .order("prioridade", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      console.error("analises listarDestaqueHome", error);
+      return [];
+    }
+
+    const mapped = (data ?? [])
+      .filter((row) =>
+        statusPublicadoNormalizado((row as Record<string, unknown>).status),
+      )
+      .map((row) => mapRow(row as Record<string, unknown>));
+
+    return ordenarPorPrioridadeDestaque(aplicarFiltroGratis(mapped, soGratis));
   } catch (e) {
     console.error(e);
     return [];
@@ -271,11 +262,11 @@ export async function listarAnalisesPublicadasParaSitemap(): Promise<
 }
 
 /**
- * Obtém análise por slug (qualquer status) — uso em /analise/[slug] durante testes.
+ * Obtém análise por slug (qualquer status) — CMS / pré-visualização admin.
  */
 export async function obterAnalisePorSlug(slug: string): Promise<AnaliseRow | null> {
   if (shouldSkipLiveSupabase()) return null;
-  const s = String(slug ?? "").trim();
+  const s = slugParaConsulta(slug);
   if (!s) return null;
   try {
     const admin = createAdminClient();
@@ -332,9 +323,11 @@ export async function listarAnalisesPorSlugs(
   }
 }
 
-/** @deprecated Use obterAnalisePorSlug — mantido para compatibilidade. */
+/** Análise publicada por slug — portal público /analise/[slug]. */
 export async function obterAnalisePublicadaPorSlug(
   slug: string,
 ): Promise<AnaliseRow | null> {
-  return obterAnalisePorSlug(slug);
+  const a = await obterAnalisePorSlug(slug);
+  if (!a || !statusPublicadoNormalizado(a.status)) return null;
+  return a;
 }

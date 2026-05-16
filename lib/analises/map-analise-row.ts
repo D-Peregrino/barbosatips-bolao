@@ -1,0 +1,58 @@
+import type { AnaliseRow } from "@/lib/analises/types";
+import { parseBoolCol, parsePrioridadeCol } from "@/lib/analises/parse-columns";
+import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
+import { statusPublicadoNormalizado } from "@/lib/analises/status";
+import { siteConfig } from "@/config/site";
+
+export { parseBoolCol, parsePrioridadeCol } from "@/lib/analises/parse-columns";
+
+const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
+
+function inferEsporteFromCategoria(categoria: string): string {
+  const c = categoria.trim().toLowerCase();
+  if (!c) return "futebol";
+  for (const s of siteConfig.sports) {
+    if (c.includes(s.slug) || c.includes(s.label.toLowerCase())) return s.slug;
+  }
+  return "futebol";
+}
+
+export const COLUNAS_ANALISE =
+  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at,stat_blocks,destaque_home,destaque_principal,prioridade" as const;
+
+export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
+  const isPremium = parseBoolCol(r.is_premium);
+
+  let esporte = String(r.esporte ?? "").trim().toLowerCase();
+  if (!esporte || !SPORT_SLUG_SET.has(esporte)) {
+    esporte = inferEsporteFromCategoria(String(r.categoria ?? ""));
+  }
+  if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
+
+  const destaquePrincipal = parseBoolCol(r.destaque_principal);
+  const destaqueHome = parseBoolCol(r.destaque_home) || destaquePrincipal;
+
+  return {
+    id: String(r.id ?? ""),
+    slug: String(r.slug ?? ""),
+    titulo: String(r.titulo ?? ""),
+    esporte,
+    categoria: String(r.categoria ?? ""),
+    tags: String(r.tags ?? ""),
+    campeonato: String(r.campeonato ?? ""),
+    time_casa: String(r.time_casa ?? ""),
+    time_fora: String(r.time_fora ?? ""),
+    odd: r.odd as string | number,
+    confianca: Number(r.confianca ?? 0),
+    resumo: String(r.resumo ?? ""),
+    conteudo: String(r.conteudo ?? ""),
+    imagem_capa: String(r.imagem_capa ?? ""),
+    status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
+    is_premium: isPremium,
+    created_at: String(r.created_at ?? ""),
+    stat_blocks: parseStatBlocksPayload(r.stat_blocks),
+    destaque_home: destaqueHome,
+    destaque_principal: destaquePrincipal,
+    prioridade: parsePrioridadeCol(r.prioridade),
+  };
+}

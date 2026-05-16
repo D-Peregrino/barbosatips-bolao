@@ -10,8 +10,6 @@ import {
   Youtube,
 } from "lucide-react";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
-import { LeadCaptureForm } from "@/components/leads/LeadCaptureForm";
-import { BrandShield } from "@/components/brand/BrandShield";
 import { siteConfig } from "@/config/site";
 import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
@@ -172,19 +170,8 @@ export default function ComunidadePage() {
           <ComunidadeRoadmapSection />
         </div>
 
-        <div className="mt-16 grid gap-10 lg:grid-cols-2">
-          <section className="commercial-card-elevated border p-6 sm:p-8">
-            <div className="mb-6 flex items-center gap-3">
-              <BrandShield size="sm" />
-              <h2 className="font-display text-xl font-bold text-white">Lista de email</h2>
-            </div>
-            <p className="mb-6 text-sm text-zinc-500">
-              Escolhe os desportos que mais te interessam — sem obrigar conta no site.
-            </p>
-            <LeadCaptureForm source="comunidade" variant="full" />
-          </section>
-
-          <div className="flex flex-col justify-center gap-6 rounded-2xl border border-gold-400/15 bg-gradient-to-br from-[#1a1610] to-[#080706] p-8">
+        <div className="mt-16">
+          <div className="flex max-w-xl flex-col justify-center gap-6 rounded-2xl border border-gold-400/15 bg-gradient-to-br from-[#1a1610] to-[#080706] p-8">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold-400/90">
                 Ação imediata

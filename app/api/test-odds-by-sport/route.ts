@@ -101,7 +101,7 @@ async function diagnoseSport(apiKey: string, sportKey: string): Promise<SportDia
   );
   url.searchParams.set("apiKey", apiKey);
   url.searchParams.set("regions", "eu");
-  url.searchParams.set("markets", "h2h,totals,btts");
+  url.searchParams.set("markets", "h2h,totals");
   url.searchParams.set("oddsFormat", "decimal");
   url.searchParams.set("dateFormat", "iso");
 

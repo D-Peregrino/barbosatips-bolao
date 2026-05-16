@@ -1,7 +1,12 @@
+import {
+  computePerformancePeriodStats,
+  type PerformancePeriodId,
+} from "@/lib/picks/performance-periods";
 import type { QuickPickRow } from "@/lib/picks/types";
-import { calcularEstatisticasQuickPicksEncerradas } from "@/lib/picks/stats";
 
 export type HomePerformanceSnapshot = {
+  periodLabel: string;
+  totalResolvidas: number;
   greens: number;
   reds: number;
   voids: number;
@@ -12,65 +17,29 @@ export type HomePerformanceSnapshot = {
   roiPct: number | null;
   /** Vitórias seguidas (desde a pick encerrada mais recente), ou derrotas como negativo. */
   streakAtual: number;
+  streakMaximaGreen: number;
 };
 
-function parseTime(iso: string): number {
-  const t = new Date(iso).getTime();
-  return Number.isFinite(t) ? t : 0;
-}
+const HOME_PERF_PERIOD: PerformancePeriodId = "30d";
 
 /**
- * Agrega métricas para a barra de performance da home (picks recentes em memória).
+ * Métricas da home com filtro de período (30 dias, fuso BR).
  */
 export function buildHomePerformanceSnapshot(
   picks: QuickPickRow[],
 ): HomePerformanceSnapshot {
-  const { greens, reds, voids, taxaAcertoPct } =
-    calcularEstatisticasQuickPicksEncerradas(picks);
-
-  let unidades = 0;
-  const resolved: QuickPickRow[] = [];
-
-  for (const p of picks) {
-    if (p.status !== "encerrado") continue;
-    if (p.resultado === "green") {
-      unidades += p.odd > 0 ? p.odd - 1 : 0;
-      resolved.push(p);
-    } else if (p.resultado === "red") {
-      unidades -= 1;
-      resolved.push(p);
-    }
-  }
-
-  const amostra = greens + reds;
-  const roiPct =
-    amostra > 0 ? Math.round((unidades / amostra) * 1000) / 10 : null;
-
-  const closedGR = picks
-    .filter(
-      (p) =>
-        p.status === "encerrado" &&
-        (p.resultado === "green" || p.resultado === "red"),
-    )
-    .sort((a, b) => parseTime(b.horario_jogo) - parseTime(a.horario_jogo));
-
-  let streakAtual = 0;
-  if (closedGR.length > 0) {
-    const first = closedGR[0].resultado;
-    const sign = first === "green" ? 1 : -1;
-    for (const p of closedGR) {
-      if (p.resultado !== (sign === 1 ? "green" : "red")) break;
-      streakAtual += sign;
-    }
-  }
+  const s = computePerformancePeriodStats(picks, HOME_PERF_PERIOD);
 
   return {
-    greens,
-    reds,
-    voids,
-    taxaAcertoPct,
-    unidades: Math.round(unidades * 100) / 100,
-    roiPct,
-    streakAtual,
+    periodLabel: s.label,
+    totalResolvidas: s.totalResolvidas,
+    greens: s.greens,
+    reds: s.reds,
+    voids: s.voids,
+    taxaAcertoPct: s.winratePct,
+    unidades: s.lucroUnidades,
+    roiPct: s.roiPct,
+    streakAtual: s.streakAtual,
+    streakMaximaGreen: s.streakMaximaGreen,
   };
 }

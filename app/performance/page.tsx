@@ -6,7 +6,11 @@ import { PerformanceDashboard } from "@/components/performance/PerformanceDashbo
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { siteConfig } from "@/config/site";
-import { computePerformanceModel } from "@/lib/picks/performance-compute";
+import {
+  computePerformanceModelForPeriod,
+  computePerformancePeriodStats,
+  parsePerformancePeriod,
+} from "@/lib/picks/performance-periods";
 import { listarQuickPicksPerformance } from "@/lib/picks/queries";
 import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
@@ -16,14 +20,14 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const picks = await listarQuickPicksPerformance();
-  const model = computePerformanceModel(picks);
+  const stats = computePerformancePeriodStats(picks, "30d");
   const taxa =
-    model.taxaAcertoPct != null ? `taxa ~${model.taxaAcertoPct}%` : "métricas públicas";
+    stats.winratePct != null ? `taxa ~${stats.winratePct}%` : "métricas públicas";
   const roi =
-    model.roiEstimadoPct != null ? `ROI ~${model.roiEstimadoPct}% (1u)` : "ROI 1u estimado";
+    stats.roiPct != null ? `ROI ~${stats.roiPct}% (1u)` : "ROI 1u estimado";
   const description = buildAutoMetaDescription([
-    `${model.totalPicks} picks rastreadas`,
-    `${model.encerradas} encerradas · ${model.greens}G ${model.reds}R`,
+    `${stats.totalResolvidas} picks resolvidas (30d)`,
+    `${stats.greens}G ${stats.reds}R`,
     taxa,
     roi,
   ]);
@@ -41,10 +45,16 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function PerformancePage() {
+type PageProps = {
+  searchParams?: { period?: string };
+};
+
+export default async function PerformancePage({ searchParams }: PageProps) {
   const picks = await listarQuickPicksPerformance();
-  const model = computePerformanceModel(picks);
-  const semDados = model.totalPicks === 0;
+  const period = parsePerformancePeriod(searchParams?.period);
+  const periodStats = computePerformancePeriodStats(picks, period);
+  const model = computePerformanceModelForPeriod(picks, period);
+  const semDados = periodStats.totalResolvidas === 0 && model.totalPicks === 0;
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -83,9 +93,9 @@ export default async function PerformancePage() {
                 </>
               ) : (
                 <>
-                  Totais, taxa de acerto, ROI estimado (1 unidade por pick: vitória usa a odd,
-                  derrota −1, sem resultado 0), sequências e gráficos — atualizados em cada visita a
-                  partir das picks publicadas no portal.
+                  Totais por período (hoje, 7 dias, 30 dias ou geral), taxa de acerto, ROI estimado
+                  (1 unidade por pick: vitória usa a odd, derrota −1, void 0), sequências e gráficos
+                  — actualizados em cada visita a partir das picks publicadas no portal.
                 </>
               )}
             </p>
@@ -106,7 +116,11 @@ export default async function PerformancePage() {
               quaternaryLabel="Participar do bolão"
             />
           ) : (
-            <PerformanceDashboard model={model} />
+            <PerformanceDashboard
+              model={model}
+              period={period}
+              periodStats={periodStats}
+            />
           )}
 
           <PortalSocialCtaBand className="mt-10" />

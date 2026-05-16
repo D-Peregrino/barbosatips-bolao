@@ -10,7 +10,7 @@ type Props = {
  * Renderiza um banner de patrocinador conforme `config/sponsor-banners.ts`.
  * Desactiva com `enabled: false` no slot correspondente.
  */
-export function SponsorSlot({ slot, className }: Props) {
+function SponsorSlot({ slot, className }: Props) {
   const cfg = sponsorBannerSlots[slot];
   if (!cfg?.enabled) return null;
 
@@ -26,3 +26,4 @@ export function SponsorSlot({ slot, className }: Props) {
 }
 
 export default SponsorSlot;
+export { SponsorSlot };

@@ -39,8 +39,8 @@ const API_BASE = "https://api.the-odds-api.com/v4";
 export const THE_ODDS_API_DEFAULTS = {
   regions: "eu",
   markets: "h2h,spreads,totals",
-  /** Mercados para cruzamento com tendências (soccer). */
-  boardMarkets: "h2h,totals,btts",
+  /** Mercados para cruzamento com tendências (soccer). BTTS não suportado neste endpoint v4/odds. */
+  boardMarkets: "h2h,totals",
   oddsFormat: "decimal" as const,
   /** Liga usada no endpoint de teste quando não há query params. */
   testSportKey: "soccer_epl",

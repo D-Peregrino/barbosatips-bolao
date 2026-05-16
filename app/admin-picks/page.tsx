@@ -3,6 +3,7 @@ import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { listarQuickPicks } from "@/lib/picks/queries";
 import { rotuloEsporte } from "@/lib/picks/rotulo-esporte";
+import { AdminPickResultadosPanel } from "@/components/admin-picks/AdminPickResultadosPanel";
 import { AdminQuickPickForm } from "@/components/admin-picks/AdminQuickPickForm";
 import { AdminQuickPickEstadoForm } from "@/components/admin-picks/AdminQuickPickEstadoForm";
 
@@ -46,7 +47,7 @@ export default async function AdminPicksPage() {
               Publicar em segundos
             </h1>
             <p className="mt-1 text-sm text-zinc-500">
-              Sem login — use apenas em ambiente confiável (como /admin-editorial).
+              Publicar picks e fechar resultados (green / red / void) para actualizar a performance.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -71,7 +72,9 @@ export default async function AdminPicksPage() {
           </div>
         </div>
 
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 shadow-xl sm:p-8">
+        <AdminPickResultadosPanel picks={picks} />
+
+        <section className="mt-10 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 shadow-xl sm:p-8">
           <h2 className="mb-4 font-display text-lg font-bold text-white">
             Nova pick
           </h2>
