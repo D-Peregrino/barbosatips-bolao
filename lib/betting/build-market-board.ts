@@ -206,6 +206,12 @@ function tryAddRow(
 ): boolean {
   const { fixture, oddsEvent, marketLabel, realProbability, quote, probabilityRejectReason } =
     params;
+  console.warn("[EV STEP] entrou tryAddRow", {
+    market: marketLabel,
+    probability: realProbability,
+    odd: quote?.odd ?? null,
+  });
+
   const recordSkip = (reason: string, detail?: string) => {
     if (!pipelineRecorder || pipelineRecorder.skips.length >= pipelineRecorder.maxSkips) return;
     pipelineRecorder.skips.push({
@@ -264,6 +270,16 @@ function tryAddRow(
       marketLabel,
       realProbability,
       marketOdd: quote.odd,
+    });
+
+    console.warn("[EV OK PUSH]", {
+      market: marketLabel,
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      probability: insight.realProbability,
+      odd: insight.marketOdd,
+      ev: insight.ev,
+      edge: insight.edge,
+      tier: insight.tier,
     });
 
     rows.push({
@@ -333,6 +349,7 @@ export async function buildMarketBoard(options?: {
   limit?: number;
 }): Promise<MarketBoardResult> {
   console.warn("[EV PIPELINE] buildMarketBoard iniciou");
+  try {
   const date = options?.date ?? todayDateBrazil();
   const limit = options?.limit ?? MARKET_BOARD_LIMIT;
   const warnings: string[] = [];
@@ -458,7 +475,12 @@ export async function buildMarketBoard(options?: {
       );
     }
 
+    console.warn("[EV STEP] antes trends", fixture.homeTeam, fixture.awayTeam);
     const trendData = await loadTrendsForFixture(fixture);
+    console.warn("[EV STEP] depois trends", {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      trends: trendData?.trends ?? null,
+    });
     if (!trendData) {
       fixturesOddsButNoTrends += 1;
       console.warn("[EV REJECT]", {
@@ -483,21 +505,37 @@ export async function buildMarketBoard(options?: {
     const { trends, homeForm, awayForm } = trendData;
     const homeWinPct = winRatePct(homeForm);
     const awayWinPct = winRatePct(awayForm);
+    const over25Probability = trends.sampleSize > 0 ? trends.over25Pct : null;
+    const over25Quote = collectOver25(oddsEvent);
+    const homeQuote = collectH2H(oddsEvent, fixture.homeTeam);
+    const awayQuote = collectH2H(oddsEvent, fixture.awayTeam);
 
+    console.warn("[EV STEP] antes tryAddRow", {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      market: "over25",
+      probability: over25Probability,
+      oddsEvent,
+    });
     tryAddRow(
       rows,
       {
         fixture,
         oddsEvent,
         marketLabel: "Over 2.5",
-        realProbability: trends.sampleSize > 0 ? trends.over25Pct : null,
-        quote: collectOver25(oddsEvent),
+        realProbability: over25Probability,
+        quote: over25Quote,
         probabilityRejectReason:
           trends.sampleSize > 0 ? undefined : "sample_size_zero",
       },
       pipelineRecorder,
     );
 
+    console.warn("[EV STEP] antes tryAddRow", {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      market: "home",
+      probability: homeWinPct,
+      oddsEvent,
+    });
     tryAddRow(
       rows,
       {
@@ -505,11 +543,17 @@ export async function buildMarketBoard(options?: {
         oddsEvent,
         marketLabel: "Home Win",
         realProbability: homeWinPct,
-        quote: collectH2H(oddsEvent, fixture.homeTeam),
+        quote: homeQuote,
       },
       pipelineRecorder,
     );
 
+    console.warn("[EV STEP] antes tryAddRow", {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      market: "away",
+      probability: awayWinPct,
+      oddsEvent,
+    });
     tryAddRow(
       rows,
       {
@@ -517,7 +561,7 @@ export async function buildMarketBoard(options?: {
         oddsEvent,
         marketLabel: "Away Win",
         realProbability: awayWinPct,
-        quote: collectH2H(oddsEvent, fixture.awayTeam),
+        quote: awayQuote,
       },
       pipelineRecorder,
     );
@@ -582,6 +626,11 @@ export async function buildMarketBoard(options?: {
     fixturesMatched: matched,
     rowsGenerated: rows.length,
   });
+  console.warn("[EV PIPELINE FINAL]", {
+    rows: rows.length,
+    matched,
+    totalFixtures: fixturesResult.fixtures.length,
+  });
 
   return {
     ok: true,
@@ -596,6 +645,13 @@ export async function buildMarketBoard(options?: {
       warnings,
     },
   };
+  } catch (error) {
+    console.error("[EV FATAL]", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export function buildMarketAnalysisHref(row: MarketBoardRow): string {
