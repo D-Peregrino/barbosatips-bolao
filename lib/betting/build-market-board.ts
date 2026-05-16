@@ -188,6 +188,18 @@ type PipelineTrySuccess = {
   tier: EvTier;
 };
 
+function logPipelineEarlyExit(
+  reason: string,
+  fixture: FootballFixtureSummary | null,
+  extra?: Record<string, unknown>,
+) {
+  console.warn("[PIPELINE EARLY EXIT]", {
+    reason,
+    fixture: fixture ? `${fixture.homeTeam} vs ${fixture.awayTeam}` : null,
+    ...extra,
+  });
+}
+
 function tryAddRow(
   rows: MarketBoardRow[],
   params: {
@@ -256,6 +268,11 @@ function tryAddRow(
       reason,
       `realProbability=${realProbability === null ? "null" : String(realProbability)}`,
     );
+    logPipelineEarlyExit(reason, fixture, {
+      market: marketLabel,
+      probability: realProbability,
+      odd: quote?.odd ?? null,
+    });
     return false;
   }
   if (!quote || !isValidDecimalOdd(quote.odd)) {
@@ -263,6 +280,11 @@ function tryAddRow(
       "no_quote_or_invalid_odd",
       quote ? `odd=${String(quote.odd)}` : "quote=null",
     );
+    logPipelineEarlyExit("no_quote_or_invalid_odd", fixture, {
+      market: marketLabel,
+      probability: realProbability,
+      odd: quote?.odd ?? null,
+    });
     return false;
   }
 
@@ -342,6 +364,12 @@ function tryAddRow(
       error: msg,
     });
     recordSkip("ev_engine_exception", msg);
+    logPipelineEarlyExit("ev_engine_exception", fixture, {
+      market: marketLabel,
+      probability: realProbability,
+      odd: quote?.odd ?? null,
+      error: msg,
+    });
     return false;
   }
 }
@@ -434,6 +462,9 @@ export async function buildMarketBoard(options?: {
           `#${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} @ ${fixture.dateIso} → ${oddsMatch.rejectReason}`,
         );
       }
+      logPipelineEarlyExit("no_odds_event_after_match", fixture, {
+        rejectReason: oddsMatch.rejectReason,
+      });
       console.warn("[EV STEP 2] saiu bloco pos-match");
       continue;
     }
@@ -506,6 +537,10 @@ export async function buildMarketBoard(options?: {
           `no_trends #${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} | homeId=${fixture.homeTeamId ?? "null"} awayId=${fixture.awayTeamId ?? "null"}`,
         );
       }
+      logPipelineEarlyExit("trends_missing", fixture, {
+        homeTeamId: fixture.homeTeamId ?? null,
+        awayTeamId: fixture.awayTeamId ?? null,
+      });
       console.warn("[EV STEP 2] saiu bloco pos-match");
       continue;
     }
@@ -581,6 +616,9 @@ export async function buildMarketBoard(options?: {
     console.warn("[EV STEP 2] saiu bloco pos-match");
     } catch (err) {
       console.error("[EV CRASH POS MATCH]", err);
+      logPipelineEarlyExit("crash_pos_match", fixture, {
+        error: err instanceof Error ? err.message : String(err),
+      });
       continue;
     }
   }
@@ -649,6 +687,11 @@ export async function buildMarketBoard(options?: {
     matched,
     totalFixtures: fixturesResult.fixtures.length,
   });
+  logPipelineEarlyExit("return_ok_true_final", null, {
+    rows: rows.length,
+    matched,
+    totalFixtures: fixturesResult.fixtures.length,
+  });
 
   return {
     ok: true,
@@ -665,6 +708,9 @@ export async function buildMarketBoard(options?: {
   };
   } catch (error) {
     console.error("[EV FATAL]", error);
+    logPipelineEarlyExit("build_market_board_fatal_return", null, {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
