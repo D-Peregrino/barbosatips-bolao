@@ -18,7 +18,7 @@ function inferEsporteFromCategoria(categoria: string): string {
 }
 
 export const COLUNAS_ANALISE =
-  "id,titulo,slug,resumo,conteudo,status,created_at,campeonato,tag,confianca,odd,mercado,data_jogo,imagem_url" as const;
+  "id,titulo,slug,resumo,conteudo,status,created_at,published_at,campeonato,tag,confianca,odd,mercado,data_jogo,imagem_url" as const;
 
 export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
   const isPremium = parseBoolCol(r.is_premium);

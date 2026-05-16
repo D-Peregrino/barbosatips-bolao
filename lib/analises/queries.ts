@@ -10,9 +10,28 @@ import { textoMatchesLiga } from "@/lib/sport-routes";
 export { statusPublicadoNormalizado } from "@/lib/analises/status";
 
 const COLUNAS = COLUNAS_ANALISE;
+const ANALISE_STATUS_VISIVEIS = new Set(["publicado", "published", "ativo"]);
 
 function mapRow(r: Record<string, unknown>): AnaliseRow {
   return mapAnaliseRow(r);
+}
+
+function statusAnalise(raw: unknown): string {
+  return String(raw ?? "").toLowerCase().trim();
+}
+
+function analiseVisivelTemporariamente(row: Record<string, unknown>): boolean {
+  const status = statusAnalise(row.status);
+  const temPublishedAt = Boolean(String(row.published_at ?? "").trim());
+  return status !== "rascunho" || ANALISE_STATUS_VISIVEIS.has(status) || temPublishedAt;
+}
+
+function logAnalisesDebug(rows: Record<string, unknown>[]): void {
+  const statuses = Array.from(new Set(rows.map((row) => statusAnalise(row.status) || "(vazio)")));
+  console.warn("[ANALISES DEBUG]", {
+    total: rows.length,
+    statuses,
+  });
 }
 
 function aplicarFiltroGratis(
@@ -24,7 +43,7 @@ function aplicarFiltroGratis(
 }
 
 /**
- * Lista análises visíveis em /analises: status normalizado === "publicado".
+ * Lista análises visíveis em /analises com regra temporária permissiva.
  * `soGratis`: quando true, exclui `is_premium` (utilizador logado sem assinatura).
  */
 export async function listarAnalisesPublicadas(
@@ -36,6 +55,7 @@ export async function listarAnalisesPublicadas(
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(2000);
 
@@ -44,12 +64,11 @@ export async function listarAnalisesPublicadas(
       return [];
     }
 
-    const mapped = (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado(
-          (row as Record<string, unknown>).status,
-        ),
-      )
+    const rawRows = (data ?? []) as Record<string, unknown>[];
+    logAnalisesDebug(rawRows);
+
+    const mapped = rawRows
+      .filter(analiseVisivelTemporariamente)
       .map((row) => mapRow(row as Record<string, unknown>));
 
     return aplicarFiltroGratis(mapped, soGratis);
@@ -94,6 +113,7 @@ export async function listarUltimasAnalisesPublicadas(
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(cap);
 
@@ -102,12 +122,8 @@ export async function listarUltimasAnalisesPublicadas(
       return [];
     }
 
-    const rows = (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado(
-          (row as Record<string, unknown>).status,
-        ),
-      )
+    const rows = ((data ?? []) as Record<string, unknown>[])
+      .filter(analiseVisivelTemporariamente)
       .map((row) => mapRow(row as Record<string, unknown>));
 
     return aplicarFiltroGratis(rows, soGratis).slice(0, limit);
@@ -132,6 +148,7 @@ export async function listarAnalisesPublicadasPorEsporte(
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(500);
 
@@ -140,12 +157,8 @@ export async function listarAnalisesPublicadasPorEsporte(
       return [];
     }
 
-    const mapped = (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado(
-          (row as Record<string, unknown>).status,
-        ),
-      )
+    const mapped = ((data ?? []) as Record<string, unknown>[])
+      .filter(analiseVisivelTemporariamente)
       .map((row) => mapRow(row as Record<string, unknown>));
 
     return aplicarFiltroGratis(mapped, soGratis).filter((row) => row.esporte === slug);
@@ -170,7 +183,7 @@ export async function listarAnalisesPublicadasPorEsporteELiga(
   );
 }
 
-const COLUNAS_SITEMAP = "slug,status,created_at" as const;
+const COLUNAS_SITEMAP = "slug,status,created_at,published_at" as const;
 
 /** Slugs publicados para `sitemap.xml` (leve). */
 export async function listarAnalisesPublicadasParaSitemap(): Promise<
@@ -182,6 +195,7 @@ export async function listarAnalisesPublicadasParaSitemap(): Promise<
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS_SITEMAP)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(2000);
 
@@ -190,16 +204,11 @@ export async function listarAnalisesPublicadasParaSitemap(): Promise<
       return [];
     }
 
-    return (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado(
-          (row as Record<string, unknown>).status,
-        ),
-      )
+    return ((data ?? []) as Record<string, unknown>[])
+      .filter(analiseVisivelTemporariamente)
       .map((row) => {
-        const r = row as Record<string, unknown>;
-        const slug = String(r.slug ?? "").trim();
-        const created = String(r.created_at ?? "");
+        const slug = String(row.slug ?? "").trim();
+        const created = String(row.published_at ?? row.created_at ?? "");
         const t = created ? new Date(created) : new Date();
         return { slug, lastModified: Number.isNaN(t.getTime()) ? new Date() : t };
       })
@@ -250,6 +259,7 @@ export async function listarAnalisesPorSlugs(
       .from("analises")
       .select(COLUNAS)
       .in("slug", uniq)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -257,12 +267,8 @@ export async function listarAnalisesPorSlugs(
       return [];
     }
 
-    const mapped = (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado(
-          (row as Record<string, unknown>).status,
-        ),
-      )
+    const mapped = ((data ?? []) as Record<string, unknown>[])
+      .filter(analiseVisivelTemporariamente)
       .map((row) => mapRow(row as Record<string, unknown>));
 
     return aplicarFiltroGratis(mapped, soGratis);
