@@ -189,28 +189,6 @@ export type ResolveOddsMatchResult = {
   kickoffForcedAccept?: boolean;
 };
 
-function warnMatchDebug(
-  fixture: FootballFixtureSummary,
-  events: OddsFixtureEvent[],
-  scored: OddsMatchScored[],
-  rejectReason: string | null,
-): void {
-  console.warn("[MATCH DEBUG]", {
-    fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-    fixtureDate: fixture.dateIso,
-    totalOddsEvents: events.length,
-    top3: scored.slice(0, 3).map((x) => ({
-      score: x.score,
-      swapped: x.swapped,
-      msDiff: x.ms,
-      oddsHome: x.event.homeTeam,
-      oddsAway: x.event.awayTeam,
-      commence: x.event.commenceTime,
-    })),
-    rejectReason,
-  });
-}
-
 /**
  * Resolve o melhor evento Odds para um fixture, com ranking e motivo de rejeição.
  */
@@ -225,20 +203,6 @@ export function resolveOddsMatchForFixture(
   const scored: OddsMatchScored[] = [];
   for (const e of inWindow) {
     const { score, swapped } = fixtureEventPairScore(fixture, e);
-    if (score > 0.6) {
-      console.warn(
-        "[MATCH]",
-        fixture.homeTeam,
-        "vs",
-        fixture.awayTeam,
-        "=>",
-        e.homeTeam,
-        "vs",
-        e.awayTeam,
-        "score:",
-        score,
-      );
-    }
     scored.push({
       event: e,
       score,
@@ -248,20 +212,6 @@ export function resolveOddsMatchForFixture(
   }
 
   if (scored.length === 0) {
-    console.warn("[MATCH DEBUG]", {
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      fixtureDate: fixture.dateIso,
-      totalOddsEvents: events.length,
-      top3: scored.slice(0, 3).map((x) => ({
-        score: x.score,
-        swapped: x.swapped,
-        msDiff: x.ms,
-        oddsHome: x.event.homeTeam,
-        oddsAway: x.event.awayTeam,
-        commence: x.event.commenceTime,
-      })),
-      rejectReason: "no_odds_events_in_kickoff_window_12h_utc",
-    });
     return {
       event: null,
       ranked: [],
@@ -294,10 +244,6 @@ export function resolveOddsMatchForFixture(
     event = top.event;
     rejectReason = "temp_forced_score_gt_0.8";
     kickoffForcedAccept = true;
-  }
-
-  if (!event && rejectReason) {
-    warnMatchDebug(fixture, events, scored, rejectReason);
   }
 
   return {

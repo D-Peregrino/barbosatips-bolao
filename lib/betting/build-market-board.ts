@@ -1,26 +1,8 @@
-import { fetchFixturesByDate, getApiFootballKey, todayDateBrazil } from "@/lib/api-football/client";
-import { computeMatchTrends, computeTeamForm } from "@/lib/api-football/form-trends";
-import { fetchTeamLastFixtures } from "@/lib/api-football/team-fixtures";
-import type {
-  ApiFootballRawFixture,
-  FootballFixtureSummary,
-  TeamRecentForm,
-} from "@/lib/api-football/types";
+import { formatKickoffPt, todayDateBrazil } from "@/lib/api-football/dates";
 import { generateMarketInsight } from "@/lib/betting/ev-engine";
 import type { EvTier } from "@/lib/betting/ev-engine";
-import {
-  formatKickoffDebugLine,
-  formatKickoffDelta,
-  formatMatchDebugNoEvent,
-  MATCH_TIME_WINDOW_MS,
-  normalizeTeamName,
-  resolveOddsMatchForFixture,
-  teamsMatch,
-} from "@/lib/betting/match-football-odds";
 import { fetchSportOddsEvents, getOddsApiKey } from "@/services/the-odds-api";
 import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
-
-console.warn("[EV PIPELINE] arquivo carregado");
 
 export const MARKET_BOARD_LIMIT = 30;
 
@@ -78,6 +60,8 @@ const DEFAULT_SPORT_KEYS = [
   "soccer_uefa_champs_league",
 ];
 
+type BestQuote = { odd: number; bookmaker: string };
+
 function sportKeysFromEnv(): string[] {
   const raw = process.env.MARKET_BOARD_SPORT_KEYS?.trim();
   if (!raw) return DEFAULT_SPORT_KEYS;
@@ -91,11 +75,18 @@ function isValidDecimalOdd(price: number): boolean {
   return Number.isFinite(price) && price > 1 && price < 100;
 }
 
-function outcomeMatchesTeam(outcomeName: string, teamName: string): boolean {
-  return teamsMatch(outcomeName, teamName);
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
-type BestQuote = { odd: number; bookmaker: string };
+function outcomeMatchesTeam(outcomeName: string, teamName: string): boolean {
+  return normalizeName(outcomeName) === normalizeName(teamName);
+}
 
 function pickBest(quotes: BestQuote[]): BestQuote | null {
   if (quotes.length === 0) return null;
@@ -104,12 +95,12 @@ function pickBest(quotes: BestQuote[]): BestQuote | null {
 
 function collectH2H(event: OddsFixtureEvent, teamName: string): BestQuote | null {
   const quotes: BestQuote[] = [];
-  for (const bm of event.bookmakers) {
-    for (const market of bm.markets) {
+  for (const bookmaker of event.bookmakers) {
+    for (const market of bookmaker.markets) {
       if (market.key !== "h2h") continue;
-      for (const o of market.outcomes) {
-        if (outcomeMatchesTeam(o.name, teamName) && isValidDecimalOdd(o.price)) {
-          quotes.push({ odd: o.price, bookmaker: bm.title });
+      for (const outcome of market.outcomes) {
+        if (outcomeMatchesTeam(outcome.name, teamName) && isValidDecimalOdd(outcome.price)) {
+          quotes.push({ odd: outcome.price, bookmaker: bookmaker.title });
         }
       }
     }
@@ -119,14 +110,14 @@ function collectH2H(event: OddsFixtureEvent, teamName: string): BestQuote | null
 
 function collectOver25(event: OddsFixtureEvent): BestQuote | null {
   const quotes: BestQuote[] = [];
-  for (const bm of event.bookmakers) {
-    for (const market of bm.markets) {
+  for (const bookmaker of event.bookmakers) {
+    for (const market of bookmaker.markets) {
       if (market.key !== "totals") continue;
-      for (const o of market.outcomes) {
-        if (!/^over/i.test(o.name)) continue;
-        if (o.point != null && Math.abs(o.point - 2.5) > 0.01) continue;
-        if (isValidDecimalOdd(o.price)) {
-          quotes.push({ odd: o.price, bookmaker: bm.title });
+      for (const outcome of market.outcomes) {
+        if (!/^over/i.test(outcome.name)) continue;
+        if (outcome.point == null || Math.abs(outcome.point - 2.5) > 0.01) continue;
+        if (isValidDecimalOdd(outcome.price)) {
+          quotes.push({ odd: outcome.price, bookmaker: bookmaker.title });
         }
       }
     }
@@ -134,588 +125,122 @@ function collectOver25(event: OddsFixtureEvent): BestQuote | null {
   return pickBest(quotes);
 }
 
-function winRatePct(form: TeamRecentForm): number | null {
-  const total = form.wins + form.draws + form.losses;
-  if (total === 0) return null;
-  return Math.round((form.wins / total) * 100);
+function provisionalProbabilityFromOdd(odd: number): number {
+  return Math.min(85, (100 / odd) * 1.08);
 }
 
-function dedupeFixtures(fixtures: ApiFootballRawFixture[]) {
-  const seen = new Set<number>();
-  const out: ApiFootballRawFixture[] = [];
-  for (const f of fixtures) {
-    const id = f.fixture?.id;
-    if (id == null || seen.has(id)) continue;
-    seen.add(id);
-    out.push(f);
+function hashStringToPositiveInt(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash || 1;
+}
+
+function marketSlug(marketLabel: BoardMarketLabel): string {
+  return marketLabel.replace(/\s+/g, "-").toLowerCase();
+}
+
+function addMarketRow(
+  rows: MarketBoardRow[],
+  event: OddsFixtureEvent,
+  marketLabel: BoardMarketLabel,
+  quote: BestQuote | null,
+) {
+  if (!quote || !isValidDecimalOdd(quote.odd)) return;
+
+  const realProbability = provisionalProbabilityFromOdd(quote.odd);
+  const insight = generateMarketInsight({
+    marketLabel,
+    realProbability,
+    marketOdd: quote.odd,
+  });
+  const fixtureId = hashStringToPositiveInt(event.id);
+
+  rows.push({
+    id: `${event.id}-${marketSlug(marketLabel)}-${quote.bookmaker}`,
+    fixtureId,
+    oddsEventId: event.id,
+    matchLabel: `${event.homeTeam} vs ${event.awayTeam}`,
+    homeTeam: event.homeTeam,
+    awayTeam: event.awayTeam,
+    league: event.sportTitle ?? event.sportKey,
+    country: event.sportKey,
+    kickoffLabel: event.commenceTime ? formatKickoffPt(event.commenceTime) : "-",
+    kickoffAtIso: event.commenceTime || null,
+    marketLabel,
+    marketOdd: insight.marketOdd,
+    fairOdd: insight.fairOdd,
+    realProbability: insight.realProbability,
+    impliedProbability: insight.impliedProbability,
+    edge: insight.edge,
+    ev: insight.ev,
+    tier: insight.tier,
+    bookmaker: quote.bookmaker,
+  });
+}
+
+function dedupeOddsEvents(events: OddsFixtureEvent[]): OddsFixtureEvent[] {
+  const seen = new Set<string>();
+  const out: OddsFixtureEvent[] = [];
+  for (const event of events) {
+    if (seen.has(event.id)) continue;
+    seen.add(event.id);
+    out.push(event);
   }
   return out;
-}
-
-async function loadTrendsForFixture(fixture: FootballFixtureSummary) {
-  const homeId = fixture.homeTeamId;
-  const awayId = fixture.awayTeamId;
-  if (!homeId || !awayId) return null;
-
-  console.warn("[EV AWAIT]", "loadTrends");
-  const [homeLast, awayLast] = await Promise.all([
-    fetchTeamLastFixtures(homeId, 5),
-    fetchTeamLastFixtures(awayId, 5),
-  ]);
-
-  const pool = dedupeFixtures([...homeLast, ...awayLast]);
-  const trends = computeMatchTrends(pool);
-  const homeForm = computeTeamForm(homeLast, homeId);
-  const awayForm = computeTeamForm(awayLast, awayId);
-
-  return { trends, homeForm, awayForm };
-}
-
-type PipelineTrySkip = {
-  fixtureId: number;
-  matchLabel: string;
-  marketLabel: BoardMarketLabel;
-  reason: string;
-  detail?: string;
-};
-
-type PipelineTrySuccess = {
-  fixtureId: number;
-  matchLabel: string;
-  marketLabel: BoardMarketLabel;
-  ev: number;
-  edge: number;
-  tier: EvTier;
-};
-
-function logPipelineEarlyExit(
-  reason: string,
-  fixture: FootballFixtureSummary | null,
-  extra?: Record<string, unknown>,
-) {
-  console.warn("[PIPELINE EARLY EXIT]", {
-    reason,
-    fixture: fixture ? `${fixture.homeTeam} vs ${fixture.awayTeam}` : null,
-    ...extra,
-  });
-}
-
-function tryAddRow(
-  rows: MarketBoardRow[],
-  params: {
-    fixture: FootballFixtureSummary;
-    oddsEvent: OddsFixtureEvent;
-    marketLabel: BoardMarketLabel;
-    realProbability: number | null;
-    quote: BestQuote | null;
-    probabilityRejectReason?: string;
-  },
-  pipelineRecorder?: {
-    skips: PipelineTrySkip[];
-    successes: PipelineTrySuccess[];
-    maxSkips: number;
-    maxSuccesses: number;
-  },
-): boolean {
-  const { fixture, oddsEvent, marketLabel, realProbability, quote, probabilityRejectReason } =
-    params;
-  console.warn("[EV STEP] entrou tryAddRow", {
-    market: marketLabel,
-    probability: realProbability,
-    odd: quote?.odd ?? null,
-  });
-
-  const recordSkip = (reason: string, detail?: string) => {
-    if (!pipelineRecorder || pipelineRecorder.skips.length >= pipelineRecorder.maxSkips) return;
-    pipelineRecorder.skips.push({
-      fixtureId: fixture.fixtureId,
-      matchLabel: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      marketLabel,
-      reason,
-      detail,
-    });
-  };
-
-  const trendsPayload =
-    realProbability != null && realProbability > 0 && realProbability < 100
-      ? marketLabel === "Over 2.5"
-        ? { source: "match_trends_pool", metric: "over25Pct", value: realProbability }
-        : {
-            source: "team_last_fixtures_form",
-            metric: "winRatePct",
-            value: realProbability,
-            side: marketLabel,
-          }
-      : null;
-
-  const logSkip = (reason: string, detail?: string) => {
-    console.warn("[EV REJECT]", {
-      market: marketLabel,
-      reason,
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      probability: realProbability,
-      odd: quote?.odd ?? null,
-      trends: trendsPayload,
-      bookmaker: quote?.bookmaker ?? null,
-      detail: detail ?? null,
-    });
-    recordSkip(reason, detail);
-  };
-
-  if (realProbability == null || realProbability <= 0 || realProbability >= 100) {
-    const reason = probabilityRejectReason ?? "probability_out_of_range_or_missing";
-    logSkip(
-      reason,
-      `realProbability=${realProbability === null ? "null" : String(realProbability)}`,
-    );
-    logPipelineEarlyExit(reason, fixture, {
-      market: marketLabel,
-      probability: realProbability,
-      odd: quote?.odd ?? null,
-    });
-    return false;
-  }
-  if (!quote || !isValidDecimalOdd(quote.odd)) {
-    logSkip(
-      "no_quote_or_invalid_odd",
-      quote ? `odd=${String(quote.odd)}` : "quote=null",
-    );
-    logPipelineEarlyExit("no_quote_or_invalid_odd", fixture, {
-      market: marketLabel,
-      probability: realProbability,
-      odd: quote?.odd ?? null,
-    });
-    return false;
-  }
-
-  try {
-    console.warn("[EV AWAIT]", "calculateEV");
-    const insight = generateMarketInsight({
-      marketLabel,
-      realProbability,
-      marketOdd: quote.odd,
-    });
-
-    console.warn("[EV OK PUSH]", {
-      market: marketLabel,
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      probability: insight.realProbability,
-      odd: insight.marketOdd,
-      ev: insight.ev,
-      edge: insight.edge,
-      tier: insight.tier,
-    });
-
-    rows.push({
-      id: `${fixture.fixtureId}-${marketLabel.replace(/\s+/g, "-").toLowerCase()}`,
-      fixtureId: fixture.fixtureId,
-      oddsEventId: oddsEvent.id,
-      matchLabel: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      homeTeam: fixture.homeTeam,
-      awayTeam: fixture.awayTeam,
-      league: fixture.leagueName,
-      country: fixture.country,
-      kickoffLabel: fixture.kickoffLabel,
-      kickoffAtIso: fixture.dateIso || null,
-      marketLabel,
-      marketOdd: insight.marketOdd,
-      fairOdd: insight.fairOdd,
-      realProbability: insight.realProbability,
-      impliedProbability: insight.impliedProbability,
-      edge: insight.edge,
-      ev: insight.ev,
-      tier: insight.tier,
-      bookmaker: quote.bookmaker,
-    });
-
-    console.warn("[EV OK]", marketLabel, {
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      probability: insight.realProbability,
-      odd: insight.marketOdd,
-      ev: insight.ev,
-      edge: insight.edge,
-      tier: insight.tier,
-    });
-
-    if (
-      pipelineRecorder &&
-      pipelineRecorder.successes.length < pipelineRecorder.maxSuccesses
-    ) {
-      pipelineRecorder.successes.push({
-        fixtureId: fixture.fixtureId,
-        matchLabel: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-        marketLabel,
-        ev: insight.ev,
-        edge: insight.edge,
-        tier: insight.tier,
-      });
-    }
-    return true;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[EV REJECT]", {
-      market: marketLabel,
-      reason: "ev_engine_exception",
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      probability: realProbability,
-      odd: quote?.odd ?? null,
-      trends: trendsPayload,
-      bookmaker: quote?.bookmaker ?? null,
-      error: msg,
-    });
-    recordSkip("ev_engine_exception", msg);
-    logPipelineEarlyExit("ev_engine_exception", fixture, {
-      market: marketLabel,
-      probability: realProbability,
-      odd: quote?.odd ?? null,
-      error: msg,
-    });
-    return false;
-  }
 }
 
 export async function buildMarketBoard(options?: {
   date?: string;
   limit?: number;
 }): Promise<MarketBoardResult> {
-  console.warn("[EV PIPELINE] buildMarketBoard iniciou");
-  try {
   const date = options?.date ?? todayDateBrazil();
   const limit = options?.limit ?? MARKET_BOARD_LIMIT;
   const warnings: string[] = [];
 
-  if (!getApiFootballKey()) {
-    return { ok: false, error: "API_FOOTBALL_KEY ausente" };
-  }
   if (!getOddsApiKey()) {
     return { ok: false, error: "ODDS_API_KEY ausente" };
   }
 
-  console.warn("[EV AWAIT]", "enrichFixture");
-  const fixturesResult = await fetchFixturesByDate(date);
-  if (!fixturesResult.ok) {
-    return { ok: false, error: fixturesResult.error };
-  }
-
-  console.warn("[EV PIPELINE] fixtures", fixturesResult.fixtures.length);
-
   const sportKeys = sportKeysFromEnv();
-  console.warn("[EV AWAIT]", "fetchSportOddsEvents");
   const oddsResults = await Promise.all(sportKeys.map((key) => fetchSportOddsEvents(key)));
   const allOddsEvents: OddsFixtureEvent[] = [];
-  for (const r of oddsResults) {
-    if (r.ok) allOddsEvents.push(...r.data);
-    else warnings.push(`Odds ${r.error}`);
+  for (const result of oddsResults) {
+    if (result.ok) {
+      allOddsEvents.push(...result.data);
+    } else {
+      warnings.push(`Odds ${result.error}`);
+    }
   }
 
-  console.warn("[EV PIPELINE] oddsEvents", allOddsEvents.length);
-
-  if (allOddsEvents.length === 0) {
-    return {
-      ok: false,
-      error: "Nenhum evento com odds encontrado nas ligas configuradas",
-    };
-  }
-
+  const oddsEvents = dedupeOddsEvents(allOddsEvents);
   const rows: MarketBoardRow[] = [];
-  let matched = 0;
-  const matchDebug = process.env.MARKET_BOARD_MATCH_DEBUG === "1";
-  const pipelineDebug = process.env.MARKET_BOARD_PIPELINE_DEBUG === "1";
-  let matchDebugLines = 0;
-  const maxMatchDebugFixtures = 10;
 
-  const pipelineRecorder = pipelineDebug
-    ? {
-        skips: [] as PipelineTrySkip[],
-        successes: [] as PipelineTrySuccess[],
-        maxSkips: 48,
-        maxSuccesses: 14,
-      }
-    : undefined;
-
-  let fixturesNoOddsMatch = 0;
-  let fixturesOddsButNoTrends = 0;
-  let marketsTryAddInvoked = 0;
-  const noOddsMatchSamples: string[] = [];
-  const oddsMatchOkSamples: string[] = [];
-  const noTrendsSamples: string[] = [];
-
-  let kickoffForcedCount = 0;
-  let kickoffDetailLogs = 0;
-  const maxKickoffDetailLogs = 5;
-
-  for (const fixture of fixturesResult.fixtures) {
-    const oddsMatch = resolveOddsMatchForFixture(fixture, allOddsEvents);
-    try {
-    console.warn("[EV STEP 1] entrou bloco pos-match");
-
-    if (!oddsMatch.event) {
-      fixturesNoOddsMatch += 1;
-      if (matchDebug && matchDebugLines < maxMatchDebugFixtures) {
-        matchDebugLines += 1;
-        for (const line of formatMatchDebugNoEvent(fixture, allOddsEvents)) {
-          console.warn(line);
-        }
-      }
-      if (pipelineDebug && noOddsMatchSamples.length < 6 && oddsMatch.rejectReason) {
-        noOddsMatchSamples.push(
-          `#${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} @ ${fixture.dateIso} → ${oddsMatch.rejectReason}`,
-        );
-      }
-      logPipelineEarlyExit("no_odds_event_after_match", fixture, {
-        rejectReason: oddsMatch.rejectReason,
-      });
-      console.warn("[EV STEP 2] saiu bloco pos-match");
-      continue;
-    }
-
-    const oddsEvent = oddsMatch.event;
-    console.warn(
-      "[MATCHED FIXTURE]",
-      fixture.homeTeam,
-      "vs",
-      fixture.awayTeam,
-      "league:",
-      fixture.leagueName,
-      "odds:",
-      oddsEvent.homeTeam,
-      "vs",
-      oddsEvent.awayTeam,
-    );
-
-    matched += 1;
-    if (oddsMatch.kickoffForcedAccept) {
-      kickoffForcedCount += 1;
-    }
-    const best = oddsMatch.ranked[0];
-    if (pipelineDebug && kickoffDetailLogs < maxKickoffDetailLogs && oddsEvent) {
-      kickoffDetailLogs += 1;
-      console.warn(
-        formatKickoffDebugLine(
-          fixture.dateIso,
-          oddsEvent.commenceTime,
-          `fixture#${fixture.fixtureId}`,
-        ),
-      );
-      for (const c of oddsMatch.ranked.slice(0, 3)) {
-        const dm = Math.round(c.ms / 60000);
-        console.warn(
-          `[kickoff_candidate] score=${c.score.toFixed(3)} swapped=${c.swapped} Δmin=${dm} ` +
-            `id=${c.event.id} ${c.event.homeTeam} vs ${c.event.awayTeam} @ ${c.event.commenceTime}`,
-        );
-      }
-    }
-    if (pipelineDebug && oddsMatchOkSamples.length < 5 && best) {
-      const kd = formatKickoffDelta(fixture.dateIso, oddsEvent.commenceTime);
-      oddsMatchOkSamples.push(
-        `match_ok #${fixture.fixtureId} score=${best.score.toFixed(3)} swapped=${String(best.swapped)} kickoff=${kd} | ` +
-          `norm F[${normalizeTeamName(fixture.homeTeam)},${normalizeTeamName(fixture.awayTeam)}] ` +
-          `↔ O[${normalizeTeamName(oddsEvent.homeTeam)},${normalizeTeamName(oddsEvent.awayTeam)}] | id=${oddsEvent.id}`,
-      );
-    }
-
-    console.warn("[EV STEP] antes trends", fixture.homeTeam, fixture.awayTeam);
-    console.warn("[EV AWAIT]", "loadTrends");
-    const trendData = await loadTrendsForFixture(fixture);
-    console.warn("[EV STEP] depois trends", {
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      trends: trendData?.trends ?? null,
-    });
-    if (!trendData) {
-      fixturesOddsButNoTrends += 1;
-      console.warn("[EV REJECT]", {
-        market: "all",
-        reason: "trends_missing",
-        fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-        probability: null,
-        odd: null,
-        homeTeamId: fixture.homeTeamId ?? null,
-        awayTeamId: fixture.awayTeamId ?? null,
-      });
-      if (pipelineDebug && noTrendsSamples.length < 5) {
-        noTrendsSamples.push(
-          `no_trends #${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} | homeId=${fixture.homeTeamId ?? "null"} awayId=${fixture.awayTeamId ?? "null"}`,
-        );
-      }
-      logPipelineEarlyExit("trends_missing", fixture, {
-        homeTeamId: fixture.homeTeamId ?? null,
-        awayTeamId: fixture.awayTeamId ?? null,
-      });
-      console.warn("[EV STEP 2] saiu bloco pos-match");
-      continue;
-    }
-
-    marketsTryAddInvoked += 3;
-
-    const { trends, homeForm, awayForm } = trendData;
-    const homeWinPct = winRatePct(homeForm);
-    const awayWinPct = winRatePct(awayForm);
-    const over25Probability = trends.sampleSize > 0 ? trends.over25Pct : null;
-    const over25Quote = collectOver25(oddsEvent);
-    const homeQuote = collectH2H(oddsEvent, fixture.homeTeam);
-    const awayQuote = collectH2H(oddsEvent, fixture.awayTeam);
-
-    console.warn("[EV STEP] antes tryAddRow", {
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      market: "over25",
-      probability: over25Probability,
-      oddsEvent,
-    });
-    console.warn("[EV AWAIT]", "tryAddRow");
-    tryAddRow(
-      rows,
-      {
-        fixture,
-        oddsEvent,
-        marketLabel: "Over 2.5",
-        realProbability: over25Probability,
-        quote: over25Quote,
-        probabilityRejectReason:
-          trends.sampleSize > 0 ? undefined : "sample_size_zero",
-      },
-      pipelineRecorder,
-    );
-
-    console.warn("[EV STEP] antes tryAddRow", {
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      market: "home",
-      probability: homeWinPct,
-      oddsEvent,
-    });
-    console.warn("[EV AWAIT]", "tryAddRow");
-    tryAddRow(
-      rows,
-      {
-        fixture,
-        oddsEvent,
-        marketLabel: "Home Win",
-        realProbability: homeWinPct,
-        quote: homeQuote,
-      },
-      pipelineRecorder,
-    );
-
-    console.warn("[EV STEP] antes tryAddRow", {
-      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
-      market: "away",
-      probability: awayWinPct,
-      oddsEvent,
-    });
-    console.warn("[EV AWAIT]", "tryAddRow");
-    tryAddRow(
-      rows,
-      {
-        fixture,
-        oddsEvent,
-        marketLabel: "Away Win",
-        realProbability: awayWinPct,
-        quote: awayQuote,
-      },
-      pipelineRecorder,
-    );
-    console.warn("[EV STEP 2] saiu bloco pos-match");
-    } catch (err) {
-      console.error("[EV CRASH POS MATCH]", err);
-      logPipelineEarlyExit("crash_pos_match", fixture, {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      continue;
-    }
-  }
-
-  warnings.push(
-    `[kickoff] fixtures_matched_odds_real=${matched} forced_score_gt_0_8=${kickoffForcedCount} window_ms=${MATCH_TIME_WINDOW_MS} (parseToUtcMs) runtime_tz=${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
-  );
-
-  if (pipelineDebug) {
-    const rowsBeforeSort = rows.length;
-    const summary = [
-      `[mercados-pipeline] — resumo (MARKET_BOARD_PIPELINE_DEBUG=1)`,
-      `[mercados-pipeline] 1) odds: sportKeys=${sportKeys.join(",")} | events_total=${allOddsEvents.length} | api_warnings=${warnings.filter((w) => w.startsWith("Odds")).length}`,
-      `[mercados-pipeline] 2) fixtures API-Football (dia completo): ${fixturesResult.fixtures.length}`,
-      `[mercados-pipeline] 3) matching: fixtures_matched_odds=${matched} (forced_gt0_8=${kickoffForcedCount}) | fixtures_sem_match_odds=${fixturesNoOddsMatch} | odds_ok_sem_trends=${fixturesOddsButNoTrends}`,
-      `[mercados-pipeline] 4) tryAddRow calls=${marketsTryAddInvoked} (3 por jogo com trends)`,
-      `[mercados-pipeline] 5) ev_rows_geradas=${rowsBeforeSort} (antes sort/limit)`,
-    ];
-    for (const line of summary) console.warn(line);
-    for (const s of oddsMatchOkSamples) console.warn(`[mercados-pipeline] exemplo_match: ${s}`);
-    for (const s of noOddsMatchSamples) console.warn(`[mercados-pipeline] exemplo_sem_odds: ${s}`);
-    for (const s of noTrendsSamples) console.warn(`[mercados-pipeline] exemplo_sem_trends: ${s}`);
-    if (pipelineRecorder) {
-      for (const s of pipelineRecorder.successes) {
-        console.warn(
-          `[mercados-pipeline] ev_ok #${s.fixtureId} ${s.marketLabel} ev=${s.ev.toFixed(3)} edge=${s.edge.toFixed(2)} tier=${s.tier}`,
-        );
-      }
-      for (const s of pipelineRecorder.skips) {
-        console.warn(
-          `[mercados-pipeline] tryAdd_skip #${s.fixtureId} ${s.marketLabel} | ${s.reason}${s.detail ? ` | ${s.detail}` : ""}`,
-        );
-      }
-    }
-
-    warnings.push(
-      `[pipeline] fixtures_dia=${fixturesResult.fixtures.length} oddsEvents=${allOddsEvents.length} matched_odds_real=${matched} forced_gt0_8=${kickoffForcedCount} semMatchOdds=${fixturesNoOddsMatch} semTrends=${fixturesOddsButNoTrends} tryAdds=${marketsTryAddInvoked} rows=${rowsBeforeSort} window_ms=${MATCH_TIME_WINDOW_MS}`,
-    );
-    for (const s of oddsMatchOkSamples.slice(0, 2)) {
-      warnings.push(`[pipeline] ${s}`);
-    }
-    for (const s of noTrendsSamples.slice(0, 2)) {
-      warnings.push(`[pipeline] ${s}`);
-    }
-    if (pipelineRecorder && pipelineRecorder.skips.length > 0) {
-      warnings.push(
-        `[pipeline] primeiros skips tryAdd: ${pipelineRecorder.skips
-          .slice(0, 4)
-          .map((x) => `${x.marketLabel}:${x.reason}`)
-          .join(" | ")}`,
-      );
-    }
+  for (const event of oddsEvents) {
+    addMarketRow(rows, event, "Home Win", collectH2H(event, event.homeTeam));
+    addMarketRow(rows, event, "Away Win", collectH2H(event, event.awayTeam));
+    addMarketRow(rows, event, "Over 2.5", collectOver25(event));
   }
 
   const sorted = rows.sort((a, b) => b.ev - a.ev);
   const limited = sorted.slice(0, limit);
 
-  console.warn("[EV PIPELINE] rows finais", rows.length);
-  console.warn("[EV PIPELINE]", {
-    fixturesTotal: fixturesResult.fixtures.length,
-    fixturesMatched: matched,
-    rowsGenerated: rows.length,
-  });
-  console.warn("[EV PIPELINE FINAL]", {
-    rows: rows.length,
-    matched,
-    totalFixtures: fixturesResult.fixtures.length,
-  });
-  logPipelineEarlyExit("return_ok_true_final", null, {
-    rows: rows.length,
-    matched,
-    totalFixtures: fixturesResult.fixtures.length,
-  });
+  console.warn(`[MARKET BOARD] oddsEvents: ${oddsEvents.length} rows: ${rows.length}`);
 
   return {
     ok: true,
     rows: limited,
     meta: {
       date,
-      fixturesTotal: fixturesResult.fixtures.length,
-      fixturesMatched: matched,
-      oddsEventsTotal: allOddsEvents.length,
+      fixturesTotal: oddsEvents.length,
+      fixturesMatched: oddsEvents.length,
+      oddsEventsTotal: oddsEvents.length,
       rowsBeforeLimit: sorted.length,
       sportKeys,
       warnings,
     },
   };
-  } catch (error) {
-    console.error("[EV FATAL]", error);
-    logPipelineEarlyExit("build_market_board_fatal_return", null, {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
 }
 
 export function buildMarketAnalysisHref(row: MarketBoardRow): string {
