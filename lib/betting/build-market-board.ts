@@ -22,15 +22,6 @@ import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
 console.warn("[EV PIPELINE] arquivo carregado");
 
-/** Ligas API-Football (league.id) incluídas no board EV+. */
-const ALLOWED_LEAGUE_IDS = [
-  71, // Brazil Serie A
-  39, // Premier League
-  140, // La Liga
-  135, // Serie A
-  61, // Ligue 1
-];
-
 export const MARKET_BOARD_LIMIT = 30;
 
 export const BOARD_MARKET_LABELS = [
@@ -351,22 +342,6 @@ export async function buildMarketBoard(options?: {
 
   console.warn("[EV PIPELINE] fixtures", fixturesResult.fixtures.length);
 
-  const filteredFixtures = fixturesResult.fixtures.filter(
-    (fixture) =>
-      fixture.leagueId != null && ALLOWED_LEAGUE_IDS.includes(fixture.leagueId),
-  );
-
-  console.warn(
-    "[EV PIPELINE] fixtures apos filtro ids",
-    filteredFixtures.length,
-    filteredFixtures.slice(0, 10).map((f) => ({
-      leagueId: f.leagueId,
-      league: f.leagueName,
-      home: f.homeTeam,
-      away: f.awayTeam,
-    })),
-  );
-
   const sportKeys = sportKeysFromEnv();
   const oddsResults = await Promise.all(sportKeys.map((key) => fetchSportOddsEvents(key)));
   const allOddsEvents: OddsFixtureEvent[] = [];
@@ -411,10 +386,9 @@ export async function buildMarketBoard(options?: {
   let kickoffDetailLogs = 0;
   const maxKickoffDetailLogs = 5;
 
-  for (const fixture of filteredFixtures) {
-    const { event: oddsEvent, ranked, rejectReason, kickoffForcedAccept } =
-      resolveOddsMatchForFixture(fixture, allOddsEvents);
-    if (!oddsEvent) {
+  for (const fixture of fixturesResult.fixtures) {
+    const oddsMatch = resolveOddsMatchForFixture(fixture, allOddsEvents);
+    if (!oddsMatch.event) {
       fixturesNoOddsMatch += 1;
       if (matchDebug && matchDebugLines < maxMatchDebugFixtures) {
         matchDebugLines += 1;
@@ -422,19 +396,33 @@ export async function buildMarketBoard(options?: {
           console.warn(line);
         }
       }
-      if (pipelineDebug && noOddsMatchSamples.length < 6 && rejectReason) {
+      if (pipelineDebug && noOddsMatchSamples.length < 6 && oddsMatch.rejectReason) {
         noOddsMatchSamples.push(
-          `#${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} @ ${fixture.dateIso} → ${rejectReason}`,
+          `#${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} @ ${fixture.dateIso} → ${oddsMatch.rejectReason}`,
         );
       }
       continue;
     }
 
+    const oddsEvent = oddsMatch.event;
+    console.warn(
+      "[MATCHED FIXTURE]",
+      fixture.homeTeam,
+      "vs",
+      fixture.awayTeam,
+      "league:",
+      fixture.leagueName,
+      "odds:",
+      oddsEvent.homeTeam,
+      "vs",
+      oddsEvent.awayTeam,
+    );
+
     matched += 1;
-    if (kickoffForcedAccept) {
+    if (oddsMatch.kickoffForcedAccept) {
       kickoffForcedCount += 1;
     }
-    const best = ranked[0];
+    const best = oddsMatch.ranked[0];
     if (pipelineDebug && kickoffDetailLogs < maxKickoffDetailLogs && oddsEvent) {
       kickoffDetailLogs += 1;
       console.warn(
@@ -444,7 +432,7 @@ export async function buildMarketBoard(options?: {
           `fixture#${fixture.fixtureId}`,
         ),
       );
-      for (const c of ranked.slice(0, 3)) {
+      for (const c of oddsMatch.ranked.slice(0, 3)) {
         const dm = Math.round(c.ms / 60000);
         console.warn(
           `[kickoff_candidate] score=${c.score.toFixed(3)} swapped=${c.swapped} Δmin=${dm} ` +
@@ -524,7 +512,7 @@ export async function buildMarketBoard(options?: {
     const summary = [
       `[mercados-pipeline] — resumo (MARKET_BOARD_PIPELINE_DEBUG=1)`,
       `[mercados-pipeline] 1) odds: sportKeys=${sportKeys.join(",")} | events_total=${allOddsEvents.length} | api_warnings=${warnings.filter((w) => w.startsWith("Odds")).length}`,
-      `[mercados-pipeline] 2) fixtures API-Football (após filtro league.id): ${filteredFixtures.length} (total API: ${fixturesResult.fixtures.length})`,
+      `[mercados-pipeline] 2) fixtures API-Football (dia completo): ${fixturesResult.fixtures.length}`,
       `[mercados-pipeline] 3) matching: fixtures_matched_odds=${matched} (forced_gt0_8=${kickoffForcedCount}) | fixtures_sem_match_odds=${fixturesNoOddsMatch} | odds_ok_sem_trends=${fixturesOddsButNoTrends}`,
       `[mercados-pipeline] 4) tryAddRow calls=${marketsTryAddInvoked} (3 por jogo com trends)`,
       `[mercados-pipeline] 5) ev_rows_geradas=${rowsBeforeSort} (antes sort/limit)`,
@@ -547,7 +535,7 @@ export async function buildMarketBoard(options?: {
     }
 
     warnings.push(
-      `[pipeline] fixtures_filtradas=${filteredFixtures.length} fixtures_api_total=${fixturesResult.fixtures.length} oddsEvents=${allOddsEvents.length} matched_odds_real=${matched} forced_gt0_8=${kickoffForcedCount} semMatchOdds=${fixturesNoOddsMatch} semTrends=${fixturesOddsButNoTrends} tryAdds=${marketsTryAddInvoked} rows=${rowsBeforeSort} window_ms=${MATCH_TIME_WINDOW_MS}`,
+      `[pipeline] fixtures_dia=${fixturesResult.fixtures.length} oddsEvents=${allOddsEvents.length} matched_odds_real=${matched} forced_gt0_8=${kickoffForcedCount} semMatchOdds=${fixturesNoOddsMatch} semTrends=${fixturesOddsButNoTrends} tryAdds=${marketsTryAddInvoked} rows=${rowsBeforeSort} window_ms=${MATCH_TIME_WINDOW_MS}`,
     );
     for (const s of oddsMatchOkSamples.slice(0, 2)) {
       warnings.push(`[pipeline] ${s}`);
@@ -575,7 +563,7 @@ export async function buildMarketBoard(options?: {
     rows: limited,
     meta: {
       date,
-      fixturesTotal: filteredFixtures.length,
+      fixturesTotal: fixturesResult.fixtures.length,
       fixturesMatched: matched,
       oddsEventsTotal: allOddsEvents.length,
       rowsBeforeLimit: sorted.length,
