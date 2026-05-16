@@ -6,8 +6,6 @@ import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
 import { mapAnaliseRow } from "@/lib/analises/map-analise-row";
 import type { AnaliseRow } from "@/lib/analises/types";
-import { getPremiumAccess } from "@/lib/premium/get-premium-access";
-import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
 import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -19,7 +17,7 @@ type AnalisesDiretasResult = {
   error: string | null;
 };
 
-async function carregarAnalisesDireto(soGratis = false): Promise<AnalisesDiretasResult> {
+async function carregarAnalisesDireto(): Promise<AnalisesDiretasResult> {
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
@@ -34,9 +32,7 @@ async function carregarAnalisesDireto(soGratis = false): Promise<AnalisesDiretas
       return { rows: [], error: error.message || "Erro ao carregar análises." };
     }
 
-    const rows = ((data ?? []) as Record<string, unknown>[])
-      .map((row) => mapAnaliseRow(row))
-      .filter((row) => !soGratis || !row.is_premium);
+    const rows = ((data ?? []) as Record<string, unknown>[]).map((row) => mapAnaliseRow(row));
 
     return { rows, error: null };
   } catch (err) {
@@ -114,8 +110,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AnalisesPage() {
-  const access = await getPremiumAccess();
-  const { rows: data, error } = await carregarAnalisesDireto(filtroListagemSoGratis(access));
+  const { rows: data, error } = await carregarAnalisesDireto();
   const shouldShowError = Boolean(error) && process.env.NODE_ENV !== "production";
 
   return (
@@ -151,7 +146,7 @@ export default async function AnalisesPage() {
 
           <AnalisesPortal
             analises={data}
-            viewerCanViewPremium={viewerPodeVerPremium(access)}
+            viewerCanViewPremium
           />
 
           <div className="mt-12">

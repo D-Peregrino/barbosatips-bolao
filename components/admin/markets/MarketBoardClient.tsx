@@ -14,7 +14,8 @@ import type { EvTier } from "@/lib/betting/ev-engine";
 type Props = {
   rows: MarketBoardRow[];
   meta: MarketBoardMeta;
-  snapshotSummary: MarketEvSnapshotSummary;
+  snapshotSummary?: MarketEvSnapshotSummary;
+  showAdminActions?: boolean;
 };
 
 const EMPTY_FILTERS: MarketFilterState = {
@@ -23,7 +24,12 @@ const EMPTY_FILTERS: MarketFilterState = {
   market: "",
 };
 
-export function MarketBoardClient({ rows, meta, snapshotSummary }: Props) {
+export function MarketBoardClient({
+  rows,
+  meta,
+  snapshotSummary,
+  showAdminActions = true,
+}: Props) {
   const [filters, setFilters] = useState<MarketFilterState>(EMPTY_FILTERS);
 
   const leagues = useMemo(() => {
@@ -54,7 +60,9 @@ export function MarketBoardClient({ rows, meta, snapshotSummary }: Props) {
         <span>Top {rows.length} por EV</span>
       </div>
 
-      <MarketSnapshotToolbar summary={snapshotSummary} />
+      {showAdminActions && snapshotSummary ? (
+        <MarketSnapshotToolbar summary={snapshotSummary} />
+      ) : null}
 
       {meta.warnings.length > 0 && (
         <ul className="rounded-lg border border-amber-900/40 bg-amber-950/20 px-4 py-2 text-xs text-amber-200/90">
@@ -72,7 +80,7 @@ export function MarketBoardClient({ rows, meta, snapshotSummary }: Props) {
         filteredCount={filtered.length}
       />
 
-      <MarketBoardTable rows={filtered} />
+      <MarketBoardTable rows={filtered} showAdminActions={showAdminActions} />
     </div>
   );
 }

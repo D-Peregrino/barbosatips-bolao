@@ -127,9 +127,9 @@ export const siteConfig = {
   betaLaunch: {
     enabled: true,
     /** Prefixos que redirecionam para `/` (evita divulgar mock ou área VIP vazia). */
-    redirectToHomePrefixes: ["/inteligencia", "/analytics", "/vip"] as const,
+    redirectToHomePrefixes: ["/inteligencia", "/analytics"] as const,
     hideInteligenciaNav: true,
-    hideVipNav: true,
+    hideVipNav: false,
     hidePremiumInMoreMenu: true,
     hideMemberLinksInFooter: true,
     /** CTAs de conteúdo premium bloqueado apontam para login em vez de /vip e /premium. */

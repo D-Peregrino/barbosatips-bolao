@@ -29,6 +29,7 @@ const ALL_PRIMARY_NAV: NavLink[] = [
   },
   { href: "/bolao", label: "Bolão", match: (p) => p.startsWith("/bolao") },
   { href: "/vip", label: "VIP", match: (p) => p.startsWith("/vip") || p.startsWith("/premium") },
+  { href: "/loja", label: "Loja", match: (p) => p.startsWith("/loja") },
 ];
 
 const ALL_MORE_NAV: MoreLink[] = [
@@ -213,13 +214,7 @@ export function Navbar() {
         <div className="hidden shrink-0 items-center gap-2 md:flex">
           <NavbarAccountControls />
           <Link
-            href="/login"
-            className="rounded-lg px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-white/[0.05] hover:text-cream"
-          >
-            Conta
-          </Link>
-          <Link
-            href="/bolao/login"
+            href="/acesso"
             className="rounded-lg border border-gold-400/40 bg-gold-400/[0.1] px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-gold-100 shadow-gold-sm transition hover:border-gold-300/55 hover:bg-gold-400/14"
           >
             Entrar
@@ -270,10 +265,7 @@ export function Navbar() {
                 <NavbarAccountControls />
               </div>
               <div className="flex gap-2">
-                <Link href="/login" className="btn-secondary flex-1 justify-center py-2.5 text-sm font-semibold">
-                  Conta
-                </Link>
-                <Link href="/bolao/login" className="btn-primary flex-1 justify-center py-2.5 text-xs font-bold">
+                <Link href="/acesso" className="btn-primary flex-1 justify-center py-2.5 text-xs font-bold">
                   Entrar
                 </Link>
               </div>

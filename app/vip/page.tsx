@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: `VIP · ${siteConfig.shortTitle}`,
     description:
-      "Programa VIP BarbosaTips — benefícios, ROI público das quick picks, resultados recentes e vantagens. Pagamentos em preparação.",
+      "Barbosa VIP Premium — assinatura que libera Picks Premium, Central EV+ e Football API Insights.",
     path: "/vip",
     keywords: buildKeywordsFromParts(["VIP", "assinatura", "prognósticos", "ROI"]),
   });
@@ -23,26 +23,26 @@ export async function generateMetadata(): Promise<Metadata> {
 const beneficios = [
   {
     icon: Sparkles,
-    titulo: "Camada exclusiva",
-    texto: "Conteúdo marcado como VIP (tags editoriais) dentro do ecossistema premium — leitura integral quando a assinatura estiver activa.",
+    titulo: "Picks Premium",
+    texto: "Acesso completo às picks em /picks. Visitantes veem apenas teaser e CTA.",
   },
   {
     icon: Target,
-    titulo: "Odds e leitura",
-    texto: "Mesma rigor técnica das análises longas e picks rápidas, com prioridade na fila editorial.",
+    titulo: "Central EV+",
+    texto: "Acesso à versão VIP da Central EV+ em /vip/central-ev, sem ações administrativas.",
   },
   {
     icon: Shield,
-    titulo: "Sem ruído",
-    texto: "Portal escuro e dourado, foco em performance e contexto — não é cassino nem neon.",
+    titulo: "Football API Insights",
+    texto: "Consulta VIP em /vip/football-insights, sem chaves ou botões internos.",
   },
 ];
 
 const vantagens = [
-  "Acesso antecipado a mercados seleccionados (fase comercial).",
-  "Histórico ROI e taxa alinhados ao dashboard público de performance.",
-  "Integração futura Mercado Pago e Stripe na mesma conta.",
-  "Gestão de plano centralizada no dashboard (em construção).",
+  "VIP Premium é uma assinatura recorrente.",
+  "Bolão é produto separado e não libera VIP automaticamente.",
+  "Lojinha tem produtos avulsos fora do VIP.",
+  "Usuários VIP não acessam /admin.",
 ];
 
 export default async function VipPage() {
@@ -80,22 +80,21 @@ export default async function VipPage() {
             BarbosaTips <span className="text-gold-gradient">VIP</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-400">
-            Estrutura comercial preparada: benefícios claros, números públicos de referência e CTAs
-            elegantes. Ainda <span className="font-semibold text-zinc-200">não cobramos</span> por
-            aqui — Mercado Pago, Stripe e assinaturas serão ligados na mesma área Premium / Conta.
+            Assinatura recorrente que libera Picks Premium, Central EV+ e Football API
+            Insights. Admin, Bolão e Lojinha continuam separados.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/premium"
+              href="/vip/checkout"
               className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-gold-600 via-gold-500 to-amber-600 px-8 py-3.5 text-sm font-bold text-pitch-950 shadow-[0_16px_48px_-12px_rgba(201,162,39,0.45)] transition hover:brightness-110"
             >
-              Ver Premium e planos
+              Assinar VIP Premium
             </Link>
             <Link
-              href="/performance"
+              href="/vip/central-ev"
               className="inline-flex items-center justify-center rounded-2xl border border-gold-400/35 bg-black/50 px-6 py-3.5 text-sm font-bold text-gold-100 transition hover:border-gold-300/50 hover:bg-gold-400/10"
             >
-              Performance completa
+              Ver Central EV+
             </Link>
           </div>
         </header>
@@ -115,8 +114,7 @@ export default async function VipPage() {
             <div>
               <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">Benefícios</h2>
               <p className="mt-2 max-w-xl text-sm text-zinc-500">
-                O VIP é a camada editorial mais restrita; o acesso técnico segue o mesmo gating
-                premium da tua conta quando a assinatura existir.
+                Uma assinatura, três áreas liberadas, sem misturar com Admin, Bolão ou Lojinha.
               </p>
             </div>
             <LineChart className="h-8 w-8 text-gold-400/50" strokeWidth={1.5} aria-hidden />
@@ -187,15 +185,15 @@ export default async function VipPage() {
             <div className="mt-8 rounded-2xl border border-gold-400/20 bg-gradient-to-br from-gold-400/[0.06] to-transparent p-5">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-300/90">CTA</p>
               <p className="mt-2 text-sm text-zinc-400">
-                Quando os checkout estiverem prontos, este bloco apontará para o gateway escolhido.
-                Por agora, continua o fluxo manual via administrador.
+                Checkout recorrente será conectado depois. Por enquanto, o botão de assinatura
+                permanece temporário.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href="/dashboard"
+                  href="/vip/football-insights"
                   className="rounded-xl border border-gold-400/35 bg-black/60 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-gold-100 transition hover:bg-gold-400/10"
                 >
-                  Área da conta
+                  Football Insights
                 </Link>
                 <a
                   href={siteConfig.social.telegram}

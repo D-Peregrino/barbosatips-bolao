@@ -49,12 +49,6 @@ export function NavbarAccountControls() {
           </span>
         ) : null}
       </Link>
-      <Link
-        href="/dashboard"
-        className="rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition hover:bg-white/[0.04] hover:text-cream"
-      >
-        Conta
-      </Link>
     </div>
   );
 }

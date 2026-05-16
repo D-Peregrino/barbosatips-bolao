@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Send, Zap } from "lucide-react";
+import Link from "next/link";
 import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
@@ -8,12 +9,13 @@ import { calcularEstatisticasQuickPicksEncerradas } from "@/lib/picks/stats";
 import { PickCard } from "@/components/picks/PickCard";
 import { PicksStatsBar } from "@/components/picks/PicksStatsBar";
 import { getPremiumAccess } from "@/lib/premium/get-premium-access";
-import { filtroListagemSoGratis, viewerPodeVerPremium } from "@/lib/premium/types";
+import { viewerPodeVerPremium } from "@/lib/premium/types";
 import { buildAutoMetaDescription } from "@/lib/seo/auto-meta-description";
 import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
+import { isPremiumUser } from "@/lib/access/permissions";
 
 export const revalidate = siteConfig.revalidate.picks;
 
@@ -41,10 +43,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PicksPage() {
-  const access = await getPremiumAccess();
-  const picks = await listarQuickPicks(filtroListagemSoGratis(access));
+  const [access, premiumAllowed] = await Promise.all([getPremiumAccess(), isPremiumUser()]);
+  const picks = premiumAllowed ? await listarQuickPicks(false) : [];
   const stats = calcularEstatisticasQuickPicksEncerradas(picks);
-  const canViewPremium = viewerPodeVerPremium(access);
+  const canViewPremium = premiumAllowed || viewerPodeVerPremium(access);
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -84,9 +86,30 @@ export default async function PicksPage() {
 
           <SponsorSlot slot="feedBetween" className="mb-8" />
 
-          {picks.length > 0 ? <PicksStatsBar stats={stats} /> : null}
+          {!premiumAllowed ? (
+            <section className="mb-8 rounded-2xl border border-gold-400/20 bg-gradient-to-br from-gold-400/[0.08] via-black/70 to-black p-6 sm:p-8">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold-300">
+                Conteúdo VIP Premium
+              </p>
+              <h2 className="mt-3 font-display text-2xl font-bold text-white">
+                As picks completas são exclusivas para assinantes.
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-stone-300">
+                O VIP Premium libera as Picks Premium, a Central EV+ e o Football API
+                Insights. Análises públicas continuam abertas em /analises.
+              </p>
+              <Link
+                href="/vip"
+                className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 px-6 text-sm font-bold text-pitch-950 shadow-lg transition hover:brightness-105"
+              >
+                Assinar VIP Premium
+              </Link>
+            </section>
+          ) : null}
 
-          {picks.length === 0 ? (
+          {premiumAllowed && picks.length > 0 ? <PicksStatsBar stats={stats} /> : null}
+
+          {!premiumAllowed ? null : picks.length === 0 ? (
             <PortalEmptyState
               icon={Zap}
               title="Ainda não há picks por aqui"

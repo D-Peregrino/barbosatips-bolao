@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   rows: MarketBoardRow[];
   className?: string;
+  showAdminActions?: boolean;
 };
 
 function formatEv(ev: number): string {
@@ -22,7 +23,7 @@ function formatEv(ev: number): string {
   return `${sign}${pct.toFixed(1)}%`;
 }
 
-export function MarketBoardTable({ rows, className }: Props) {
+export function MarketBoardTable({ rows, className, showAdminActions = true }: Props) {
   if (rows.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-stone-700 py-16 text-center text-stone-500">
@@ -50,7 +51,7 @@ export function MarketBoardTable({ rows, className }: Props) {
               <th className="px-4 py-3 text-right">Vantagem</th>
               <th className="px-4 py-3 text-right">EV</th>
               <th className="px-4 py-3">Nível</th>
-              <th className="px-4 py-3" />
+              {showAdminActions ? <th className="px-4 py-3" /> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-800/60">
@@ -99,15 +100,17 @@ export function MarketBoardTable({ rows, className }: Props) {
                 <td className="px-4 py-3">
                   <EVBadge tier={row.tier} />
                 </td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={buildMarketAnalysisHref(row)}
-                    className="inline-flex items-center gap-1 rounded-lg bg-gold-500/12 px-2.5 py-1.5 text-xs font-medium text-gold-300 ring-1 ring-gold-500/25 transition hover:bg-gold-500/20"
-                  >
-                    <FilePlus className="h-3.5 w-3.5" aria-hidden />
-                    Criar análise
-                  </Link>
-                </td>
+                {showAdminActions ? (
+                  <td className="px-4 py-3">
+                    <Link
+                      href={buildMarketAnalysisHref(row)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-gold-500/12 px-2.5 py-1.5 text-xs font-medium text-gold-300 ring-1 ring-gold-500/25 transition hover:bg-gold-500/20"
+                    >
+                      <FilePlus className="h-3.5 w-3.5" aria-hidden />
+                      Criar análise
+                    </Link>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
