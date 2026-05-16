@@ -45,6 +45,7 @@ export function settleEvMarket(
       break;
     case "Home Win":
     case "Vitória Casa":
+    case "Vitória Mandante":
       green = h > a;
       if (h > a) resultado = "home_win";
       else if (h === a) resultado = "draw";

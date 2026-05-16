@@ -10,7 +10,12 @@ import { ProbabilityBar } from "@/components/admin/markets/ProbabilityBar";
 import { BOARD_MARKET_LABELS } from "@/lib/betting/build-market-board";
 import type { MarketEvSnapshotRow } from "@/lib/betting/market-ev-snapshots";
 import type { EvTier } from "@/lib/betting/ev-engine";
-import { translateMarketName, translateStatus, translateTier } from "@/lib/i18n/market-ptbr";
+import {
+  translateLeagueName,
+  translateMarketName,
+  translateStatus,
+  translateTier,
+} from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 const TIERS: EvTier[] = ["elite", "forte", "moderado", "neutro", "negativo"];
@@ -142,7 +147,7 @@ export function MarketSnapshotHistory({
             <option value="">Todos</option>
             {campeonatos.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {translateLeagueName(c)}
               </option>
             ))}
           </select>
@@ -186,7 +191,9 @@ export function MarketSnapshotHistory({
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-stone-300">{row.campeonato}</td>
+                    <td className="px-4 py-3 text-stone-300">
+                      {translateLeagueName(row.campeonato)}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="rounded-md bg-stone-800/80 px-2 py-1 text-xs text-gold-200/90">
                         {translateMarketName(row.mercado)}

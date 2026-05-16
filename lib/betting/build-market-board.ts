@@ -1,6 +1,7 @@
 import { formatKickoffPt, todayDateBrazil } from "@/lib/api-football/dates";
 import { generateMarketInsight } from "@/lib/betting/ev-engine";
 import type { EvTier } from "@/lib/betting/ev-engine";
+import { translateLeagueName, translateStatus } from "@/lib/i18n/market-ptbr";
 import { fetchSportOddsEvents, getOddsApiKey } from "@/services/the-odds-api";
 import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
@@ -8,7 +9,7 @@ export const MARKET_BOARD_LIMIT = 30;
 
 export const BOARD_MARKET_LABELS = [
   "Mais de 2.5 gols",
-  "Vitória Casa",
+  "Vitória Mandante",
   "Vitória Visitante",
 ] as const;
 
@@ -168,9 +169,11 @@ function addMarketRow(
     matchLabel: `${event.homeTeam} vs ${event.awayTeam}`,
     homeTeam: event.homeTeam,
     awayTeam: event.awayTeam,
-    league: event.sportTitle ?? event.sportKey,
+    league: translateLeagueName(event.sportTitle ?? event.sportKey, event.sportKey),
     country: event.sportKey,
-    kickoffLabel: event.commenceTime ? formatKickoffPt(event.commenceTime) : "-",
+    kickoffLabel: event.commenceTime
+      ? `${translateStatus("Kickoff")} ${formatKickoffPt(event.commenceTime)}`
+      : "-",
     kickoffAtIso: event.commenceTime || null,
     marketLabel,
     marketOdd: insight.marketOdd,
@@ -222,7 +225,7 @@ export async function buildMarketBoard(options?: {
   const rows: MarketBoardRow[] = [];
 
   for (const event of oddsEvents) {
-    addMarketRow(rows, event, "Vitória Casa", collectH2H(event, event.homeTeam));
+    addMarketRow(rows, event, "Vitória Mandante", collectH2H(event, event.homeTeam));
     addMarketRow(rows, event, "Vitória Visitante", collectH2H(event, event.awayTeam));
     addMarketRow(rows, event, "Mais de 2.5 gols", collectOver25(event));
   }

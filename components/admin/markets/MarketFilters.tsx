@@ -3,7 +3,7 @@
 import { Filter } from "lucide-react";
 import { BOARD_MARKET_LABELS } from "@/lib/betting/build-market-board";
 import type { EvTier } from "@/lib/betting/ev-engine";
-import { translateMarketName, translateTier } from "@/lib/i18n/market-ptbr";
+import { translateLeagueName, translateMarketName, translateTier } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 const TIERS: EvTier[] = ["elite", "forte", "moderado", "neutro", "negativo"];
@@ -47,7 +47,7 @@ export function MarketFilters({
           <option value="">Todos</option>
           {leagues.map((l) => (
             <option key={l} value={l}>
-              {l}
+              {translateLeagueName(l)}
             </option>
           ))}
         </select>

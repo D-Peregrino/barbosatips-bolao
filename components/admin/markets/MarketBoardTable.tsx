@@ -6,7 +6,7 @@ import { EVBadge } from "@/components/admin/markets/EVBadge";
 import { ProbabilityBar } from "@/components/admin/markets/ProbabilityBar";
 import { buildMarketAnalysisHref } from "@/lib/betting/build-market-board";
 import type { MarketBoardRow } from "@/lib/betting/build-market-board";
-import { translateMarketName } from "@/lib/i18n/market-ptbr";
+import { translateLeagueName, translateMarketName } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -62,7 +62,7 @@ export function MarketBoardTable({ rows, className }: Props) {
                   <p className="text-xs text-stone-500">{row.kickoffLabel}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <p className="text-stone-300">{row.league}</p>
+                  <p className="text-stone-300">{translateLeagueName(row.league, row.country)}</p>
                   <p className="text-xs text-stone-600">{row.country}</p>
                 </td>
                 <td className="px-4 py-3">

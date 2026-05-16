@@ -37,7 +37,7 @@ export default async function AdminMercadosResultadosPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-400">
               Liquida registros salvos com o resultado final da API-Football
-              (Mais de 2.5 gols, Vitória Casa e Vitória Visitante). Lucro unitário com aposta 1;
+              (Mais de 2.5 gols, Vitória Mandante e Vitória Visitante). Lucro unitário com aposta 1;
               rendimento = lucro médio por aposta (%).
             </p>
           </div>

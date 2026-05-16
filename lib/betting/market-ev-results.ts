@@ -56,6 +56,7 @@ const SUPPORTED = new Set([
   "BTTS",
   "Home Win",
   "Vitória Casa",
+  "Vitória Mandante",
   "Away Win",
   "Vitória Visitante",
 ]);
