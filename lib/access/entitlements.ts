@@ -120,7 +120,7 @@ export async function userHasActiveEntitlement(
   }
 }
 
-async function findAuthUserByEmail(emailRaw: string): Promise<User | null> {
+export async function findAuthUserByEmail(emailRaw: string): Promise<User | null> {
   if (shouldSkipLiveSupabase()) return null;
   const email = normalizeEmail(emailRaw);
   if (!email) return null;
@@ -222,6 +222,63 @@ export async function grantEntitlementByEmail(params: {
     return { ok: true };
   } catch (error) {
     console.error("grantEntitlementByEmail", error);
+    return { ok: false, error: "Erro inesperado ao conceder acesso." };
+  }
+}
+
+export async function grantEntitlement(params: {
+  userId: string;
+  entitlement: EntitlementId;
+  expiresAt?: string | null;
+  source?: string;
+  externalPaymentId?: string | null;
+}): Promise<EntitlementMutationResult> {
+  if (shouldSkipLiveSupabase()) {
+    return { ok: false, error: "Supabase não configurado neste ambiente." };
+  }
+
+  const userId = params.userId.trim();
+  if (!userId) return { ok: false, error: "Usuário inválido." };
+  if (!ENTITLEMENTS.includes(params.entitlement)) {
+    return { ok: false, error: "Entitlement inválido." };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const externalPaymentId = params.externalPaymentId?.trim() || null;
+
+    if (externalPaymentId) {
+      const { data: existingByPayment, error: existingPaymentError } = await admin
+        .from("user_entitlements")
+        .select("id")
+        .eq("external_payment_id", externalPaymentId)
+        .limit(1);
+
+      if (existingPaymentError) {
+        return {
+          ok: false,
+          error: existingPaymentError.message || "Erro ao verificar pagamento existente.",
+        };
+      }
+      if ((existingByPayment ?? []).length > 0) return { ok: true };
+    }
+
+    const { error } = await admin.from("user_entitlements").insert({
+      user_id: userId,
+      entitlement: params.entitlement,
+      status: "ativo",
+      starts_at: new Date().toISOString(),
+      expires_at: params.expiresAt?.trim() || null,
+      source: params.source?.trim() || "mercado_pago",
+      external_payment_id: externalPaymentId,
+    });
+
+    if (error) {
+      return { ok: false, error: error.message || "Erro ao conceder acesso." };
+    }
+    return { ok: true };
+  } catch (error) {
+    console.error("grantEntitlement", error);
     return { ok: false, error: "Erro inesperado ao conceder acesso." };
   }
 }

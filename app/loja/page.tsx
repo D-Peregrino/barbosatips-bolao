@@ -14,19 +14,19 @@ const produtos = [
     icon: Headphones,
     nome: "Discord Ouvinte",
     descricao: "Acesso ao Discord como ouvinte.",
-    href: "/loja/checkout?produto=discord-ouvinte",
+    href: "/checkout/discord_ouvinte",
   },
   {
     icon: Bot,
     nome: "Bot do Barbosa",
     descricao: "Receba análises, alertas e oportunidades pelo Bot do Barbosa no Telegram.",
-    href: "/loja/checkout?produto=bot-barbosa",
+    href: "/checkout/bot_barbosa",
   },
   {
     icon: Mic2,
     nome: "Discord com Voz",
     descricao: "Acesso ao Discord com participação por voz.",
-    href: "/loja/checkout?produto=discord-voz",
+    href: "/checkout/discord_voz",
   },
 ];
 
@@ -43,7 +43,7 @@ export default function LojaPage() {
             Produtos avulsos
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
-            Itens independentes do VIP e do Bolão. Pagamento futuro via Mercado Pago.
+            Itens independentes do VIP e do Bolão. Pagamento via Mercado Pago.
           </p>
         </header>
 

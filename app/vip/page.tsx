@@ -85,7 +85,7 @@ export default async function VipPage() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/vip/checkout"
+              href="/checkout/vip_premium"
               className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-gold-600 via-gold-500 to-amber-600 px-8 py-3.5 text-sm font-bold text-pitch-950 shadow-[0_16px_48px_-12px_rgba(201,162,39,0.45)] transition hover:brightness-110"
             >
               Assinar VIP Premium
