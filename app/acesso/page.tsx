@@ -57,11 +57,11 @@ export default function AcessoPage() {
             compra não libera automaticamente outra área.
           </p>
           <Link
-            href="/login?next=/acesso"
+            href="/entrar"
             className="mt-6 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gold-400/35 bg-gold-400/[0.08] px-5 text-sm font-bold text-gold-100 transition hover:border-gold-300/55 hover:bg-gold-400/14"
           >
             <UserRound className="h-4 w-4" aria-hidden />
-            Já tenho acesso / Entrar na minha conta
+            Já tenho acesso
           </Link>
         </header>
 

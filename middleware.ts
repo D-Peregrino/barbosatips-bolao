@@ -16,10 +16,11 @@ import {
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
+const CLIENT_AUTH_ROUTES = ["/picks", "/vip/central-ev", "/vip/football-insights"];
 
-const AUTH_ROUTES = ["/login"];
+const AUTH_ROUTES = ["/login", "/entrar"];
 
-const SIGNUP_REDIRECT_PREFIXES = ["/registro", "/signup", "/register", "/entrar"] as const;
+const SIGNUP_REDIRECT_PREFIXES = ["/registro", "/signup", "/register"] as const;
 
 function isSignupPath(pathname: string): boolean {
   return SIGNUP_REDIRECT_PREFIXES.some(
@@ -67,7 +68,7 @@ export async function middleware(request: NextRequest) {
   const returnPath = `${path}${request.nextUrl.search || ""}`;
 
   if (isSignupPath(path)) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/entrar", request.url));
   }
 
   if (path === "/nba") {
@@ -206,10 +207,23 @@ export async function middleware(request: NextRequest) {
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
+    redirectUrl.pathname = "/entrar";
     redirectUrl.searchParams.set(
-      "redirect",
+      "next",
       sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/meu-feed"),
+    );
+    return redirectPreservingSupabaseCookies(request, redirectUrl, getResponse());
+  }
+
+  const needsClientAuth = CLIENT_AUTH_ROUTES.some(
+    (r) => path === r || path.startsWith(`${r}/`),
+  );
+  if (needsClientAuth && !user) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/entrar";
+    redirectUrl.searchParams.set(
+      "next",
+      sanitizeInternalRedirect(returnPath, request.nextUrl.origin, "/acesso"),
     );
     return redirectPreservingSupabaseCookies(request, redirectUrl, getResponse());
   }

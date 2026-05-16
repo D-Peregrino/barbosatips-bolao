@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Radio } from "lucide-react";
+import { redirect } from "next/navigation";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { PremiumGate } from "@/components/vip/PremiumGate";
 import { VipFootballInsightsPanel } from "@/components/vip/VipFootballInsightsPanel";
 import { siteConfig } from "@/config/site";
-import { isPremiumUser } from "@/lib/access/permissions";
+import { getCurrentUser, isPremiumUser } from "@/lib/access/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
 };
 
 export default async function VipFootballInsightsPage() {
-  const allowed = await isPremiumUser();
+  const user = await getCurrentUser();
+  if (!user) redirect("/entrar?next=/vip/football-insights");
+
+  const allowed = await isPremiumUser(user.id);
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">

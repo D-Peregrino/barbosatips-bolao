@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Send, Zap } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
@@ -43,6 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PicksPage() {
   const user = await getCurrentUser();
+  if (!user) redirect("/entrar?next=/picks");
+
   const premiumAllowed = user ? await isPremiumUser(user.id) : false;
   const picks = premiumAllowed ? await listarQuickPicks(false) : [];
   const stats = calcularEstatisticasQuickPicksEncerradas(picks);

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { TrendingUp } from "lucide-react";
+import { redirect } from "next/navigation";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { MarketBoardClient } from "@/components/admin/markets/MarketBoardClient";
 import { PremiumGate } from "@/components/vip/PremiumGate";
 import { siteConfig } from "@/config/site";
-import { isPremiumUser } from "@/lib/access/permissions";
+import { getCurrentUser, isPremiumUser } from "@/lib/access/permissions";
 import { buildMarketBoard } from "@/lib/betting/build-market-board";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function VipCentralEvPage() {
-  const allowed = await isPremiumUser();
+  const user = await getCurrentUser();
+  if (!user) redirect("/entrar?next=/vip/central-ev");
+
+  const allowed = await isPremiumUser(user.id);
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
