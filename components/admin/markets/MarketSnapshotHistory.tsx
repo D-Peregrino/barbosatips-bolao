@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { ArrowLeft, Filter } from "lucide-react";
 import { EVBadge } from "@/components/admin/markets/EVBadge";
 import { ProbabilityBar } from "@/components/admin/markets/ProbabilityBar";
-import { BOARD_MARKET_LABELS } from "@/lib/betting/build-market-board";
+import { BOARD_MARKET_LABELS } from "@/lib/betting/market-board-types";
 import type { MarketEvSnapshotRow } from "@/lib/betting/market-ev-snapshots";
 import type { EvTier } from "@/lib/betting/ev-engine";
 import {

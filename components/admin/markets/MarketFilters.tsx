@@ -1,7 +1,7 @@
 "use client";
 
 import { Filter } from "lucide-react";
-import { BOARD_MARKET_LABELS } from "@/lib/betting/build-market-board";
+import { BOARD_MARKET_LABELS } from "@/lib/betting/market-board-types";
 import type { EvTier } from "@/lib/betting/ev-engine";
 import { translateLeagueName, translateMarketName, translateTier } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";

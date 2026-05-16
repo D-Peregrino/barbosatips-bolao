@@ -1,75 +1,27 @@
 import { formatKickoffPt, todayDateBrazil } from "@/lib/api-football/dates";
 import { generateMarketInsight } from "@/lib/betting/ev-engine";
-import type { EvTier } from "@/lib/betting/ev-engine";
+import {
+  getRecentMarketBoardSnapshotRows,
+  refreshMarketBoardSnapshotCache,
+} from "@/lib/betting/market-ev-snapshots";
+import {
+  MARKET_BOARD_LIMIT,
+  type BoardMarketLabel,
+  type MarketBoardResult,
+  type MarketBoardRow,
+} from "@/lib/betting/market-board-types";
 import { translateLeagueName, translateStatus } from "@/lib/i18n/market-ptbr";
 import { fetchSportOddsEvents, getOddsApiKey } from "@/services/the-odds-api";
 import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
-export const MARKET_BOARD_LIMIT = 30;
-
-export const BOARD_MARKET_LABELS = [
-  "Mais de 2.5 gols",
-  "Vitória Mandante",
-  "Vitória Visitante",
-] as const;
-
-export type BoardMarketLabel = (typeof BOARD_MARKET_LABELS)[number];
-
-export type MarketBoardRow = {
-  id: string;
-  fixtureId: number;
-  oddsEventId: string | null;
-  matchLabel: string;
-  homeTeam: string;
-  awayTeam: string;
-  league: string;
-  country: string;
-  kickoffLabel: string;
-  kickoffAtIso: string | null;
-  marketLabel: BoardMarketLabel;
-  marketOdd: number;
-  fairOdd: number;
-  realProbability: number;
-  impliedProbability: number;
-  edge: number;
-  ev: number;
-  tier: EvTier;
-  bookmaker: string | null;
-};
-
-export type MarketBoardMeta = {
-  date: string;
-  fixturesTotal: number;
-  fixturesMatched: number;
-  oddsEventsTotal: number;
-  rowsBeforeLimit: number;
-  sportKeys: string[];
-  warnings: string[];
-};
-
-export type MarketBoardResult =
-  | { ok: true; rows: MarketBoardRow[]; meta: MarketBoardMeta }
-  | { ok: false; error: string };
-
-const DEFAULT_SPORT_KEYS = [
-  "soccer_epl",
-  "soccer_spain_la_liga",
-  "soccer_italy_serie_a",
-  "soccer_germany_bundesliga",
-  "soccer_france_ligue_one",
-  "soccer_brazil_campeonato",
-  "soccer_uefa_champs_league",
-];
+const MARKET_BOARD_CACHE_MS = 30 * 60 * 1000;
+const MARKET_BOARD_SPORT_KEYS = ["soccer_brazil_campeonato"] as const;
+const MARKET_BOARD_MARKETS = "h2h";
 
 type BestQuote = { odd: number; bookmaker: string };
 
 function sportKeysFromEnv(): string[] {
-  const raw = process.env.MARKET_BOARD_SPORT_KEYS?.trim();
-  if (!raw) return DEFAULT_SPORT_KEYS;
-  return raw
-    .split(/[,\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return [...MARKET_BOARD_SPORT_KEYS];
 }
 
 function isValidDecimalOdd(price: number): boolean {
@@ -101,23 +53,6 @@ function collectH2H(event: OddsFixtureEvent, teamName: string): BestQuote | null
       if (market.key !== "h2h") continue;
       for (const outcome of market.outcomes) {
         if (outcomeMatchesTeam(outcome.name, teamName) && isValidDecimalOdd(outcome.price)) {
-          quotes.push({ odd: outcome.price, bookmaker: bookmaker.title });
-        }
-      }
-    }
-  }
-  return pickBest(quotes);
-}
-
-function collectOver25(event: OddsFixtureEvent): BestQuote | null {
-  const quotes: BestQuote[] = [];
-  for (const bookmaker of event.bookmakers) {
-    for (const market of bookmaker.markets) {
-      if (market.key !== "totals") continue;
-      for (const outcome of market.outcomes) {
-        if (!/^over/i.test(outcome.name)) continue;
-        if (outcome.point == null || Math.abs(outcome.point - 2.5) > 0.01) continue;
-        if (isValidDecimalOdd(outcome.price)) {
           quotes.push({ odd: outcome.price, bookmaker: bookmaker.title });
         }
       }
@@ -205,13 +140,31 @@ export async function buildMarketBoard(options?: {
   const date = options?.date ?? todayDateBrazil();
   const limit = options?.limit ?? MARKET_BOARD_LIMIT;
   const warnings: string[] = [];
+  const cachedRows = await getRecentMarketBoardSnapshotRows(MARKET_BOARD_CACHE_MS, limit);
+  if (cachedRows.length > 0) {
+    return {
+      ok: true,
+      rows: cachedRows,
+      meta: {
+        date,
+        fixturesTotal: cachedRows.length,
+        fixturesMatched: cachedRows.length,
+        oddsEventsTotal: cachedRows.length,
+        rowsBeforeLimit: cachedRows.length,
+        sportKeys: sportKeysFromEnv(),
+        warnings: ["Central EV+ carregada do cache salvo (30 min)."],
+      },
+    };
+  }
 
   if (!getOddsApiKey()) {
     return { ok: false, error: "ODDS_API_KEY ausente" };
   }
 
   const sportKeys = sportKeysFromEnv();
-  const oddsResults = await Promise.all(sportKeys.map((key) => fetchSportOddsEvents(key)));
+  const oddsResults = await Promise.all(
+    sportKeys.map((key) => fetchSportOddsEvents(key, MARKET_BOARD_MARKETS)),
+  );
   const allOddsEvents: OddsFixtureEvent[] = [];
   for (const result of oddsResults) {
     if (result.ok) {
@@ -227,13 +180,13 @@ export async function buildMarketBoard(options?: {
   for (const event of oddsEvents) {
     addMarketRow(rows, event, "Vitória Mandante", collectH2H(event, event.homeTeam));
     addMarketRow(rows, event, "Vitória Visitante", collectH2H(event, event.awayTeam));
-    addMarketRow(rows, event, "Mais de 2.5 gols", collectOver25(event));
   }
 
   const sorted = rows.sort((a, b) => b.ev - a.ev);
   const limited = sorted.slice(0, limit);
 
   console.warn(`[MARKET BOARD] oddsEvents: ${oddsEvents.length} rows: ${rows.length}`);
+  await refreshMarketBoardSnapshotCache(rows);
 
   return {
     ok: true,
@@ -250,17 +203,3 @@ export async function buildMarketBoard(options?: {
   };
 }
 
-export function buildMarketAnalysisHref(row: MarketBoardRow): string {
-  const params = new URLSearchParams({
-    fixtureId: String(row.fixtureId),
-    home: row.homeTeam,
-    away: row.awayTeam,
-    league: row.league,
-    country: row.country,
-    mercado: row.marketLabel,
-    odd: String(row.marketOdd),
-    probabilidade: String(row.realProbability),
-    ev: String(row.ev),
-  });
-  return `/admin-editorial/nova?${params.toString()}`;
-}

@@ -7,7 +7,7 @@ import {
 } from "@/components/admin/markets/MarketFilters";
 import { MarketBoardTable } from "@/components/admin/markets/MarketBoardTable";
 import { MarketSnapshotToolbar } from "@/components/admin/markets/MarketSnapshotToolbar";
-import type { MarketBoardMeta, MarketBoardRow } from "@/lib/betting/build-market-board";
+import type { MarketBoardMeta, MarketBoardRow } from "@/lib/betting/market-board-types";
 import type { MarketEvSnapshotSummary } from "@/lib/betting/market-ev-snapshots";
 import type { EvTier } from "@/lib/betting/ev-engine";
 

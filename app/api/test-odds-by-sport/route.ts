@@ -7,22 +7,17 @@ export const revalidate = 0;
 const API_BASE = "https://api.the-odds-api.com/v4";
 
 const DEFAULT_SPORT_KEYS = [
-  "soccer_epl",
-  "soccer_spain_la_liga",
-  "soccer_italy_serie_a",
-  "soccer_germany_bundesliga",
-  "soccer_france_ligue_one",
   "soccer_brazil_campeonato",
-  "soccer_uefa_champs_league",
 ];
 
 function sportKeysFromEnv(): string[] {
   const raw = process.env.MARKET_BOARD_SPORT_KEYS?.trim();
   if (!raw) return DEFAULT_SPORT_KEYS;
-  return raw
+  const parsed = raw
     .split(/[,\s]+/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter((key) => DEFAULT_SPORT_KEYS.includes(key));
+  return parsed.length > 0 ? parsed : DEFAULT_SPORT_KEYS;
 }
 
 function parseHeaderInt(res: Response, name: string): number | null {
@@ -101,7 +96,7 @@ async function diagnoseSport(apiKey: string, sportKey: string): Promise<SportDia
   );
   url.searchParams.set("apiKey", apiKey);
   url.searchParams.set("regions", "eu");
-  url.searchParams.set("markets", "h2h,totals");
+  url.searchParams.set("markets", "h2h");
   url.searchParams.set("oddsFormat", "decimal");
   url.searchParams.set("dateFormat", "iso");
 

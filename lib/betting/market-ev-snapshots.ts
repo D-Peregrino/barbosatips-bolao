@@ -1,5 +1,7 @@
-import { todayDateBrazil } from "@/lib/api-football/dates";
-import type { MarketBoardRow } from "@/lib/betting/build-market-board";
+import { formatKickoffPt, todayDateBrazil } from "@/lib/api-football/dates";
+import type { BoardMarketLabel, MarketBoardRow } from "@/lib/betting/market-board-types";
+import type { EvTier } from "@/lib/betting/ev-engine";
+import { translateLeagueName, translateMarketName, translateStatus } from "@/lib/i18n/market-ptbr";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
@@ -51,8 +53,8 @@ function snapshotDateBrazil(): string {
   return todayDateBrazil();
 }
 
-function rowToInsert(row: MarketBoardRow, snapshotDate: string) {
-  return {
+function rowToInsert(row: MarketBoardRow, snapshotDate: string, createdAt?: string) {
+  const base = {
     fixture_id: String(row.fixtureId),
     jogo: row.matchLabel,
     campeonato: row.league,
@@ -68,6 +70,58 @@ function rowToInsert(row: MarketBoardRow, snapshotDate: string) {
     kickoff_at: row.kickoffAtIso || null,
     source: "market_board",
     snapshot_date: snapshotDate,
+  };
+  return createdAt ? { ...base, created_at: createdAt } : base;
+}
+
+function fallbackFixtureId(value: string): number {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash || 1;
+}
+
+function toBoardMarketLabel(value: string): BoardMarketLabel | null {
+  const translated = translateMarketName(value);
+  if (translated === "Vitória Mandante" || translated === "Vitória Visitante") {
+    return translated;
+  }
+  return null;
+}
+
+function snapshotRowToBoardRow(row: MarketEvSnapshotRow): MarketBoardRow | null {
+  const marketLabel = toBoardMarketLabel(row.mercado);
+  const league = translateLeagueName(row.campeonato);
+  if (!marketLabel || league !== "Brasileirão Série A") return null;
+
+  const [homeTeam = row.jogo, awayTeam = ""] = row.jogo.split(/\s+vs\s+/i);
+  const kickoffAtIso = row.kickoff_at || null;
+
+  return {
+    id: `${row.fixture_id}-${row.mercado}-${row.bookmaker}`,
+    fixtureId: fallbackFixtureId(row.fixture_id),
+    oddsEventId: row.fixture_id,
+    matchLabel: row.jogo,
+    homeTeam,
+    awayTeam,
+    league,
+    country: "soccer_brazil_campeonato",
+    kickoffLabel: kickoffAtIso
+      ? `${translateStatus("Kickoff")} ${formatKickoffPt(kickoffAtIso)}`
+      : "-",
+    kickoffAtIso,
+    marketLabel,
+    marketOdd: Number(row.odd),
+    fairOdd: Number(row.fair_odd),
+    realProbability: Number(row.probabilidade_real),
+    impliedProbability: Number(row.probabilidade_implicita),
+    edge: Number(row.edge),
+    ev: Number(row.ev),
+    tier: row.tier as EvTier,
+    bookmaker: row.bookmaker || null,
   };
 }
 
@@ -163,6 +217,61 @@ export async function saveMarketEvSnapshots(
   } catch (err) {
     console.error("saveMarketEvSnapshots", err);
     return { ok: false, error: "Erro ao contatar o Supabase." };
+  }
+}
+
+export async function getRecentMarketBoardSnapshotRows(
+  maxAgeMs: number,
+  limit = 30,
+): Promise<MarketBoardRow[]> {
+  if (shouldSkipLiveSupabase()) return [];
+
+  const since = new Date(Date.now() - maxAgeMs).toISOString();
+
+  try {
+    const admin = createAdminClient();
+    const queryLimit = Math.max(limit * 10, 200);
+    const { data, error } = await admin
+      .from("market_ev_snapshots")
+      .select("*")
+      .eq("source", "market_board")
+      .gte("created_at", since)
+      .order("ev", { ascending: false })
+      .limit(queryLimit);
+
+    if (error) return [];
+
+    return ((data ?? []) as MarketEvSnapshotRow[])
+      .map(snapshotRowToBoardRow)
+      .filter((row): row is MarketBoardRow => row != null)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+export async function refreshMarketBoardSnapshotCache(
+  rows: MarketBoardRow[],
+): Promise<void> {
+  if (shouldSkipLiveSupabase() || rows.length === 0) return;
+
+  const snapshotDate = snapshotDateBrazil();
+  const createdAt = new Date().toISOString();
+  const payload = rows.map((row) => rowToInsert(row, snapshotDate, createdAt));
+
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("market_ev_snapshots")
+      .upsert(payload, {
+        onConflict: "fixture_id,mercado,bookmaker,snapshot_date",
+      });
+
+    if (error) {
+      console.error("refreshMarketBoardSnapshotCache", error);
+    }
+  } catch (err) {
+    console.error("refreshMarketBoardSnapshotCache", err);
   }
 }
 

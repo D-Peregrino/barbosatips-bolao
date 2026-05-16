@@ -5,9 +5,10 @@ export const runtime = "nodejs";
 export const revalidate = 0;
 
 const API_BASE = "https://api.the-odds-api.com/v4";
-const MARKETS = "h2h,totals";
+const MARKETS = "h2h";
 const REGIONS = "eu";
 const ODDS_FORMAT = "decimal";
+const SPORT_KEYS = ["soccer_brazil_campeonato"];
 
 type RawBookmaker = {
   key?: string;
@@ -134,7 +135,10 @@ async function fetchEventsForSport(
 
 export async function GET() {
   const apiKey = process.env.ODDS_API_KEY?.trim();
-  const sportKeys = parseSportKeys(process.env.MARKET_BOARD_SPORT_KEYS);
+  const sportKeys = parseSportKeys(process.env.MARKET_BOARD_SPORT_KEYS).filter((key) =>
+    SPORT_KEYS.includes(key),
+  );
+  const effectiveSportKeys = sportKeys.length > 0 ? sportKeys : SPORT_KEYS;
 
   if (!apiKey) {
     return NextResponse.json(
@@ -143,14 +147,14 @@ export async function GET() {
         totalEvents: 0,
         firstEvent: null,
         errors: { _env: "ODDS_API_KEY ausente" },
-        sportKeys,
+        sportKeys: effectiveSportKeys,
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   const calls = await Promise.all(
-    sportKeys.map((sportKey) => fetchEventsForSport(apiKey, sportKey)),
+    effectiveSportKeys.map((sportKey) => fetchEventsForSport(apiKey, sportKey)),
   );
   const results = calls.map((call) => call.result);
   const errors = Object.fromEntries(
@@ -167,7 +171,7 @@ export async function GET() {
       totalEvents,
       firstEvent,
       errors,
-      sportKeys,
+      sportKeys: effectiveSportKeys,
       request: {
         markets: MARKETS,
         regions: REGIONS,

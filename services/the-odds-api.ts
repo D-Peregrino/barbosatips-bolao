@@ -39,11 +39,11 @@ const API_BASE = "https://api.the-odds-api.com/v4";
 export const THE_ODDS_API_DEFAULTS = {
   regions: "eu",
   markets: "h2h,spreads,totals",
-  /** Mercados para cruzamento com tendências (soccer). BTTS não suportado neste endpoint v4/odds. */
-  boardMarkets: "h2h,totals",
+  /** Mercado usado pela Central EV+ para reduzir consumo de créditos. */
+  boardMarkets: "h2h",
   oddsFormat: "decimal" as const,
   /** Liga usada no endpoint de teste quando não há query params. */
-  testSportKey: "soccer_epl",
+  testSportKey: "soccer_brazil_campeonato",
 };
 
 type RawOutcome = { name?: string; price?: number; point?: number | null };

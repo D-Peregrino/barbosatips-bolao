@@ -4,8 +4,10 @@ import Link from "next/link";
 import { FilePlus } from "lucide-react";
 import { EVBadge } from "@/components/admin/markets/EVBadge";
 import { ProbabilityBar } from "@/components/admin/markets/ProbabilityBar";
-import { buildMarketAnalysisHref } from "@/lib/betting/build-market-board";
-import type { MarketBoardRow } from "@/lib/betting/build-market-board";
+import {
+  buildMarketAnalysisHref,
+  type MarketBoardRow,
+} from "@/lib/betting/market-board-types";
 import { translateLeagueName, translateMarketName } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 

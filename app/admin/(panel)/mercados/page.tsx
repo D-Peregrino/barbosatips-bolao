@@ -32,7 +32,8 @@ export default async function AdminMercadosPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-400">
               Gera mercados direto da The Odds API e usa o motor EV para destacar
-              Mais de 2.5 gols e vitórias com vantagem positiva, ordenado por valor esperado.
+              vitórias de mandante e visitante com vantagem positiva, ordenado por valor esperado.
+              A lista usa cache salvo por 30 minutos para reduzir consumo de créditos.
             </p>
           </div>
         </div>
@@ -45,8 +46,8 @@ export default async function AdminMercadosPage() {
       ) : board.rows.length === 0 ? (
         <div className="space-y-2">
           <p className="rounded-xl border border-dashed border-stone-700 py-12 text-center text-stone-500">
-            Nenhum mercado com odds para hoje. Verifica a chave da The Odds API e as
-            ligas configuradas em MARKET_BOARD_SPORT_KEYS.
+            Nenhum mercado com odds para hoje. Verifica a chave da The Odds API e a liga
+            soccer_brazil_campeonato.
           </p>
           <p className="text-center text-xs text-stone-600">
             {board.meta.fixturesTotal} jogos com odds · {board.meta.fixturesMatched} processados
