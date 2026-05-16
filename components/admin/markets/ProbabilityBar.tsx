@@ -25,7 +25,7 @@ export function ProbabilityBar({ real, implied, className }: Props) {
       </div>
       <div className="flex justify-between text-[10px] tabular-nums text-stone-500">
         <span>Real {real.toFixed(1)}%</span>
-        <span>Impl. {implied.toFixed(1)}%</span>
+        <span>Implícita {implied.toFixed(1)}%</span>
       </div>
     </div>
   );

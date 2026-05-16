@@ -1,5 +1,8 @@
 import type { EvTier } from "@/lib/betting/ev-engine";
+import { translateTier } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
+
+const DEFAULT_TIER_STYLE = "bg-stone-700/50 text-stone-300 ring-stone-600/50";
 
 const TIER_STYLES: Record<EvTier, string> = {
   elite: "bg-emerald-500/20 text-emerald-200 ring-emerald-400/45 shadow-[0_0_12px_-2px_rgba(16,185,129,0.5)]",
@@ -9,24 +12,16 @@ const TIER_STYLES: Record<EvTier, string> = {
   negativo: "bg-red-950/50 text-red-300 ring-red-800/50",
 };
 
-const TIER_LABELS: Record<EvTier, string> = {
-  elite: "Elite",
-  forte: "Forte",
-  moderado: "Moderado",
-  neutro: "Neutro",
-  negativo: "Negativo",
-};
-
-export function EVBadge({ tier, className }: { tier: EvTier; className?: string }) {
+export function EVBadge({ tier, className }: { tier: EvTier | string; className?: string }) {
   return (
     <span
       className={cn(
         "inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1",
-        TIER_STYLES[tier],
+        TIER_STYLES[tier as EvTier] ?? DEFAULT_TIER_STYLE,
         className,
       )}
     >
-      {TIER_LABELS[tier]}
+      {translateTier(tier)}
     </span>
   );
 }

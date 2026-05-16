@@ -7,9 +7,9 @@ import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 export const MARKET_BOARD_LIMIT = 30;
 
 export const BOARD_MARKET_LABELS = [
-  "Over 2.5",
-  "Home Win",
-  "Away Win",
+  "Mais de 2.5 gols",
+  "Vitória Casa",
+  "Vitória Visitante",
 ] as const;
 
 export type BoardMarketLabel = (typeof BOARD_MARKET_LABELS)[number];
@@ -138,7 +138,11 @@ function hashStringToPositiveInt(value: string): number {
 }
 
 function marketSlug(marketLabel: BoardMarketLabel): string {
-  return marketLabel.replace(/\s+/g, "-").toLowerCase();
+  return marketLabel
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
 }
 
 function addMarketRow(
@@ -218,9 +222,9 @@ export async function buildMarketBoard(options?: {
   const rows: MarketBoardRow[] = [];
 
   for (const event of oddsEvents) {
-    addMarketRow(rows, event, "Home Win", collectH2H(event, event.homeTeam));
-    addMarketRow(rows, event, "Away Win", collectH2H(event, event.awayTeam));
-    addMarketRow(rows, event, "Over 2.5", collectOver25(event));
+    addMarketRow(rows, event, "Vitória Casa", collectH2H(event, event.homeTeam));
+    addMarketRow(rows, event, "Vitória Visitante", collectH2H(event, event.awayTeam));
+    addMarketRow(rows, event, "Mais de 2.5 gols", collectOver25(event));
   }
 
   const sorted = rows.sort((a, b) => b.ev - a.ev);

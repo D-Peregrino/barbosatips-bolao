@@ -3,6 +3,7 @@
 import { Filter } from "lucide-react";
 import { BOARD_MARKET_LABELS } from "@/lib/betting/build-market-board";
 import type { EvTier } from "@/lib/betting/ev-engine";
+import { translateMarketName, translateTier } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 const TIERS: EvTier[] = ["elite", "forte", "moderado", "neutro", "negativo"];
@@ -53,7 +54,7 @@ export function MarketFilters({
       </label>
       <label className="block min-w-[120px]">
         <span className="mb-1 block text-[10px] uppercase tracking-wider text-stone-500">
-          Tier EV
+          Nível EV
         </span>
         <select
           value={value.tier}
@@ -63,7 +64,7 @@ export function MarketFilters({
           <option value="">Todos</option>
           {TIERS.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {translateTier(t)}
             </option>
           ))}
         </select>
@@ -80,7 +81,7 @@ export function MarketFilters({
           <option value="">Todos</option>
           {BOARD_MARKET_LABELS.map((m) => (
             <option key={m} value={m}>
-              {m}
+              {translateMarketName(m)}
             </option>
           ))}
         </select>

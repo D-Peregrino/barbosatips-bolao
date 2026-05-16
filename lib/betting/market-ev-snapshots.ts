@@ -149,7 +149,7 @@ export async function saveMarketEvSnapshots(
     const { error } = await admin.from("market_ev_snapshots").insert(toInsert);
     if (error) {
       console.error("saveMarketEvSnapshots", error);
-      return { ok: false, error: "Não foi possível guardar o snapshot." };
+      return { ok: false, error: "Não foi possível salvar o registro." };
     }
 
     const savedAt = new Date().toISOString();
@@ -162,7 +162,7 @@ export async function saveMarketEvSnapshots(
     };
   } catch (err) {
     console.error("saveMarketEvSnapshots", err);
-    return { ok: false, error: "Erro ao contactar o Supabase." };
+    return { ok: false, error: "Erro ao contatar o Supabase." };
   }
 }
 

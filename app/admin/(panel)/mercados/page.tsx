@@ -31,9 +31,8 @@ export default async function AdminMercadosPage() {
               Central de mercados EV+
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-400">
-              Cruza fixtures da API-Football, odds da The Odds API e o motor EV para
-              destacar Over 2.5 e vitórias com edge positivo — ordenado por valor esperado.
-              BTTS não está disponível na The Odds API (endpoint v4/odds) para estes mercados.
+              Gera mercados direto da The Odds API e usa o motor EV para destacar
+              Mais de 2.5 gols e vitórias com vantagem positiva, ordenado por valor esperado.
             </p>
           </div>
         </div>
@@ -46,11 +45,11 @@ export default async function AdminMercadosPage() {
       ) : board.rows.length === 0 ? (
         <div className="space-y-2">
           <p className="rounded-xl border border-dashed border-stone-700 py-12 text-center text-stone-500">
-            Nenhum mercado com odds e tendências para hoje. Verifica as chaves API e as
-            ligas em MARKET_BOARD_SPORT_KEYS.
+            Nenhum mercado com odds para hoje. Verifica a chave da The Odds API e as
+            ligas configuradas em MARKET_BOARD_SPORT_KEYS.
           </p>
           <p className="text-center text-xs text-stone-600">
-            {board.meta.fixturesTotal} fixtures · {board.meta.fixturesMatched} cruzados
+            {board.meta.fixturesTotal} jogos com odds · {board.meta.fixturesMatched} processados
           </p>
         </div>
       ) : (

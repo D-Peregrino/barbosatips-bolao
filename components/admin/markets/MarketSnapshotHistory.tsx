@@ -10,6 +10,7 @@ import { ProbabilityBar } from "@/components/admin/markets/ProbabilityBar";
 import { BOARD_MARKET_LABELS } from "@/lib/betting/build-market-board";
 import type { MarketEvSnapshotRow } from "@/lib/betting/market-ev-snapshots";
 import type { EvTier } from "@/lib/betting/ev-engine";
+import { translateMarketName, translateStatus, translateTier } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 const TIERS: EvTier[] = ["elite", "forte", "moderado", "neutro", "negativo"];
@@ -59,6 +60,10 @@ export function MarketSnapshotHistory({
       .sort((a, b) => b.ev - a.ev);
   }, [rows, filters]);
 
+  const mercados = useMemo(() => {
+    return Array.from(new Set([...BOARD_MARKET_LABELS, ...rows.map((row) => row.mercado)]));
+  }, [rows]);
+
   return (
     <div className="space-y-6">
       <Link
@@ -93,7 +98,7 @@ export function MarketSnapshotHistory({
         </label>
         <label className="block min-w-[120px]">
           <span className="mb-1 block text-[10px] uppercase tracking-wider text-stone-500">
-            Tier
+            Nível
           </span>
           <select
             value={filters.tier}
@@ -103,7 +108,7 @@ export function MarketSnapshotHistory({
             <option value="">Todos</option>
             {TIERS.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {translateTier(t)}
               </option>
             ))}
           </select>
@@ -118,9 +123,9 @@ export function MarketSnapshotHistory({
             className="w-full rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-white"
           >
             <option value="">Todos</option>
-            {BOARD_MARKET_LABELS.map((m) => (
+            {mercados.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {translateMarketName(m)}
               </option>
             ))}
           </select>
@@ -142,12 +147,12 @@ export function MarketSnapshotHistory({
             ))}
           </select>
         </label>
-        <p className="ml-auto text-sm text-stone-500">{filtered.length} registos</p>
+        <p className="ml-auto text-sm text-stone-500">{filtered.length} registros</p>
       </div>
 
       {filtered.length === 0 ? (
         <p className="rounded-xl border border-dashed border-stone-700 py-16 text-center text-stone-500">
-          Nenhum snapshot encontrado com estes filtros.
+          Nenhum registro encontrado com estes filtros.
         </p>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-gold-400/12 bg-[#0c0b09]/90">
@@ -161,9 +166,9 @@ export function MarketSnapshotHistory({
                   <th className="px-4 py-3">Mercado</th>
                   <th className="px-4 py-3 text-right">Odd</th>
                   <th className="min-w-[130px] px-4 py-3">Prob.</th>
-                  <th className="px-4 py-3 text-right">Edge</th>
+                  <th className="px-4 py-3 text-right">Vantagem</th>
                   <th className="px-4 py-3 text-right">EV</th>
-                  <th className="px-4 py-3">Tier</th>
+                  <th className="px-4 py-3">Nível</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-800/60">
@@ -176,7 +181,7 @@ export function MarketSnapshotHistory({
                       <p className="font-medium text-white">{row.jogo}</p>
                       {row.kickoff_at && (
                         <p className="text-xs text-stone-600">
-                          Kickoff{" "}
+                          {translateStatus("Kickoff")}{" "}
                           {format(new Date(row.kickoff_at), "dd MMM HH:mm", { locale: ptBR })}
                         </p>
                       )}
@@ -184,7 +189,7 @@ export function MarketSnapshotHistory({
                     <td className="px-4 py-3 text-stone-300">{row.campeonato}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-md bg-stone-800/80 px-2 py-1 text-xs text-gold-200/90">
-                        {row.mercado}
+                        {translateMarketName(row.mercado)}
                       </span>
                       {row.bookmaker && (
                         <p className="mt-1 text-[10px] text-stone-600">{row.bookmaker}</p>

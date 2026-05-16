@@ -46,10 +46,10 @@ export function MarketBoardClient({ rows, meta, snapshotSummary }: Props) {
         <span>Data: {meta.date}</span>
         <span>·</span>
         <span>
-          {meta.fixturesMatched}/{meta.fixturesTotal} jogos cruzados
+          {meta.fixturesMatched}/{meta.fixturesTotal} jogos com odds
         </span>
         <span>·</span>
-        <span>{meta.oddsEventsTotal} eventos odds</span>
+        <span>{meta.oddsEventsTotal} eventos com odds</span>
         <span>·</span>
         <span>Top {rows.length} por EV</span>
       </div>

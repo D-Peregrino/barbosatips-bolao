@@ -36,9 +36,9 @@ export default async function AdminMercadosResultadosPage() {
               Resultados EV+
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-400">
-              Liquida snapshots guardados com o resultado final da API-Football (Over 2.5,
-              vitória casa/fora; BTTS apenas em histórico anterior). Lucro unitário stake 1; yield = lucro médio por aposta
-              (%).
+              Liquida registros salvos com o resultado final da API-Football
+              (Mais de 2.5 gols, Vitória Casa e Vitória Visitante). Lucro unitário com aposta 1;
+              rendimento = lucro médio por aposta (%).
             </p>
           </div>
         </div>

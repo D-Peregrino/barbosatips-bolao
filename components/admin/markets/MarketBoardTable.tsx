@@ -6,6 +6,7 @@ import { EVBadge } from "@/components/admin/markets/EVBadge";
 import { ProbabilityBar } from "@/components/admin/markets/ProbabilityBar";
 import { buildMarketAnalysisHref } from "@/lib/betting/build-market-board";
 import type { MarketBoardRow } from "@/lib/betting/build-market-board";
+import { translateMarketName } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -44,9 +45,9 @@ export function MarketBoardTable({ rows, className }: Props) {
               <th className="px-4 py-3">Mercado</th>
               <th className="px-4 py-3 text-right">Odd</th>
               <th className="min-w-[140px] px-4 py-3">Probabilidades</th>
-              <th className="px-4 py-3 text-right">Edge</th>
+              <th className="px-4 py-3 text-right">Vantagem</th>
               <th className="px-4 py-3 text-right">EV</th>
-              <th className="px-4 py-3">Tier</th>
+              <th className="px-4 py-3">Nível</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -66,7 +67,7 @@ export function MarketBoardTable({ rows, className }: Props) {
                 </td>
                 <td className="px-4 py-3">
                   <span className="rounded-md bg-stone-800/80 px-2 py-1 text-xs font-medium text-gold-200/90 ring-1 ring-stone-700/80">
-                    {row.marketLabel}
+                    {translateMarketName(row.marketLabel)}
                   </span>
                   {row.bookmaker && (
                     <p className="mt-1 text-[10px] text-stone-600">{row.bookmaker}</p>

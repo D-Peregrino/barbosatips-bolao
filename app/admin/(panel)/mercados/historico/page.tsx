@@ -37,10 +37,10 @@ export default async function AdminMercadosHistoricoPage() {
           <History className="mt-1 h-6 w-6 shrink-0 text-gold-300" aria-hidden />
           <div>
             <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">
-              Histórico de snapshots EV+
+              Histórico de registros EV+
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-400">
-              Mercados guardados no Supabase — filtra por data, tier, mercado ou campeonato.
+              Mercados salvos no Supabase. Filtra por data, nível, mercado ou campeonato.
               Ordenação por EV decrescente.
             </p>
           </div>
@@ -49,7 +49,7 @@ export default async function AdminMercadosHistoricoPage() {
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-stone-700 py-16 text-center text-stone-500">
-          Ainda não há snapshots. Volta à central EV+ e clica em &quot;Salvar snapshot&quot;.
+          Ainda não há registros. Volta à central EV+ e clica em &quot;Salvar registro&quot;.
         </p>
       ) : (
         <MarketSnapshotHistory

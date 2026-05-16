@@ -35,6 +35,7 @@ export function settleEvMarket(
 
   switch (mercado) {
     case "Over 2.5":
+    case "Mais de 2.5 gols":
       green = h + a > 2;
       resultado = green ? "over" : "under";
       break;
@@ -43,12 +44,14 @@ export function settleEvMarket(
       resultado = green ? "btts_sim" : "btts_nao";
       break;
     case "Home Win":
+    case "Vitória Casa":
       green = h > a;
       if (h > a) resultado = "home_win";
       else if (h === a) resultado = "draw";
       else resultado = "away_win";
       break;
     case "Away Win":
+    case "Vitória Visitante":
       green = a > h;
       if (a > h) resultado = "away_win";
       else if (h === a) resultado = "draw";

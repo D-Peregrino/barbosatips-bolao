@@ -37,7 +37,7 @@ export function MarketSnapshotToolbar({ summary }: Props) {
         snapshotDate: result.snapshotDate,
       }));
       const parts = [
-        `${result.inserted} mercado${result.inserted === 1 ? "" : "s"} guardado${result.inserted === 1 ? "" : "s"}`,
+        `${result.inserted} mercado${result.inserted === 1 ? "" : "s"} salvo${result.inserted === 1 ? "" : "s"}`,
       ];
       if (result.skipped > 0) {
         parts.push(`${result.skipped} ignorado${result.skipped === 1 ? "" : "s"} (já existiam hoje)`);
@@ -50,7 +50,7 @@ export function MarketSnapshotToolbar({ summary }: Props) {
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gold-400/12 bg-[#0c0b09]/80 p-4">
       <div className="space-y-1 text-sm">
         <p className="text-stone-400">
-          Último snapshot:{" "}
+          Último registro:{" "}
           <span className="font-medium text-gold-200/90">{lastLabel}</span>
         </p>
         <p className="text-xs text-stone-500">
@@ -82,7 +82,7 @@ export function MarketSnapshotToolbar({ summary }: Props) {
           ) : (
             <Save className="h-4 w-4" aria-hidden />
           )}
-          Salvar snapshot
+          Salvar registro
         </button>
       </div>
     </div>

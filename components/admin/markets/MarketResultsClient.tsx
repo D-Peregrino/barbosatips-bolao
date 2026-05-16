@@ -17,6 +17,7 @@ import {
 import { Loader2, RefreshCw } from "lucide-react";
 import { refreshMarketEvResultsAction } from "@/app/admin/(panel)/mercados/resultados/actions";
 import type { MarketEvDashboardData } from "@/lib/betting/market-ev-results";
+import { translateMarketName, translateTier } from "@/lib/i18n/market-ptbr";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -66,6 +67,10 @@ export function MarketResultsClient({ dashboard }: Props) {
 
   const { totals, roi7d, roi30d, roiByMercado, roiByTier, cumulative, distributionMercado } =
     dashboard;
+  const distributionMercadoPt = distributionMercado.map((row) => ({
+    ...row,
+    mercado: translateMarketName(row.mercado),
+  }));
 
   const handleRefresh = () => {
     setMsg(null);
@@ -90,7 +95,7 @@ export function MarketResultsClient({ dashboard }: Props) {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gold-400/12 bg-[#0c0b09]/80 p-4">
         <p className="text-sm text-stone-400">
-          Até 100 snapshots pendentes por execução. Requer jogos finalizados na API-Football.
+          Até 100 registros pendentes por execução. Requer jogos finalizados na API-Football.
         </p>
         <button
           type="button"
@@ -119,9 +124,9 @@ export function MarketResultsClient({ dashboard }: Props) {
           value={totals.totalLucro >= 0 ? `+${totals.totalLucro}` : String(totals.totalLucro)}
           sub={`${totals.totalBets} apostas`}
         />
-        <StatCard title="Yield" value={`${totals.yieldPct.toFixed(2)}%`} sub="Lucro médio / aposta" />
+        <StatCard title="Rendimento" value={`${totals.yieldPct.toFixed(2)}%`} sub="Lucro médio / aposta" />
         <StatCard
-          title="Greens / Reds"
+          title="Acertos / Erros"
           value={`${totals.greens} / ${totals.reds}`}
           sub={
             totals.totalBets > 0
@@ -129,7 +134,7 @@ export function MarketResultsClient({ dashboard }: Props) {
               : undefined
           }
         />
-        <StatCard title="ROI 7d / 30d" value={`${roi7d.toFixed(2)}%`} sub={`30d: ${roi30d.toFixed(2)}% yield`} />
+        <StatCard title="ROI 7d / 30d" value={`${roi7d.toFixed(2)}%`} sub={`30d: ${roi30d.toFixed(2)}% rendimento`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -146,9 +151,9 @@ export function MarketResultsClient({ dashboard }: Props) {
                   key={row.mercado}
                   className="flex justify-between border-b border-stone-800/80 py-2 text-stone-300"
                 >
-                  <span>{row.mercado}</span>
+                  <span>{translateMarketName(row.mercado)}</span>
                   <span className="tabular-nums text-gold-200/90">
-                    {row.yieldPct.toFixed(2)}% · {row.bets} n
+                    {row.yieldPct.toFixed(2)}% · {row.bets} apostas
                   </span>
                 </li>
               ))
@@ -158,7 +163,7 @@ export function MarketResultsClient({ dashboard }: Props) {
 
         <section className="rounded-2xl border border-gold-400/12 bg-[#0c0b09]/90 p-5">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold-400/90">
-            ROI por tier (snapshot)
+            ROI por nível
           </h2>
           <ul className="mt-4 space-y-2 text-sm">
             {roiByTier.length === 0 ? (
@@ -169,9 +174,9 @@ export function MarketResultsClient({ dashboard }: Props) {
                   key={row.tier}
                   className="flex justify-between border-b border-stone-800/80 py-2 text-stone-300"
                 >
-                  <span className="capitalize">{row.tier}</span>
+                  <span>{translateTier(row.tier)}</span>
                   <span className="tabular-nums text-gold-200/90">
-                    {row.yieldPct.toFixed(2)}% · {row.bets} n
+                    {row.yieldPct.toFixed(2)}% · {row.bets} apostas
                   </span>
                 </li>
               ))
@@ -212,14 +217,14 @@ export function MarketResultsClient({ dashboard }: Props) {
             </h2>
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={distributionMercado} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                <BarChart data={distributionMercadoPt} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#292524" />
                   <XAxis dataKey="mercado" tick={{ fill: "#78716c", fontSize: 10 }} />
                   <YAxis allowDecimals={false} tick={{ fill: "#78716c", fontSize: 10 }} />
                   <Tooltip contentStyle={chartTooltipStyle} />
                   <Legend />
-                  <Bar dataKey="greens" name="Greens" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="reds" name="Reds" stackId="a" fill="#ef4444" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="greens" name="Acertos" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="reds" name="Erros" stackId="a" fill="#ef4444" radius={[0, 0, 4, 4]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -228,8 +233,8 @@ export function MarketResultsClient({ dashboard }: Props) {
       ) : (
         <p className="rounded-xl border border-dashed border-stone-700 py-12 text-center text-sm text-stone-500">
           {mounted
-            ? "Ainda não há resultados liquidados. Guarda snapshots em Mercados EV+ e clica em Atualizar resultados."
-            : "A carregar gráficos…"}
+            ? "Ainda não há resultados liquidados. Salva registros em Mercados EV+ e clica em Atualizar resultados."
+            : "Carregando gráficos..."}
         </p>
       )}
     </div>

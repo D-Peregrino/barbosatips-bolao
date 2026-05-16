@@ -50,7 +50,15 @@ export type MarketEvDashboardData = {
 };
 
 const BATCH_LIMIT = 100;
-const SUPPORTED = new Set(["Over 2.5", "BTTS", "Home Win", "Away Win"]);
+const SUPPORTED = new Set([
+  "Over 2.5",
+  "Mais de 2.5 gols",
+  "BTTS",
+  "Home Win",
+  "Vitória Casa",
+  "Away Win",
+  "Vitória Visitante",
+]);
 
 async function listSnapshotsPendingSettlement(limit: number): Promise<MarketEvSnapshotRow[]> {
   const admin = createAdminClient();
