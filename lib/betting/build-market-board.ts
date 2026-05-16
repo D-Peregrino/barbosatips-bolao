@@ -224,15 +224,39 @@ function tryAddRow(
     });
   };
 
+  const trendsPayload =
+    realProbability != null && realProbability > 0 && realProbability < 100
+      ? marketLabel === "Over 2.5"
+        ? { source: "match_trends_pool", metric: "over25Pct", value: realProbability }
+        : {
+            source: "team_last_fixtures_form",
+            metric: "winRatePct",
+            value: realProbability,
+            side: marketLabel,
+          }
+      : null;
+
+  const logSkip = (reason: string, detail?: string) => {
+    console.warn("[EV SKIP]", marketLabel, reason, {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      probability: realProbability,
+      odd: quote?.odd ?? null,
+      trends: trendsPayload,
+      bookmaker: quote?.bookmaker ?? null,
+      detail: detail ?? null,
+    });
+    recordSkip(reason, detail);
+  };
+
   if (realProbability == null || realProbability <= 0 || realProbability >= 100) {
-    recordSkip(
+    logSkip(
       "probability_out_of_range_or_missing",
       `realProbability=${realProbability === null ? "null" : String(realProbability)}`,
     );
     return;
   }
   if (!quote || !isValidDecimalOdd(quote.odd)) {
-    recordSkip(
+    logSkip(
       "no_quote_or_invalid_odd",
       quote ? `odd=${String(quote.odd)}` : "quote=null",
     );
@@ -267,6 +291,16 @@ function tryAddRow(
       tier: insight.tier,
       bookmaker: quote.bookmaker,
     });
+
+    console.warn("[EV OK]", marketLabel, {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      probability: insight.realProbability,
+      odd: insight.marketOdd,
+      ev: insight.ev,
+      edge: insight.edge,
+      tier: insight.tier,
+    });
+
     if (
       pipelineRecorder &&
       pipelineRecorder.successes.length < pipelineRecorder.maxSuccesses
@@ -281,10 +315,16 @@ function tryAddRow(
       });
     }
   } catch (err) {
-    recordSkip(
-      "ev_engine_exception",
-      err instanceof Error ? err.message : String(err),
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[EV SKIP]", marketLabel, "ev_engine_exception", {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      probability: realProbability,
+      odd: quote?.odd ?? null,
+      trends: trendsPayload,
+      bookmaker: quote?.bookmaker ?? null,
+      error: msg,
+    });
+    recordSkip("ev_engine_exception", msg);
   }
 }
 
