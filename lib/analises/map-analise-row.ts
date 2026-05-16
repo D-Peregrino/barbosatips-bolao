@@ -18,27 +18,28 @@ function inferEsporteFromCategoria(categoria: string): string {
 }
 
 export const COLUNAS_ANALISE =
-  "id,slug,titulo,esporte,categoria,tags,campeonato,time_casa,time_fora,odd,confianca,resumo,conteudo,imagem_capa,status,is_premium,created_at,stat_blocks,destaque_home,destaque_principal,prioridade" as const;
+  "id,titulo,slug,resumo,conteudo,status,created_at,campeonato,tag,confianca,odd,mercado,data_jogo,imagem_url" as const;
 
 export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
   const isPremium = parseBoolCol(r.is_premium);
 
   let esporte = String(r.esporte ?? "").trim().toLowerCase();
   if (!esporte || !SPORT_SLUG_SET.has(esporte)) {
-    esporte = inferEsporteFromCategoria(String(r.categoria ?? ""));
+    esporte = inferEsporteFromCategoria(String(r.categoria ?? r.tag ?? ""));
   }
   if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
 
   const destaquePrincipal = parseBoolCol(r.destaque_principal);
   const destaqueHome = parseBoolCol(r.destaque_home) || destaquePrincipal;
+  const tag = String(r.tag ?? r.tags ?? r.categoria ?? "");
 
   return {
     id: String(r.id ?? ""),
     slug: String(r.slug ?? ""),
     titulo: String(r.titulo ?? ""),
     esporte,
-    categoria: String(r.categoria ?? ""),
-    tags: String(r.tags ?? ""),
+    categoria: String(r.categoria ?? tag),
+    tags: tag,
     campeonato: String(r.campeonato ?? ""),
     time_casa: String(r.time_casa ?? ""),
     time_fora: String(r.time_fora ?? ""),
@@ -46,7 +47,7 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
     confianca: Number(r.confianca ?? 0),
     resumo: String(r.resumo ?? ""),
     conteudo: String(r.conteudo ?? ""),
-    imagem_capa: String(r.imagem_capa ?? ""),
+    imagem_capa: String(r.imagem_capa ?? r.imagem_url ?? ""),
     status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),

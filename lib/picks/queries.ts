@@ -4,7 +4,7 @@ import type { QuickPickRow, QuickPickResultado, QuickPickStatus } from "@/lib/pi
 import { textoMatchesLiga } from "@/lib/sport-routes";
 
 const COLUNAS =
-  "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,is_premium,created_at,resolved_at,placar_final,observacao_resultado" as const;
+  "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,created_at" as const;
 
 const COLUNAS_SITEMAP = "id,horario_jogo,created_at" as const;
 
@@ -119,25 +119,7 @@ export async function listarQuickPicks(soGratis = false): Promise<QuickPickRow[]
 
 export async function listarQuickPicksPremium(limit: number): Promise<QuickPickRow[]> {
   if (shouldSkipLiveSupabase() || limit <= 0) return [];
-  try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("quick_picks")
-      .select(COLUNAS)
-      .eq("is_premium", true)
-      .order("horario_jogo", { ascending: false })
-      .limit(Math.min(limit * 3, 120));
-
-    if (error) {
-      console.error("quick_picks listarPremium", error);
-      return [];
-    }
-
-    return (data ?? []).map((row) => mapRow(row as Record<string, unknown>)).slice(0, limit);
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
+  return [];
 }
 
 const PERF_LIMIT = 2500;

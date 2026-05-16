@@ -66,68 +66,18 @@ export async function listarAnalisesPremiumPublicadas(
   limit: number,
 ): Promise<AnaliseRow[]> {
   if (shouldSkipLiveSupabase() || limit <= 0) return [];
-  try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("analises")
-      .select(COLUNAS)
-      .eq("is_premium", true)
-      .order("created_at", { ascending: false })
-      .limit(Math.min(limit * 4, 200));
-
-    if (error) {
-      console.error("analises listarPremium", error);
-      return [];
-    }
-
-    return (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado(
-          (row as Record<string, unknown>).status,
-        ),
-      )
-      .map((row) => mapRow(row as Record<string, unknown>))
-      .slice(0, limit);
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
+  return [];
 }
 
 /**
- * Análises com destaque editorial na home (`destaque_home` ou `destaque_principal`).
- * Ordenadas por `prioridade` desc e `created_at` desc.
+ * Destaques editoriais dependiam de colunas opcionais que podem não existir no Supabase.
+ * Mantém fallback seguro para não quebrar a home nem /analises.
  */
 export async function listarAnalisesDestaqueHomePublicadas(
   soGratis = false,
 ): Promise<AnaliseRow[]> {
-  if (shouldSkipLiveSupabase()) return [];
-  try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("analises")
-      .select(COLUNAS)
-      .or("destaque_home.eq.true,destaque_principal.eq.true")
-      .order("prioridade", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(80);
-
-    if (error) {
-      console.error("analises listarDestaqueHome", error);
-      return [];
-    }
-
-    const mapped = (data ?? [])
-      .filter((row) =>
-        statusPublicadoNormalizado((row as Record<string, unknown>).status),
-      )
-      .map((row) => mapRow(row as Record<string, unknown>));
-
-    return ordenarPorPrioridadeDestaque(aplicarFiltroGratis(mapped, soGratis));
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
+  const rows = await listarUltimasAnalisesPublicadas(12, soGratis);
+  return ordenarPorPrioridadeDestaque(rows);
 }
 
 /**
@@ -182,7 +132,6 @@ export async function listarAnalisesPublicadasPorEsporte(
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS)
-      .eq("esporte", slug)
       .order("created_at", { ascending: false })
       .limit(500);
 
@@ -199,7 +148,7 @@ export async function listarAnalisesPublicadasPorEsporte(
       )
       .map((row) => mapRow(row as Record<string, unknown>));
 
-    return aplicarFiltroGratis(mapped, soGratis);
+    return aplicarFiltroGratis(mapped, soGratis).filter((row) => row.esporte === slug);
   } catch (e) {
     console.error(e);
     return [];

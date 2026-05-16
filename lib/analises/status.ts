@@ -1,4 +1,5 @@
-/** Reconhece publicado com qualquer capitalização ou espaços extra. */
+/** Reconhece status publicado nos schemas editorial novo e legado. */
 export function statusPublicadoNormalizado(status: unknown): boolean {
-  return String(status ?? "").toLowerCase().trim() === "publicado";
+  const s = String(status ?? "").toLowerCase().trim();
+  return s === "publicado" || s === "published";
 }
