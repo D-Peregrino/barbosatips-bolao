@@ -195,6 +195,7 @@ function tryAddRow(
     marketLabel: BoardMarketLabel;
     realProbability: number | null;
     quote: BestQuote | null;
+    probabilityRejectReason?: string;
   },
   pipelineRecorder?: {
     skips: PipelineTrySkip[];
@@ -202,8 +203,9 @@ function tryAddRow(
     maxSkips: number;
     maxSuccesses: number;
   },
-) {
-  const { fixture, oddsEvent, marketLabel, realProbability, quote } = params;
+): boolean {
+  const { fixture, oddsEvent, marketLabel, realProbability, quote, probabilityRejectReason } =
+    params;
   const recordSkip = (reason: string, detail?: string) => {
     if (!pipelineRecorder || pipelineRecorder.skips.length >= pipelineRecorder.maxSkips) return;
     pipelineRecorder.skips.push({
@@ -228,7 +230,9 @@ function tryAddRow(
       : null;
 
   const logSkip = (reason: string, detail?: string) => {
-    console.warn("[EV SKIP]", marketLabel, reason, {
+    console.warn("[EV REJECT]", {
+      market: marketLabel,
+      reason,
       fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
       probability: realProbability,
       odd: quote?.odd ?? null,
@@ -240,18 +244,19 @@ function tryAddRow(
   };
 
   if (realProbability == null || realProbability <= 0 || realProbability >= 100) {
+    const reason = probabilityRejectReason ?? "probability_out_of_range_or_missing";
     logSkip(
-      "probability_out_of_range_or_missing",
+      reason,
       `realProbability=${realProbability === null ? "null" : String(realProbability)}`,
     );
-    return;
+    return false;
   }
   if (!quote || !isValidDecimalOdd(quote.odd)) {
     logSkip(
       "no_quote_or_invalid_odd",
       quote ? `odd=${String(quote.odd)}` : "quote=null",
     );
-    return;
+    return false;
   }
 
   try {
@@ -305,9 +310,12 @@ function tryAddRow(
         tier: insight.tier,
       });
     }
+    return true;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[EV SKIP]", marketLabel, "ev_engine_exception", {
+    console.warn("[EV REJECT]", {
+      market: marketLabel,
+      reason: "ev_engine_exception",
       fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
       probability: realProbability,
       odd: quote?.odd ?? null,
@@ -316,6 +324,7 @@ function tryAddRow(
       error: msg,
     });
     recordSkip("ev_engine_exception", msg);
+    return false;
   }
 }
 
@@ -452,6 +461,15 @@ export async function buildMarketBoard(options?: {
     const trendData = await loadTrendsForFixture(fixture);
     if (!trendData) {
       fixturesOddsButNoTrends += 1;
+      console.warn("[EV REJECT]", {
+        market: "all",
+        reason: "trends_missing",
+        fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+        probability: null,
+        odd: null,
+        homeTeamId: fixture.homeTeamId ?? null,
+        awayTeamId: fixture.awayTeamId ?? null,
+      });
       if (pipelineDebug && noTrendsSamples.length < 5) {
         noTrendsSamples.push(
           `no_trends #${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} | homeId=${fixture.homeTeamId ?? "null"} awayId=${fixture.awayTeamId ?? "null"}`,
@@ -474,6 +492,8 @@ export async function buildMarketBoard(options?: {
         marketLabel: "Over 2.5",
         realProbability: trends.sampleSize > 0 ? trends.over25Pct : null,
         quote: collectOver25(oddsEvent),
+        probabilityRejectReason:
+          trends.sampleSize > 0 ? undefined : "sample_size_zero",
       },
       pipelineRecorder,
     );
@@ -557,6 +577,11 @@ export async function buildMarketBoard(options?: {
   const limited = sorted.slice(0, limit);
 
   console.warn("[EV PIPELINE] rows finais", rows.length);
+  console.warn("[EV PIPELINE]", {
+    fixturesTotal: fixturesResult.fixtures.length,
+    fixturesMatched: matched,
+    rowsGenerated: rows.length,
+  });
 
   return {
     ok: true,
