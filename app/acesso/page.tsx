@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Crown, LockKeyhole, ShoppingBag, Trophy } from "lucide-react";
+import { Crown, LockKeyhole, ShoppingBag, Trophy, UserRound } from "lucide-react";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
 
@@ -56,6 +56,13 @@ export default function AcessoPage() {
             VIP, Bolão, Lojinha e Admin são produtos e permissões separadas. Uma
             compra não libera automaticamente outra área.
           </p>
+          <Link
+            href="/login?next=/acesso"
+            className="mt-6 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gold-400/35 bg-gold-400/[0.08] px-5 text-sm font-bold text-gold-100 transition hover:border-gold-300/55 hover:bg-gold-400/14"
+          >
+            <UserRound className="h-4 w-4" aria-hidden />
+            Já tenho acesso / Entrar na minha conta
+          </Link>
         </header>
 
         <section className="grid gap-5 md:grid-cols-2">

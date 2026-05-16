@@ -7,10 +7,13 @@ import { BrandShield } from "@/components/brand/BrandShield";
 import { useAuth } from "@/hooks/useAuth";
 
 function LoginForm() {
-  const { signInWithGoogle, loading } = useAuth();
+  const { signInWithEmail, signInWithGoogle, loading } = useAuth();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/meu-feed";
+  const redirect = searchParams.get("next") || searchParams.get("redirect") || "/acesso";
+  const [email, setEmail] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-md flex-col justify-center px-4 py-16">
@@ -18,9 +21,63 @@ function LoginForm() {
         <BrandShield size="md" className="mx-auto" glow="soft" />
         <h1 className="mt-6 font-display text-2xl font-bold text-white">Entrar na BarbosaTips</h1>
         <p className="mt-2 text-sm text-zinc-500">
-          Usa a tua conta Google para favoritos, feed personalizado e notificações.
+          Use seu e-mail para acessar VIP Premium, Bolão, Lojinha e recursos da sua conta.
         </p>
+        {sent ? (
+          <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">
+            Enviamos um link de acesso para o seu e-mail. Abra o link neste navegador
+            para concluir o login.
+          </p>
+        ) : null}
         {err ? <p className="mt-4 text-sm text-rose-300">{err}</p> : null}
+        <form
+          className="mt-8 space-y-3 text-left"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setErr(null);
+            setSent(false);
+            const cleanEmail = email.trim().toLowerCase();
+            if (!cleanEmail || !cleanEmail.includes("@")) {
+              setErr("Informe um e-mail válido.");
+              return;
+            }
+            setSending(true);
+            try {
+              await signInWithEmail(cleanEmail, redirect);
+              setSent(true);
+            } catch {
+              setErr("Não foi possível enviar o link de acesso. Tente novamente.");
+            } finally {
+              setSending(false);
+            }
+          }}
+        >
+          <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            E-mail da sua compra ou conta
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            placeholder="voce@email.com"
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-gold-400/55"
+          />
+          <button
+            type="submit"
+            disabled={loading || sending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 py-3 text-sm font-bold text-pitch-950 transition hover:brightness-105 disabled:opacity-50"
+          >
+            {sending ? "Enviando..." : "Receber link de acesso"}
+          </button>
+        </form>
+        <div className="my-6 flex items-center gap-3">
+          <span className="h-px flex-1 bg-white/10" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">
+            ou
+          </span>
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
         <button
           type="button"
           disabled={loading}
@@ -36,7 +93,7 @@ function LoginForm() {
           Continuar com Google
         </button>
         <p className="mt-4 text-[11px] text-zinc-600">
-          Após entrar serás redirecionado para{" "}
+          Após entrar você será redirecionado para{" "}
           <span className="text-zinc-400">{redirect}</span>
         </p>
         <Link href="/" className="mt-6 inline-block text-xs font-semibold text-gold-300 hover:underline">

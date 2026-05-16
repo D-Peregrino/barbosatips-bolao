@@ -4,8 +4,7 @@ import { cookies } from "next/headers";
 import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect";
 
 /**
- * OAuth Google — troca de código por sessão (Supabase).
- * Não altera o hook `useAuth`; apenas completa o redirect configurado lá.
+ * Supabase Auth — troca de código OAuth/magic link por sessão em cookie.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -13,7 +12,7 @@ export async function GET(request: Request) {
   const next = sanitizeInternalRedirect(
     url.searchParams.get("next"),
     url.origin,
-    "/meu-feed",
+    "/acesso",
   );
 
   if (!code) {

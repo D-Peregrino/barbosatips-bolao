@@ -15,6 +15,7 @@ interface AuthState {
   isTipster:          boolean;
   signOut:            () => Promise<void>;
   signInWithGoogle:   (nextPath?: string) => Promise<void>;
+  signInWithEmail:    (email: string, nextPath?: string) => Promise<void>;
 }
 
 export function useAuth(): AuthState {
@@ -99,7 +100,7 @@ export function useAuth(): AuthState {
       const next = sanitizeInternalRedirect(
         nextPath,
         window.location.origin,
-        "/meu-feed",
+        "/acesso",
       );
       console.warn("[SUPABASE BROWSER AUTH DEBUG]", {
         stage: "signInWithGoogle",
@@ -116,6 +117,33 @@ export function useAuth(): AuthState {
     [supabase],
   );
 
+  const signInWithEmail = useCallback(
+    async (email: string, nextPath?: string) => {
+      if (!supabase) return;
+      const next = sanitizeInternalRedirect(
+        nextPath,
+        window.location.origin,
+        "/acesso",
+      );
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      console.warn("[SUPABASE BROWSER AUTH DEBUG]", {
+        stage: "signInWithEmail",
+        email,
+        next,
+        emailRedirectTo,
+      });
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo,
+          shouldCreateUser: true,
+        },
+      });
+      if (error) throw error;
+    },
+    [supabase],
+  );
+
   return {
     user,
     profile,
@@ -124,5 +152,6 @@ export function useAuth(): AuthState {
     isTipster: profile?.role === "tipster" || profile?.role === "admin",
     signOut,
     signInWithGoogle,
+    signInWithEmail,
   };
 }

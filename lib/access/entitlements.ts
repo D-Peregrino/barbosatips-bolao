@@ -200,7 +200,10 @@ export async function grantEntitlementByEmail(params: {
     const admin = createAdminClient();
     const authUser = await findAuthUserByEmail(email);
     if (!authUser?.id) {
-      return { ok: false, error: "Usuário não encontrado no Supabase Auth." };
+      return {
+        ok: false,
+        error: "Usuário ainda não criou login. Peça para ele entrar pelo /login primeiro.",
+      };
     }
 
     const expiresAt = params.expiresAt?.trim() ? new Date(params.expiresAt).toISOString() : null;

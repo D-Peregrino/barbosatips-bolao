@@ -217,7 +217,15 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.some((r) => path.startsWith(r));
   if (isAuthRoute && user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
+    const target = sanitizeInternalRedirect(
+      request.nextUrl.searchParams.get("next") ?? request.nextUrl.searchParams.get("redirect"),
+      request.nextUrl.origin,
+      "/acesso",
+    );
+    const targetUrl = new URL(target, request.nextUrl.origin);
+    redirectUrl.pathname = targetUrl.pathname;
+    redirectUrl.search = targetUrl.search;
+    redirectUrl.hash = targetUrl.hash;
     return redirectPreservingSupabaseCookies(request, redirectUrl, getResponse());
   }
 
