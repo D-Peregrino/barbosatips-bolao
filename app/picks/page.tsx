@@ -15,6 +15,7 @@ import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { getCurrentUser, isPremiumUser } from "@/lib/access/permissions";
 
+export const dynamic = "force-dynamic";
 export const revalidate = siteConfig.revalidate.picks;
 
 export async function generateMetadata(): Promise<Metadata> {

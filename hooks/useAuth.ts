@@ -53,14 +53,28 @@ export function useAuth(): AuthState {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.warn("[SUPABASE BROWSER AUTH DEBUG]", {
+        stage: "getSession",
+        userId: session?.user.id ?? null,
+        email: session?.user.email ?? null,
+        error: error?.message ?? null,
+        expiresAt: session?.expires_at ?? null,
+      });
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        console.warn("[SUPABASE BROWSER AUTH DEBUG]", {
+          stage: "onAuthStateChange",
+          event,
+          userId: session?.user.id ?? null,
+          email: session?.user.email ?? null,
+          expiresAt: session?.expires_at ?? null,
+        });
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
@@ -87,6 +101,11 @@ export function useAuth(): AuthState {
         window.location.origin,
         "/meu-feed",
       );
+      console.warn("[SUPABASE BROWSER AUTH DEBUG]", {
+        stage: "signInWithGoogle",
+        next,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      });
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

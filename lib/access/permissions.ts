@@ -3,6 +3,7 @@ import { STORE_PRODUCT_TO_ENTITLEMENT } from "@/lib/access/entitlement-types";
 import { fetchAdminProfileRole, isAdminDbRole } from "@/lib/admin/supabase-admin";
 import { userHasActiveEntitlement } from "@/lib/access/entitlements";
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
+import { cookies } from "next/headers";
 
 export type StoreProductId = "discord-ouvinte" | "bot-barbosa" | "discord-voz";
 
@@ -21,15 +22,36 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   try {
+    const cookieList = cookies().getAll();
+    console.warn("[PREMIUM AUTH COOKIES DEBUG]", {
+      cookies: cookieList.map((cookie) => ({
+        name: cookie.name,
+        length: cookie.value.length,
+      })),
+    });
+
     const supabase = createClient();
+    const sessionResult = await supabase.auth.getSession();
+    const sessionUser = sessionResult.data.session?.user ?? null;
+    console.warn("[PREMIUM AUTH SESSION DEBUG]", {
+      getSession: {
+        userId: sessionUser?.id ?? null,
+        email: sessionUser?.email ?? null,
+        error: sessionResult.error?.message ?? null,
+        expiresAt: sessionResult.data.session?.expires_at ?? null,
+      },
+    });
+
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
     console.warn("[PREMIUM AUTH DEBUG]", {
       stage: "getCurrentUser",
       userId: user?.id ?? null,
       email: user?.email ?? null,
+      error: userError?.message ?? null,
     });
 
     if (!user) return null;

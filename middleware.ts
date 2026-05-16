@@ -27,6 +27,41 @@ function isSignupPath(pathname: string): boolean {
   );
 }
 
+type MiddlewareSupabaseClient = ReturnType<typeof createSupabaseMiddlewareClient>["supabase"];
+
+async function getMiddlewareAuthUser(
+  supabase: MiddlewareSupabaseClient,
+  request: NextRequest,
+  stage: string,
+) {
+  const sessionResult = await supabase.auth.getSession();
+  const userResult = await supabase.auth.getUser();
+  const sessionUser = sessionResult.data.session?.user ?? null;
+  const authUser = userResult.data.user ?? null;
+
+  console.warn("[SUPABASE MIDDLEWARE AUTH DEBUG]", {
+    stage,
+    path: request.nextUrl.pathname,
+    cookies: request.cookies.getAll().map((cookie) => ({
+      name: cookie.name,
+      length: cookie.value.length,
+    })),
+    getSession: {
+      userId: sessionUser?.id ?? null,
+      email: sessionUser?.email ?? null,
+      error: sessionResult.error?.message ?? null,
+      expiresAt: sessionResult.data.session?.expires_at ?? null,
+    },
+    getUser: {
+      userId: authUser?.id ?? null,
+      email: authUser?.email ?? null,
+      error: userResult.error?.message ?? null,
+    },
+  });
+
+  return authUser;
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const returnPath = `${path}${request.nextUrl.search || ""}`;
@@ -84,9 +119,7 @@ export async function middleware(request: NextRequest) {
       return applyAdminSecurityHeaders(NextResponse.next());
     }
     const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getMiddlewareAuthUser(supabase, request, "admin_login");
     const res = getResponse();
     if (user) {
       const isAdmin = await isUserAdmin(supabase, user.id);
@@ -117,9 +150,7 @@ export async function middleware(request: NextRequest) {
       );
     }
     const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getMiddlewareAuthUser(supabase, request, "admin_panel");
     let res = getResponse();
 
     if (!user) {
@@ -170,9 +201,7 @@ export async function middleware(request: NextRequest) {
 
   const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getMiddlewareAuthUser(supabase, request, "default");
 
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {

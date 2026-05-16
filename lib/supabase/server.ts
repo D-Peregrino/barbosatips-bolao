@@ -10,6 +10,12 @@ export function createClient() {
   }
 
   const cookieStore = cookies();
+  console.warn("[SUPABASE SERVER CLIENT DEBUG]", {
+    cookies: cookieStore.getAll().map((cookie) => ({
+      name: cookie.name,
+      length: cookie.value.length,
+    })),
+  });
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
