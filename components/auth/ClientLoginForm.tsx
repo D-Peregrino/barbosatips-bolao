@@ -11,6 +11,7 @@ function LoginFormContent() {
   const { signInWithGoogle, loading } = useAuth();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("next") || searchParams.get("redirect") || "/acesso";
+  const callbackError = searchParams.get("erro");
   const [email, setEmail] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -27,6 +28,11 @@ function LoginFormContent() {
         {sent ? (
           <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">
             Link enviado para seu e-mail. Abra o link neste navegador para concluir o login.
+          </p>
+        ) : null}
+        {callbackError ? (
+          <p className="mt-4 rounded-xl border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+            Não foi possível concluir o login pelo link. Solicite um novo link de acesso.
           </p>
         ) : null}
         {err ? <p className="mt-4 text-sm text-rose-300">{err}</p> : null}
@@ -46,10 +52,12 @@ function LoginFormContent() {
             setSending(true);
             try {
               const supabase = createClient();
+              const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`;
+              console.log("[LOGIN] emailRedirectTo", emailRedirectTo);
               const { error } = await supabase.auth.signInWithOtp({
                 email: cleanEmail,
                 options: {
-                  emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
+                  emailRedirectTo,
                 },
               });
               if (error) throw error;

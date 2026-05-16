@@ -9,21 +9,21 @@ import { sanitizeInternalRedirect } from "@/lib/auth/sanitize-internal-redirect"
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
+  const type = url.searchParams.get("type");
   const next = sanitizeInternalRedirect(
     url.searchParams.get("next"),
     url.origin,
     "/acesso",
   );
 
-  if (!code) {
-    return NextResponse.redirect(new URL("/login?erro=oauth", url.origin));
-  }
-
   const cookieStore = cookies();
   const res = NextResponse.redirect(new URL(next, url.origin));
   console.warn("[SUPABASE CALLBACK DEBUG]", {
     stage: "start",
     hasCode: Boolean(code),
+    hasTokenHash: Boolean(tokenHash),
+    type,
     next,
     cookies: cookieStore.getAll().map((cookie) => ({
       name: cookie.name,
@@ -58,13 +58,27 @@ export async function GET(request: Request) {
     },
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (!code && !tokenHash) {
+    console.warn("[SUPABASE CALLBACK DEBUG]", {
+      stage: "missing_code",
+      next,
+    });
+    return NextResponse.redirect(new URL("/entrar?erro=callback", url.origin));
+  }
+
+  const { error } = code
+    ? await supabase.auth.exchangeCodeForSession(code)
+    : await supabase.auth.verifyOtp({
+        token_hash: tokenHash!,
+        type: type === "signup" ? "signup" : "magiclink",
+      });
+
   if (error) {
     console.warn("[SUPABASE CALLBACK DEBUG]", {
       stage: "exchange_error",
       error: error.message,
     });
-    return NextResponse.redirect(new URL(`/login?erro=${encodeURIComponent(error.message)}`, url.origin));
+    return NextResponse.redirect(new URL("/entrar?erro=callback", url.origin));
   }
 
   const sessionResult = await supabase.auth.getSession();
@@ -83,6 +97,10 @@ export async function GET(request: Request) {
       error: userResult.error?.message ?? null,
     },
   });
+
+  if (!userResult.data.user) {
+    return NextResponse.redirect(new URL("/entrar?erro=callback", url.origin));
+  }
 
   return res;
 }
