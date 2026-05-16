@@ -169,7 +169,7 @@ export function kickoffsWithinWindow(
   return d <= windowMs;
 }
 
-const PRIMARY_MIN = 0.45; // DEBUG: era 0.70; relaxado para isolar rejeições
+const PRIMARY_MIN = 0.45; // DEBUG: threshold “primary” (equiv. relaxado vs >= 0.78)
 const FALLBACK_MIN = 0.35; // DEBUG: alinhado com HARD para aceitar candidatos médios
 /** DEBUG: abaixo disto rejeita antes de fallback. */
 const HARD_REJECT = 0.34;
@@ -248,12 +248,24 @@ export function resolveOddsMatchForFixture(
   }
 
   if (scored.length === 0) {
-    const rejectReason = "no_odds_events_in_kickoff_window_12h_utc";
-    warnMatchDebug(fixture, events, scored, rejectReason);
+    console.warn("[MATCH DEBUG]", {
+      fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+      fixtureDate: fixture.dateIso,
+      totalOddsEvents: events.length,
+      top3: scored.slice(0, 3).map((x) => ({
+        score: x.score,
+        swapped: x.swapped,
+        msDiff: x.ms,
+        oddsHome: x.event.homeTeam,
+        oddsAway: x.event.awayTeam,
+        commence: x.event.commenceTime,
+      })),
+      rejectReason: "no_odds_events_in_kickoff_window_12h_utc",
+    });
     return {
       event: null,
       ranked: [],
-      rejectReason,
+      rejectReason: "no_odds_events_in_kickoff_window_12h_utc",
     };
   }
 
@@ -271,7 +283,7 @@ export function resolveOddsMatchForFixture(
   } else if (top.score >= PRIMARY_MIN) {
     event = top.event;
   } else if (top.score >= FALLBACK_MIN) {
-    // DEBUG: ambiguidade (2º candidato muito próximo) desativada — aceita sempre o top.
+    // DEBUG: lógica de ambiguidade / 2º candidato desativada — aceita sempre o top.
     event = top.event;
   } else {
     rejectReason = `best_score_below_fallback_min (${top.score.toFixed(3)} < ${FALLBACK_MIN})`;
@@ -384,15 +396,16 @@ export function formatMatchDebugNoEvent(
     .sort((a, b) => b.score - a.score || a.ms - b.ms);
 
   const best = ranked[0];
-  let reason = `melhor score=${best.score.toFixed(2)} (abaixo de ${FALLBACK_MIN})`;
-  if (best.score >= FALLBACK_MIN && ranked.length > 1) {
-    const sec = ranked[1];
-    const closeScore = sec.score >= best.score - 0.05;
-    const closeTime = Math.abs(best.ms - sec.ms) < 25 * 60 * 1000;
-    if (best.score < 0.72 && closeScore && closeTime) {
-      reason = `ambiguidade: score=${best.score.toFixed(2)} vs segundo=${sec.score.toFixed(2)} na mesma janela de tempo`;
-    }
-  }
+  const reason = `melhor score=${best.score.toFixed(2)} (abaixo de ${FALLBACK_MIN})`;
+  // DEBUG: ambiguidade / segundo candidato — comentado temporariamente
+  // if (best.score >= FALLBACK_MIN && ranked.length > 1) {
+  //   const sec = ranked[1];
+  //   const closeScore = sec.score >= best.score - 0.05;
+  //   const closeTime = Math.abs(best.ms - sec.ms) < 25 * 60 * 1000;
+  //   if (best.score < 0.72 && closeScore && closeTime) {
+  //     reason = `ambiguidade: score=${best.score.toFixed(2)} vs segundo=${sec.score.toFixed(2)} na mesma janela de tempo`;
+  //   }
+  // }
 
   lines.push(`[mercados-match] fixture: ${label} | sem match | ${reason}`);
   for (let i = 0; i < Math.min(maxEvents, ranked.length); i++) {
