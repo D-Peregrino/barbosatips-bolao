@@ -20,6 +20,8 @@ import {
 import { fetchSportOddsEvents, getOddsApiKey } from "@/services/the-odds-api";
 import type { OddsFixtureEvent } from "@/services/the-odds-api.types";
 
+console.warn("[EV PIPELINE] arquivo carregado");
+
 export const MARKET_BOARD_LIMIT = 30;
 
 export const BOARD_MARKET_LABELS = [
@@ -281,6 +283,7 @@ export async function buildMarketBoard(options?: {
   date?: string;
   limit?: number;
 }): Promise<MarketBoardResult> {
+  console.warn("[EV PIPELINE] buildMarketBoard iniciou");
   const date = options?.date ?? todayDateBrazil();
   const limit = options?.limit ?? MARKET_BOARD_LIMIT;
   const warnings: string[] = [];
@@ -297,6 +300,8 @@ export async function buildMarketBoard(options?: {
     return { ok: false, error: fixturesResult.error };
   }
 
+  console.warn("[EV PIPELINE] fixtures", fixturesResult.fixtures.length);
+
   const sportKeys = sportKeysFromEnv();
   const oddsResults = await Promise.all(sportKeys.map((key) => fetchSportOddsEvents(key)));
   const allOddsEvents: OddsFixtureEvent[] = [];
@@ -304,6 +309,8 @@ export async function buildMarketBoard(options?: {
     if (r.ok) allOddsEvents.push(...r.data);
     else warnings.push(`Odds ${r.error}`);
   }
+
+  console.warn("[EV PIPELINE] oddsEvents", allOddsEvents.length);
 
   if (allOddsEvents.length === 0) {
     return {
@@ -495,6 +502,8 @@ export async function buildMarketBoard(options?: {
 
   const sorted = rows.sort((a, b) => b.ev - a.ev);
   const limited = sorted.slice(0, limit);
+
+  console.warn("[EV PIPELINE] rows finais", rows.length);
 
   return {
     ok: true,
