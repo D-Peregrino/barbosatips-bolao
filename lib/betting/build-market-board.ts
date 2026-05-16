@@ -157,6 +157,7 @@ async function loadTrendsForFixture(fixture: FootballFixtureSummary) {
   const awayId = fixture.awayTeamId;
   if (!homeId || !awayId) return null;
 
+  console.warn("[EV AWAIT]", "loadTrends");
   const [homeLast, awayLast] = await Promise.all([
     fetchTeamLastFixtures(homeId, 5),
     fetchTeamLastFixtures(awayId, 5),
@@ -266,6 +267,7 @@ function tryAddRow(
   }
 
   try {
+    console.warn("[EV AWAIT]", "calculateEV");
     const insight = generateMarketInsight({
       marketLabel,
       realProbability,
@@ -361,6 +363,7 @@ export async function buildMarketBoard(options?: {
     return { ok: false, error: "ODDS_API_KEY ausente" };
   }
 
+  console.warn("[EV AWAIT]", "enrichFixture");
   const fixturesResult = await fetchFixturesByDate(date);
   if (!fixturesResult.ok) {
     return { ok: false, error: fixturesResult.error };
@@ -369,6 +372,7 @@ export async function buildMarketBoard(options?: {
   console.warn("[EV PIPELINE] fixtures", fixturesResult.fixtures.length);
 
   const sportKeys = sportKeysFromEnv();
+  console.warn("[EV AWAIT]", "fetchSportOddsEvents");
   const oddsResults = await Promise.all(sportKeys.map((key) => fetchSportOddsEvents(key)));
   const allOddsEvents: OddsFixtureEvent[] = [];
   for (const r of oddsResults) {
@@ -414,6 +418,9 @@ export async function buildMarketBoard(options?: {
 
   for (const fixture of fixturesResult.fixtures) {
     const oddsMatch = resolveOddsMatchForFixture(fixture, allOddsEvents);
+    try {
+    console.warn("[EV STEP 1] entrou bloco pos-match");
+
     if (!oddsMatch.event) {
       fixturesNoOddsMatch += 1;
       if (matchDebug && matchDebugLines < maxMatchDebugFixtures) {
@@ -427,6 +434,7 @@ export async function buildMarketBoard(options?: {
           `#${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} @ ${fixture.dateIso} → ${oddsMatch.rejectReason}`,
         );
       }
+      console.warn("[EV STEP 2] saiu bloco pos-match");
       continue;
     }
 
@@ -476,6 +484,7 @@ export async function buildMarketBoard(options?: {
     }
 
     console.warn("[EV STEP] antes trends", fixture.homeTeam, fixture.awayTeam);
+    console.warn("[EV AWAIT]", "loadTrends");
     const trendData = await loadTrendsForFixture(fixture);
     console.warn("[EV STEP] depois trends", {
       fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
@@ -497,6 +506,7 @@ export async function buildMarketBoard(options?: {
           `no_trends #${fixture.fixtureId} ${fixture.homeTeam} vs ${fixture.awayTeam} | homeId=${fixture.homeTeamId ?? "null"} awayId=${fixture.awayTeamId ?? "null"}`,
         );
       }
+      console.warn("[EV STEP 2] saiu bloco pos-match");
       continue;
     }
 
@@ -516,6 +526,7 @@ export async function buildMarketBoard(options?: {
       probability: over25Probability,
       oddsEvent,
     });
+    console.warn("[EV AWAIT]", "tryAddRow");
     tryAddRow(
       rows,
       {
@@ -536,6 +547,7 @@ export async function buildMarketBoard(options?: {
       probability: homeWinPct,
       oddsEvent,
     });
+    console.warn("[EV AWAIT]", "tryAddRow");
     tryAddRow(
       rows,
       {
@@ -554,6 +566,7 @@ export async function buildMarketBoard(options?: {
       probability: awayWinPct,
       oddsEvent,
     });
+    console.warn("[EV AWAIT]", "tryAddRow");
     tryAddRow(
       rows,
       {
@@ -565,6 +578,11 @@ export async function buildMarketBoard(options?: {
       },
       pipelineRecorder,
     );
+    console.warn("[EV STEP 2] saiu bloco pos-match");
+    } catch (err) {
+      console.error("[EV CRASH POS MATCH]", err);
+      continue;
+    }
   }
 
   warnings.push(
