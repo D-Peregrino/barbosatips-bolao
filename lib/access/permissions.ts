@@ -12,7 +12,13 @@ type CurrentUser = {
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  if (shouldSkipLiveSupabase()) return null;
+  if (shouldSkipLiveSupabase()) {
+    console.warn("[PREMIUM AUTH DEBUG]", {
+      stage: "getCurrentUser",
+      reason: "shouldSkipLiveSupabase",
+    });
+    return null;
+  }
 
   try {
     const supabase = createClient();
@@ -20,9 +26,19 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       data: { user },
     } = await supabase.auth.getUser();
 
+    console.warn("[PREMIUM AUTH DEBUG]", {
+      stage: "getCurrentUser",
+      userId: user?.id ?? null,
+      email: user?.email ?? null,
+    });
+
     if (!user) return null;
     return { id: user.id, email: user.email ?? null };
-  } catch {
+  } catch (error) {
+    console.warn("[PREMIUM AUTH DEBUG]", {
+      stage: "getCurrentUser",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -38,11 +54,33 @@ export async function isAdminUser(): Promise<boolean> {
 
 export async function isPremiumUser(userId?: string): Promise<boolean> {
   const id = userId?.trim();
-  if (id) return userHasActiveEntitlement(id, "vip_premium");
+  if (id) {
+    const result = await userHasActiveEntitlement(id, "vip_premium");
+    console.warn("[IS PREMIUM DEBUG]", {
+      source: "explicit_user_id",
+      userId: id,
+      premiumResult: result,
+    });
+    return result;
+  }
 
   const user = await getCurrentUser();
-  if (!user) return false;
-  return userHasActiveEntitlement(user.id, "vip_premium");
+  if (!user) {
+    console.warn("[IS PREMIUM DEBUG]", {
+      source: "session",
+      authUser: null,
+      premiumResult: false,
+    });
+    return false;
+  }
+
+  const result = await userHasActiveEntitlement(user.id, "vip_premium");
+  console.warn("[IS PREMIUM DEBUG]", {
+    source: "session",
+    authUser: user,
+    premiumResult: result,
+  });
+  return result;
 }
 
 export async function hasBolaoAccess(): Promise<boolean> {

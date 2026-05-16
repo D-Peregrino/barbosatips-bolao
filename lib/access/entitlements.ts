@@ -44,6 +44,39 @@ function isActiveEntitlement(row: Pick<UserEntitlementRow, "status" | "starts_at
   return true;
 }
 
+export function entitlementIsActive(
+  row: Pick<UserEntitlementRow, "status" | "starts_at" | "expires_at">,
+): boolean {
+  return isActiveEntitlement(row);
+}
+
+export async function listEntitlementsForUser(
+  userId: string,
+): Promise<UserEntitlementRow[]> {
+  if (shouldSkipLiveSupabase()) return [];
+  const id = userId.trim();
+  if (!id) return [];
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("user_entitlements")
+      .select("*")
+      .eq("user_id", id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("listEntitlementsForUser", error);
+      return [];
+    }
+
+    return (data ?? []) as UserEntitlementRow[];
+  } catch (error) {
+    console.error("listEntitlementsForUser", error);
+    return [];
+  }
+}
+
 export async function userHasActiveEntitlement(
   userId: string,
   entitlement: EntitlementId,
@@ -66,7 +99,21 @@ export async function userHasActiveEntitlement(
       return false;
     }
 
-    return ((data ?? []) as UserEntitlementRow[]).some(isActiveEntitlement);
+    const rows = (data ?? []) as UserEntitlementRow[];
+    const result = rows.some(isActiveEntitlement);
+    console.warn("[PREMIUM ENTITLEMENT DEBUG]", {
+      userId: id,
+      entitlement,
+      found: rows.length,
+      entitlements: rows.map((row) => ({
+        status: row.status,
+        starts_at: row.starts_at,
+        expires_at: row.expires_at,
+        active: isActiveEntitlement(row),
+      })),
+      result,
+    });
+    return result;
   } catch (error) {
     console.error("userHasActiveEntitlement", error);
     return false;
