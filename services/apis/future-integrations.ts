@@ -6,7 +6,7 @@ import type { SportsProviderId } from "@/services/apis/types";
  */
 export const FUTURE_SPORTS_ENV_KEYS: Record<Exclude<SportsProviderId, "mock">, readonly string[]> = {
   api_football: ["API_FOOTBALL_KEY", "API_FOOTBALL_HOST"],
-  the_odds_api: ["ODDS_API_KEY", "THE_ODDS_API_KEY"],
+  the_odds_api: ["ODDS_API_KEY"],
   sportradar: ["SPORTRADAR_API_KEY", "SPORTRADAR_PRODUCT"],
   betfair: ["BETFAIR_APP_KEY", "BETFAIR_SESSION_TOKEN"],
   sofascore_unofficial: ["SOFASCORE_UNOFFICIAL_BASE_URL", "SOFASCORE_UNOFFICIAL_COOKIE"],

@@ -20,7 +20,7 @@ function sportKeysFromEnv(): string[] {
   const raw = process.env.MARKET_BOARD_SPORT_KEYS?.trim();
   if (!raw) return DEFAULT_SPORT_KEYS;
   return raw
-    .split(",")
+    .split(/[,\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
 }
