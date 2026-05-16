@@ -169,10 +169,10 @@ export function kickoffsWithinWindow(
   return d <= windowMs;
 }
 
-const PRIMARY_MIN = 0.7;
-const FALLBACK_MIN = 0.5;
-/** Abaixo disto nunca entra em fallback (mantém abaixo de FALLBACK_MIN). */
-const HARD_REJECT = 0.47;
+const PRIMARY_MIN = 0.45; // DEBUG: era 0.70; relaxado para isolar rejeições
+const FALLBACK_MIN = 0.35; // DEBUG: alinhado com HARD para aceitar candidatos médios
+/** DEBUG: abaixo disto rejeita antes de fallback. */
+const HARD_REJECT = 0.34;
 
 export type OddsMatchScored = {
   event: OddsFixtureEvent;
@@ -188,6 +188,28 @@ export type ResolveOddsMatchResult = {
   /** Match aceite só pelo atalho score > 0.8 (validação de pipeline). */
   kickoffForcedAccept?: boolean;
 };
+
+function warnMatchDebug(
+  fixture: FootballFixtureSummary,
+  events: OddsFixtureEvent[],
+  scored: OddsMatchScored[],
+  rejectReason: string | null,
+): void {
+  console.warn("[MATCH DEBUG]", {
+    fixture: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
+    fixtureDate: fixture.dateIso,
+    totalOddsEvents: events.length,
+    top3: scored.slice(0, 3).map((x) => ({
+      score: x.score,
+      swapped: x.swapped,
+      msDiff: x.ms,
+      oddsHome: x.event.homeTeam,
+      oddsAway: x.event.awayTeam,
+      commence: x.event.commenceTime,
+    })),
+    rejectReason,
+  });
+}
 
 /**
  * Resolve o melhor evento Odds para um fixture, com ranking e motivo de rejeição.
@@ -226,10 +248,12 @@ export function resolveOddsMatchForFixture(
   }
 
   if (scored.length === 0) {
+    const rejectReason = "no_odds_events_in_kickoff_window_12h_utc";
+    warnMatchDebug(fixture, events, scored, rejectReason);
     return {
       event: null,
       ranked: [],
-      rejectReason: "no_odds_events_in_kickoff_window_12h_utc",
+      rejectReason,
     };
   }
 
@@ -247,18 +271,8 @@ export function resolveOddsMatchForFixture(
   } else if (top.score >= PRIMARY_MIN) {
     event = top.event;
   } else if (top.score >= FALLBACK_MIN) {
-    if (scored.length > 1) {
-      const sec = scored[1];
-      const closeScore = sec.score >= top.score - 0.05;
-      const closeTime = Math.abs(top.ms - sec.ms) < 25 * 60 * 1000;
-      if (top.score < 0.72 && closeScore && closeTime) {
-        rejectReason = "ambiguous_fallback_close_score_and_time";
-      } else {
-        event = top.event;
-      }
-    } else {
-      event = top.event;
-    }
+    // DEBUG: ambiguidade (2º candidato muito próximo) desativada — aceita sempre o top.
+    event = top.event;
   } else {
     rejectReason = `best_score_below_fallback_min (${top.score.toFixed(3)} < ${FALLBACK_MIN})`;
   }
@@ -268,6 +282,10 @@ export function resolveOddsMatchForFixture(
     event = top.event;
     rejectReason = "temp_forced_score_gt_0.8";
     kickoffForcedAccept = true;
+  }
+
+  if (!event && rejectReason) {
+    warnMatchDebug(fixture, events, scored, rejectReason);
   }
 
   return {
