@@ -11,7 +11,6 @@ import {
 type MercadoPagoPreferenceResponse = {
   id: string;
   init_point?: string;
-  sandbox_init_point?: string;
 };
 
 type MercadoPagoPaymentResponse = {
@@ -42,7 +41,14 @@ export type PaymentOrderRow = {
 
 function mercadoPagoToken(): string {
   const token = process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim();
+  console.log("[MP TOKEN PREFIX]", token?.slice(0, 12));
   if (!token) throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado.");
+  if (token.startsWith("TEST-")) {
+    throw new Error("MERCADO_PAGO_ACCESS_TOKEN está usando credencial de teste.");
+  }
+  if (!token.startsWith("APP_USR-")) {
+    throw new Error("MERCADO_PAGO_ACCESS_TOKEN deve ser uma credencial de produção APP_USR-.");
+  }
   return token;
 }
 
@@ -130,7 +136,7 @@ export async function createMercadoPagoPreference(params: {
 
   return {
     preferenceId: body.id,
-    initPoint: body.init_point ?? body.sandbox_init_point ?? "",
+    initPoint: body.init_point ?? "",
   };
 }
 
