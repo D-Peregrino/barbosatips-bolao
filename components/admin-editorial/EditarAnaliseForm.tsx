@@ -207,7 +207,6 @@ export function EditarAnaliseForm({ initial }: Props) {
           </label>
           <input
             id="odd"
-            name="odd"
             type="text"
             inputMode="decimal"
             className={input}

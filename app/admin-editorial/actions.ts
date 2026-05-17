@@ -13,6 +13,7 @@ import { conteudoEditorialParaGravacao } from "@/lib/analises/sanitize-html";
 import { siteConfig } from "@/config/site";
 import { getLeaguesForSport } from "@/lib/sport-routes";
 import { normalizarSlugEditorial } from "@/lib/admin-editorial/normalizar-slug";
+import { sanitizeAnalisePayload } from "@/lib/admin-editorial/analise-payload";
 
 function revalidateSportHubs() {
   for (const s of siteConfig.sports) {
@@ -31,20 +32,13 @@ function parseTagForm(formData: FormData): string {
   );
 }
 
-function parseImagemUrlForm(formData: FormData): string {
-  return (
-    String(formData.get("imagem_url") ?? "").trim() ||
-    String(formData.get("imagem_capa") ?? "").trim()
-  );
-}
-
 function payloadAnaliseReal(formData: FormData, slug: string, titulo: string) {
-  const { odd, confianca } = parseOddConfianca(formData);
+  const { confianca } = parseOddConfianca(formData);
   const statusRaw = String(formData.get("status") ?? "").trim();
   const status: AnaliseStatus = statusRaw === "publicado" ? "publicado" : "rascunho";
   const now = new Date().toISOString();
 
-  return {
+  return sanitizeAnalisePayload({
     slug,
     titulo,
     resumo: String(formData.get("resumo") ?? "").trim(),
@@ -53,13 +47,8 @@ function payloadAnaliseReal(formData: FormData, slug: string, titulo: string) {
     campeonato: String(formData.get("campeonato") ?? "").trim(),
     tag: parseTagForm(formData),
     confianca,
-    odd,
-    mercado: String(formData.get("mercado") ?? "").trim(),
-    data_jogo: String(formData.get("data_jogo") ?? "").trim() || null,
-    imagem_url: parseImagemUrlForm(formData),
-    updated_at: now,
     published_at: status === "publicado" ? now : null,
-  };
+  });
 }
 
 function revalidateAnalisePortal(slug: string, slugAnterior?: string) {

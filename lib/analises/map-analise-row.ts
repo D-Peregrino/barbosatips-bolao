@@ -18,7 +18,7 @@ function inferEsporteFromCategoria(categoria: string): string {
 }
 
 export const COLUNAS_ANALISE =
-  "id,titulo,slug,resumo,conteudo,status,created_at,published_at,campeonato,tag,confianca,odd,mercado,data_jogo,imagem_url" as const;
+  "id,titulo,slug,resumo,conteudo,status,created_at,published_at,campeonato,tag,confianca" as const;
 
 export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
   const isPremium = parseBoolCol(r.is_premium);
@@ -41,11 +41,11 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
     campeonato: String(r.campeonato ?? ""),
     time_casa: String(r.time_casa ?? ""),
     time_fora: String(r.time_fora ?? ""),
-    odd: r.odd as string | number,
+    odd: 0,
     confianca: Number(r.confianca ?? 0),
     resumo: String(r.resumo ?? ""),
     conteudo: String(r.conteudo ?? ""),
-    imagem_capa: String(r.imagem_capa ?? r.imagem_url ?? ""),
+    imagem_capa: "",
     status: statusPublicadoNormalizado(r.status) ? "publicado" : "rascunho",
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),

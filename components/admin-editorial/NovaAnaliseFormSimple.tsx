@@ -196,7 +196,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="odd"
-            name="odd"
             type="text"
             inputMode="decimal"
             className={input}
