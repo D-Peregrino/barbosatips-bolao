@@ -1,10 +1,8 @@
 -- Campos operacionais ao fechar pick (green / red / void)
 ALTER TABLE public.quick_picks
-  ADD COLUMN IF NOT EXISTS resolved_at timestamptz,
-  ADD COLUMN IF NOT EXISTS placar_final text;
+  ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
 
 COMMENT ON COLUMN public.quick_picks.resolved_at IS 'Momento em que o resultado foi registado (admin).';
-COMMENT ON COLUMN public.quick_picks.placar_final IS 'Placar final opcional (ex.: 2-1).';
 
 -- Picks já encerradas com resultado: preencher resolved_at com horário do jogo ou created_at
 UPDATE public.quick_picks

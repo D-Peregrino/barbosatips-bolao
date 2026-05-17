@@ -3,6 +3,23 @@ import type { QuickPickResultado, QuickPickStatus } from "@/lib/picks/types";
 export type ResultadoOperacional = "green" | "red" | "void";
 
 const RESULTADOS_OPS: ResultadoOperacional[] = ["green", "red", "void"];
+const QUICK_PICK_UPDATE_WHITELIST = ["status", "resultado", "resolved_at"] as const;
+
+type QuickPickUpdateField = (typeof QUICK_PICK_UPDATE_WHITELIST)[number];
+type QuickPickUpdatePayload = Pick<
+  {
+    status: QuickPickStatus;
+    resultado: QuickPickResultado;
+    resolved_at: string | null;
+  },
+  QuickPickUpdateField
+>;
+
+function quickPickUpdatePayload(payload: QuickPickUpdatePayload): Record<string, unknown> {
+  return Object.fromEntries(
+    QUICK_PICK_UPDATE_WHITELIST.map((field) => [field, payload[field]]),
+  );
+}
 
 export function parseResultadoOperacional(raw: string): ResultadoOperacional | null {
   const s = raw.toLowerCase().trim();
@@ -17,24 +34,18 @@ export function buildEstadoFechamento(
   return { status: "encerrado", resultado };
 }
 
-export function buildPayloadFechamento(
-  resultado: ResultadoOperacional,
-  opts?: { placar_final?: string | null },
-): Record<string, unknown> {
-  const placar = opts?.placar_final?.trim() || null;
-  return {
+export function buildPayloadFechamento(resultado: ResultadoOperacional): Record<string, unknown> {
+  return quickPickUpdatePayload({
     status: "encerrado",
     resultado,
     resolved_at: new Date().toISOString(),
-    placar_final: placar,
-  };
+  });
 }
 
 export function buildPayloadReabrir(): Record<string, unknown> {
-  return {
+  return quickPickUpdatePayload({
     status: "ativo",
     resultado: "pendente",
     resolved_at: null,
-    placar_final: null,
-  };
+  });
 }

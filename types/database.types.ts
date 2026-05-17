@@ -198,5 +198,4 @@ export interface QuickPick {
   is_premium:     boolean;
   created_at:     string;
   resolved_at:    string | null;
-  placar_final:   string | null;
 }

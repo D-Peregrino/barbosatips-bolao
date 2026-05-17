@@ -57,7 +57,7 @@ type PickCardProps = {
 function PickResultadoCard({ pick }: PickCardProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [placar, setPlacar] = useState(pick.placar_final ?? "");
+  const [placar, setPlacar] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pendente = pickPendenteResultado(pick);
@@ -85,7 +85,6 @@ function PickResultadoCard({ pick }: PickCardProps) {
   function marcar(resultado: "green" | "red" | "void") {
     runAction(marcarResultadoQuickPickAction, (fd) => {
       fd.set("resultado", resultado);
-      if (placar.trim()) fd.set("placar_final", placar.trim());
     });
   }
 
@@ -126,18 +125,15 @@ function PickResultadoCard({ pick }: PickCardProps) {
         ) : null}
       </div>
 
-      {pick.placar_final && !pendente ? (
-        <p className="mt-2 text-xs text-zinc-500">
-          Placar: <strong className="text-zinc-300">{pick.placar_final}</strong>
-        </p>
-      ) : null}
-
       {pendente ? (
         <>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <label className="block">
               <span className="text-[10px] font-bold uppercase tracking-wide text-zinc-600">
                 Placar final (opc.)
+              </span>
+              <span className="mt-0.5 block text-[10px] text-zinc-700">
+                Apenas visual por enquanto; não é salvo no Supabase.
               </span>
               <input
                 type="text"

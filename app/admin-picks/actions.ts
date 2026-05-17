@@ -47,11 +47,6 @@ function parseStatus(raw: string): QuickPickStatus | null {
   return STATUS.includes(s as QuickPickStatus) ? (s as QuickPickStatus) : null;
 }
 
-function optionalText(formData: FormData, key: string): string | null {
-  const v = String(formData.get(key) ?? "").trim();
-  return v || null;
-}
-
 /** Regras: ao vivo → só pendente; green/red/void → sempre encerrado. */
 function normalizarEstadoGuardado(
   status: QuickPickStatus,
@@ -159,16 +154,10 @@ export async function marcarResultadoQuickPickAction(
   if (!id) return { ok: false, error: "Pick inválida." };
   if (!resultadoOp) return { ok: false, error: "Resultado inválido." };
 
-  const placar = optionalText(formData, "placar_final");
-
   const admin = createAdminClient();
   const { error } = await admin
     .from("quick_picks")
-    .update(
-      buildPayloadFechamento(resultadoOp, {
-        placar_final: placar,
-      }),
-    )
+    .update(buildPayloadFechamento(resultadoOp))
     .eq("id", id);
 
   if (error) {
@@ -207,9 +196,6 @@ export async function guardarEstadoQuickPickAction(
     resultado: norm.resultado,
     resolved_at: norm.resolved_at,
   };
-  if (norm.clearMeta) {
-    update.placar_final = null;
-  }
 
   const admin = createAdminClient();
   const { error } = await admin.from("quick_picks").update(update).eq("id", id);
