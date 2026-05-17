@@ -1,10 +1,10 @@
 import type { AnaliseRow } from "@/lib/analises/types";
-import { parseBoolCol, parsePrioridadeCol } from "@/lib/analises/parse-columns";
+import { parseBoolCol } from "@/lib/analises/parse-columns";
 import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
 import { statusPublicadoNormalizado } from "@/lib/analises/status";
 import { siteConfig } from "@/config/site";
 
-export { parseBoolCol, parsePrioridadeCol } from "@/lib/analises/parse-columns";
+export { parseBoolCol } from "@/lib/analises/parse-columns";
 
 const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
 
@@ -29,7 +29,6 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
   }
   if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
 
-  const destaquePrincipal = parseBoolCol(r.destaque_principal);
   const tag = String(r.tag ?? r.tags ?? r.categoria ?? "");
 
   return {
@@ -51,7 +50,5 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
     stat_blocks: parseStatBlocksPayload(r.stat_blocks),
-    destaque_principal: destaquePrincipal,
-    prioridade: parsePrioridadeCol(r.prioridade),
   };
 }

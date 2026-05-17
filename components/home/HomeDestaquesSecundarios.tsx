@@ -135,9 +135,6 @@ export function HomeDestaquesSecundarios({
                   <div className="flex flex-1 flex-col gap-2 p-4">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gold-400/90">
                       {a.campeonato || "Campeonato"}
-                      {a.prioridade > 0 ? (
-                        <span className="ml-2 text-stone-500">· P{a.prioridade}</span>
-                      ) : null}
                     </p>
                     <h3 className="line-clamp-2 font-display text-base font-bold leading-snug text-cream group-hover:text-gold-100">
                       {a.titulo}

@@ -1,9 +1,4 @@
 import type { AnaliseRow } from "@/lib/analises/types";
-import {
-  compararPrioridadeDestaque,
-  ordenarPorPrioridadeDestaque,
-  slugsDestaquesUsados,
-} from "@/lib/analises/destaque";
 
 const MAX_SECUNDARIOS = 4;
 
@@ -14,34 +9,26 @@ export type HomeDestaquesResolvidos = {
 };
 
 /**
- * Hero = `destaque_principal` (maior prioridade); secundários = fallback editorial.
- * Fallback do hero: primeira análise recente publicada.
+ * Hero e secundários usam o lote recente publicado.
+ * As colunas antigas de destaque não existem no Supabase atual.
  */
 export function resolverDestaquesHomeEditorial(
   destaquesPublicados: AnaliseRow[],
   fallbackUltimas: AnaliseRow[],
 ): HomeDestaquesResolvidos {
-  const ordenados = ordenarPorPrioridadeDestaque(destaquesPublicados);
+  const principal = destaquesPublicados[0] ?? fallbackUltimas[0] ?? null;
 
-  const candidatosPrincipal = ordenados.filter((a) => a.destaque_principal);
-  const principal =
-    candidatosPrincipal.sort(compararPrioridadeDestaque)[0] ??
-    fallbackUltimas[0] ??
-    null;
-
-  const secundarios = ordenados
-    .filter(
-      (a) =>
-        a.slug &&
-        a.slug !== principal?.slug &&
-        !a.destaque_principal,
-    )
+  const secundarios = [...destaquesPublicados, ...fallbackUltimas]
+    .filter((a) => a.slug && a.slug !== principal?.slug)
     .slice(0, MAX_SECUNDARIOS);
+  const slugsUsados = new Set<string>();
+  if (principal?.slug) slugsUsados.add(principal.slug);
+  for (const item of secundarios) slugsUsados.add(item.slug);
 
   return {
     principal,
     secundarios,
-    slugsUsados: slugsDestaquesUsados(principal, secundarios),
+    slugsUsados,
   };
 }
 

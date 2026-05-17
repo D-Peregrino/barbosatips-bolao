@@ -30,9 +30,7 @@ ALTER TABLE public.analises
   ADD COLUMN IF NOT EXISTS tags text NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS is_premium boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS esporte text NOT NULL DEFAULT 'futebol',
-  ADD COLUMN IF NOT EXISTS stat_blocks jsonb NOT NULL DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS destaque_principal boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS prioridade integer NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS stat_blocks jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 -- ─── Constraints ─────────────────────────────────────────────────────────────
 DO $$
@@ -116,7 +114,6 @@ GRANT SELECT ON public.analises TO anon, authenticated;
 -- ═══════════════════════════════════════════════════════════════════════════
 -- id, slug, titulo, esporte, categoria, tags, campeonato, time_casa, time_fora,
 -- odd, confianca, resumo, conteudo, imagem_capa, status, is_premium, created_at, stat_blocks,
--- destaque_principal, prioridade
 --
 -- INSERT/UPDATE (admin-editorial/actions.ts): mesmas colunas exceto id e created_at.
 -- ═══════════════════════════════════════════════════════════════════════════

@@ -13,19 +13,6 @@ import { conteudoEditorialParaGravacao } from "@/lib/analises/sanitize-html";
 import { siteConfig } from "@/config/site";
 import { getLeaguesForSport } from "@/lib/sport-routes";
 import { normalizarSlugEditorial } from "@/lib/admin-editorial/normalizar-slug";
-import { parseStatBlocksPayload } from "@/lib/analises/stat-blocks/parse";
-import { parseDestaqueForm } from "@/lib/analises/destaque";
-import {
-  garantirUnicoDestaquePrincipal,
-  payloadDestaqueCampos,
-} from "@/lib/admin-editorial/destaque-save";
-
-const SPORT_SLUG_SET = new Set<string>(siteConfig.sports.map((s) => s.slug));
-
-function parseEsporteForm(formData: FormData): string {
-  const raw = String(formData.get("esporte") ?? "").trim().toLowerCase();
-  return SPORT_SLUG_SET.has(raw) ? raw : "futebol";
-}
 
 function revalidateSportHubs() {
   for (const s of siteConfig.sports) {
@@ -34,6 +21,45 @@ function revalidateSportHubs() {
       revalidatePath(`/${s.slug}/${l.slug}`);
     }
   }
+}
+
+function parseTagForm(formData: FormData): string {
+  return (
+    String(formData.get("tag") ?? "").trim() ||
+    String(formData.get("tags") ?? "").trim() ||
+    String(formData.get("categoria") ?? "").trim()
+  );
+}
+
+function parseImagemUrlForm(formData: FormData): string {
+  return (
+    String(formData.get("imagem_url") ?? "").trim() ||
+    String(formData.get("imagem_capa") ?? "").trim()
+  );
+}
+
+function payloadAnaliseReal(formData: FormData, slug: string, titulo: string) {
+  const { odd, confianca } = parseOddConfianca(formData);
+  const statusRaw = String(formData.get("status") ?? "").trim();
+  const status: AnaliseStatus = statusRaw === "publicado" ? "publicado" : "rascunho";
+  const now = new Date().toISOString();
+
+  return {
+    slug,
+    titulo,
+    resumo: String(formData.get("resumo") ?? "").trim(),
+    conteudo: conteudoEditorialParaGravacao(formData.get("conteudo")),
+    status,
+    campeonato: String(formData.get("campeonato") ?? "").trim(),
+    tag: parseTagForm(formData),
+    confianca,
+    odd,
+    mercado: String(formData.get("mercado") ?? "").trim(),
+    data_jogo: String(formData.get("data_jogo") ?? "").trim() || null,
+    imagem_url: parseImagemUrlForm(formData),
+    updated_at: now,
+    published_at: status === "publicado" ? now : null,
+  };
 }
 
 function revalidateAnalisePortal(slug: string, slugAnterior?: string) {
@@ -80,50 +106,8 @@ export async function salvarNovaAnaliseEditorialAction(
     return { ok: false, error: "Slug inválido." };
   }
 
-  const esporte = parseEsporteForm(formData);
-  const campeonato = String(formData.get("campeonato") ?? "").trim();
-  const categoria = String(formData.get("categoria") ?? "").trim();
-  const tags = String(formData.get("tags") ?? "").trim();
-  const timeCasa = String(formData.get("time_casa") ?? "").trim();
-  const timeFora = String(formData.get("time_fora") ?? "").trim();
-  const resumo = String(formData.get("resumo") ?? "").trim();
-  const conteudo = conteudoEditorialParaGravacao(formData.get("conteudo"));
-  const imagemCapa = String(formData.get("imagem_capa") ?? "").trim();
-  const { odd, confianca } = parseOddConfianca(formData);
-
-  const statusRaw = String(formData.get("status") ?? "").trim();
-  const status: AnaliseStatus =
-    statusRaw === "publicado" ? "publicado" : "rascunho";
-
-  const isPremium = String(formData.get("is_premium") ?? "") === "1";
-
-  const statBlocks = parseStatBlocksPayload(String(formData.get("stat_blocks") ?? "[]"));
-  const destaque = parseDestaqueForm(formData);
-
   const admin = createAdminClient();
-  if (destaque.destaque_principal) {
-    await garantirUnicoDestaquePrincipal(admin, null);
-  }
-
-  const { error } = await admin.from("analises").insert({
-    slug,
-    titulo,
-    esporte,
-    campeonato,
-    categoria,
-    tags,
-    time_casa: timeCasa,
-    time_fora: timeFora,
-    odd,
-    confianca,
-    resumo,
-    conteudo,
-    imagem_capa: imagemCapa,
-    status,
-    is_premium: isPremium,
-    stat_blocks: statBlocks,
-    ...payloadDestaqueCampos(destaque),
-  });
+  const { error } = await admin.from("analises").insert(payloadAnaliseReal(formData, slug, titulo));
 
   if (error) {
     if (String(error.code) === "23505") {
@@ -160,26 +144,6 @@ export async function atualizarAnaliseEditorialAction(
     return { ok: false, error: "Slug inválido." };
   }
 
-  const esporte = parseEsporteForm(formData);
-  const campeonato = String(formData.get("campeonato") ?? "").trim();
-  const categoria = String(formData.get("categoria") ?? "").trim();
-  const tags = String(formData.get("tags") ?? "").trim();
-  const timeCasa = String(formData.get("time_casa") ?? "").trim();
-  const timeFora = String(formData.get("time_fora") ?? "").trim();
-  const resumo = String(formData.get("resumo") ?? "").trim();
-  const conteudo = conteudoEditorialParaGravacao(formData.get("conteudo"));
-  const imagemCapa = String(formData.get("imagem_capa") ?? "").trim();
-  const { odd, confianca } = parseOddConfianca(formData);
-
-  const statusRaw = String(formData.get("status") ?? "").trim();
-  const status: AnaliseStatus =
-    statusRaw === "publicado" ? "publicado" : "rascunho";
-
-  const isPremium = String(formData.get("is_premium") ?? "") === "1";
-
-  const statBlocks = parseStatBlocksPayload(String(formData.get("stat_blocks") ?? "[]"));
-  const destaque = parseDestaqueForm(formData);
-
   const slugAnterior = String(formData.get("slug_anterior") ?? "")
     .trim()
     .toLowerCase();
@@ -203,31 +167,9 @@ export async function atualizarAnaliseEditorialAction(
     };
   }
 
-  if (destaque.destaque_principal) {
-    await garantirUnicoDestaquePrincipal(admin, id);
-  }
-
   const { error } = await admin
     .from("analises")
-    .update({
-      slug,
-      titulo,
-      esporte,
-      campeonato,
-      categoria,
-      tags,
-      time_casa: timeCasa,
-      time_fora: timeFora,
-      odd,
-      confianca,
-      resumo,
-      conteudo,
-      imagem_capa: imagemCapa,
-      status,
-      is_premium: isPremium,
-      stat_blocks: statBlocks,
-      ...payloadDestaqueCampos(destaque),
-    })
+    .update(payloadAnaliseReal(formData, slug, titulo))
     .eq("id", id);
 
   if (error) {

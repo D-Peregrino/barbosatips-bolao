@@ -108,12 +108,12 @@ export function EditorialCapaUpload({ defaultValue = "" }: Props) {
           </button>
 
           <div>
-            <label htmlFor="imagem_capa" className={`${label} mb-1`}>
+            <label htmlFor="imagem_url" className={`${label} mb-1`}>
               URL da capa (preenchida automaticamente ou cole manualmente)
             </label>
             <input
-              id="imagem_capa"
-              name="imagem_capa"
+              id="imagem_url"
+              name="imagem_url"
               type="text"
               className={input}
               placeholder="https://… (opcional)"

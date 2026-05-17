@@ -3,7 +3,6 @@ import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase
 import type { AnaliseRow } from "@/lib/analises/types";
 import { slugParaConsulta } from "@/lib/analises/slug-query";
 import { COLUNAS_ANALISE, mapAnaliseRow } from "@/lib/analises/map-analise-row";
-import { ordenarPorPrioridadeDestaque } from "@/lib/analises/destaque";
 import { statusPublicadoNormalizado } from "@/lib/analises/status";
 import { textoMatchesLiga } from "@/lib/sport-routes";
 
@@ -95,8 +94,7 @@ export async function listarAnalisesPremiumPublicadas(
 export async function listarAnalisesDestaqueHomePublicadas(
   soGratis = false,
 ): Promise<AnaliseRow[]> {
-  const rows = await listarUltimasAnalisesPublicadas(12, soGratis);
-  return ordenarPorPrioridadeDestaque(rows);
+  return listarUltimasAnalisesPublicadas(12, soGratis);
 }
 
 /**

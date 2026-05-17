@@ -8,9 +8,7 @@ import type { SalvarAnaliseEditorialResult } from "@/lib/admin-editorial/salvar-
 import { siteConfig } from "@/config/site";
 import { EditorialCapaUpload } from "@/components/admin-editorial/EditorialCapaUpload";
 import { EditorialVisualEditor } from "@/components/admin-editorial/EditorialVisualEditor";
-import { EditorialStatBlocksBuilder } from "@/components/admin-editorial/EditorialStatBlocksBuilder";
 import { EditorialIaAnaliseAssistente } from "@/components/admin-editorial/EditorialIaAnaliseAssistente";
-import { EditorialDestaqueFields } from "@/components/admin-editorial/EditorialDestaqueFields";
 import type { IaAnaliseDraft } from "@/lib/admin-editorial/ai-analise/types";
 
 const initial: SalvarAnaliseEditorialResult = { ok: true };
@@ -114,7 +112,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <select
             id="esporte"
-            name="esporte"
             className={input}
             value={esporte}
             onChange={(e) => setEsporte(e.target.value)}
@@ -148,7 +145,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="categoria"
-            name="categoria"
             className={input}
             placeholder="ex.: Futebol, NBA, Valor"
             autoComplete="off"
@@ -162,7 +158,7 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="tags"
-            name="tags"
+            name="tag"
             className={input}
             placeholder="futebol, over, correct score, valor"
             autoComplete="off"
@@ -176,7 +172,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="time_casa"
-            name="time_casa"
             className={input}
             autoComplete="off"
             value={timeCasa}
@@ -189,7 +184,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="time_fora"
-            name="time_fora"
             className={input}
             autoComplete="off"
             value={timeFora}
@@ -243,30 +237,10 @@ export function NovaAnaliseFormSimple() {
         </div>
       </div>
 
-      <EditorialStatBlocksBuilder />
-
       <EditorialVisualEditor value={conteudo} onChange={setConteudo} defaultValue="" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload />
-        <EditorialDestaqueFields />
-        <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-[#3d3420]/60 bg-[#080706]/80 px-4 py-3">
-          <label className="flex cursor-pointer items-start gap-3">
-            <input type="hidden" name="is_premium" value="0" />
-            <input
-              type="checkbox"
-              name="is_premium"
-              value="1"
-              className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
-            />
-            <span>
-              <span className="block text-sm font-semibold text-[#E8D48B]">Conteúdo premium</span>
-              <span className="mt-0.5 block text-xs text-zinc-500">
-                Visível na íntegra apenas para assinantes Premium; outros vêem pré-visualização.
-              </span>
-            </span>
-          </label>
-        </div>
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
             Estado

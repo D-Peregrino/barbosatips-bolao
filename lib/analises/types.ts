@@ -23,10 +23,6 @@ export type AnaliseRow = {
   created_at: string;
   /** Blocos estatísticos premium (JSONB). */
   stat_blocks: StatBlocksPayload;
-  /** Hero principal da home (só um efectivo por prioridade). */
-  destaque_principal: boolean;
-  /** Ordem editorial na home (maior = mais acima). */
-  prioridade: number;
 };
 
 export function oddParaNumero(odd: string | number | null | undefined): number {

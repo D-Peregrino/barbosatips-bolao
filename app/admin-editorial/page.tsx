@@ -146,7 +146,6 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                     <th className="px-4 py-3">Título</th>
                     <th className="px-4 py-3">Slug</th>
                     <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Destaque</th>
                     <th className="px-4 py-3">Esporte</th>
                     <th className="px-4 py-3">Campeonato</th>
                     <th className="px-4 py-3">Criado em</th>
@@ -173,15 +172,6 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                           {row.slug || "—"}
                         </td>
                         <td className="px-4 py-3">{statusBadge(row.status)}</td>
-                        <td className="px-4 py-3 text-xs text-zinc-400">
-                          {row.destaque_principal ? (
-                            <span className="block font-semibold text-[#C9A227]">Hero</span>
-                          ) : null}
-                          {!row.destaque_principal ? "—" : null}
-                          {row.prioridade > 0 ? (
-                            <span className="mt-0.5 block text-zinc-600">P{row.prioridade}</span>
-                          ) : null}
-                        </td>
                         <td className="px-4 py-3 text-zinc-400">{row.esporte || "—"}</td>
                         <td className="max-w-[160px] truncate px-4 py-3 text-zinc-400">
                           {row.campeonato.trim() ? row.campeonato : "—"}

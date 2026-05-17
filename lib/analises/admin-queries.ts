@@ -17,7 +17,6 @@ export async function listarTodasAnalisesAdmin(): Promise<AnaliseRow[]> {
     const { data, error } = await admin
       .from("analises")
       .select(COLUNAS)
-      .order("prioridade", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(2000);
 
