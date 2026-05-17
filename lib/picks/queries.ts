@@ -55,7 +55,6 @@ function mapRow(r: Record<string, unknown>): QuickPickRow {
     resultado: normalizarResultado(r.resultado),
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
-    resolved_at: r.resolved_at ? String(r.resolved_at) : null,
   };
 }
 

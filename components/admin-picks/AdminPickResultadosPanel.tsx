@@ -120,9 +120,6 @@ function PickResultadoCard({ pick }: PickCardProps) {
         <span className="font-mono text-amber-300/90">@{pick.odd.toFixed(2)}</span>
         <span>{pick.confianca}% conf.</span>
         <span>Jogo: {formatarHorario(pick.horario_jogo)}</span>
-        {pick.resolved_at ? (
-          <span>Fechada: {formatarHorario(pick.resolved_at)}</span>
-        ) : null}
       </div>
 
       {pendente ? (

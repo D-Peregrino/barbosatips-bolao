@@ -54,14 +54,12 @@ function normalizarEstadoGuardado(
 ): {
   status: QuickPickStatus;
   resultado: QuickPickResultado;
-  resolved_at: string | null;
   clearMeta: boolean;
 } {
   if (status === "ativo") {
     return {
       status: "ativo",
       resultado: "pendente",
-      resolved_at: null,
       clearMeta: true,
     };
   }
@@ -69,14 +67,12 @@ function normalizarEstadoGuardado(
     return {
       status: "encerrado",
       resultado,
-      resolved_at: new Date().toISOString(),
       clearMeta: false,
     };
   }
   return {
     status: "encerrado",
     resultado,
-    resolved_at: null,
     clearMeta: true,
   };
 }
@@ -194,7 +190,6 @@ export async function guardarEstadoQuickPickAction(
   const update: Record<string, unknown> = {
     status: norm.status,
     resultado: norm.resultado,
-    resolved_at: norm.resolved_at,
   };
 
   const admin = createAdminClient();

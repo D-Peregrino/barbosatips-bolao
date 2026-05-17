@@ -28,10 +28,6 @@ export function lucroUnidadePick(p: QuickPickRow): number {
 }
 
 export function pickTimestamp(p: QuickPickRow): number {
-  if (p.resolved_at) {
-    const r = Date.parse(p.resolved_at);
-    if (!Number.isNaN(r) && r > 0) return r;
-  }
   const h = Date.parse(p.horario_jogo);
   if (!Number.isNaN(h) && h > 0) return h;
   const c = Date.parse(p.created_at);

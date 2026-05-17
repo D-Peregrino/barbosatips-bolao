@@ -3,14 +3,13 @@ import type { QuickPickResultado, QuickPickStatus } from "@/lib/picks/types";
 export type ResultadoOperacional = "green" | "red" | "void";
 
 const RESULTADOS_OPS: ResultadoOperacional[] = ["green", "red", "void"];
-const QUICK_PICK_UPDATE_WHITELIST = ["status", "resultado", "resolved_at"] as const;
+const QUICK_PICK_UPDATE_WHITELIST = ["status", "resultado"] as const;
 
 type QuickPickUpdateField = (typeof QUICK_PICK_UPDATE_WHITELIST)[number];
 type QuickPickUpdatePayload = Pick<
   {
     status: QuickPickStatus;
     resultado: QuickPickResultado;
-    resolved_at: string | null;
   },
   QuickPickUpdateField
 >;
@@ -38,7 +37,6 @@ export function buildPayloadFechamento(resultado: ResultadoOperacional): Record<
   return quickPickUpdatePayload({
     status: "encerrado",
     resultado,
-    resolved_at: new Date().toISOString(),
   });
 }
 
@@ -46,6 +44,5 @@ export function buildPayloadReabrir(): Record<string, unknown> {
   return quickPickUpdatePayload({
     status: "ativo",
     resultado: "pendente",
-    resolved_at: null,
   });
 }

@@ -16,8 +16,6 @@ export interface QuickPickRow {
   resultado: QuickPickResultado;
   is_premium: boolean;
   created_at: string;
-  /** Preenchido ao marcar green/red/void no admin. */
-  resolved_at: string | null;
 }
 
 /** Pick ainda sem resultado definitivo (ativa ou encerrada sem G/R/V). */
