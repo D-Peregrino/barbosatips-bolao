@@ -5,7 +5,7 @@ import { CreditCard } from "lucide-react";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { CheckoutPreferenceForm } from "@/components/payments/CheckoutPreferenceForm";
 import { siteConfig } from "@/config/site";
-import { getPaymentProduct } from "@/lib/payments/products";
+import { getPaymentProduct, getPaymentProductCheckoutError } from "@/lib/payments/products";
 
 const PRODUCT_ALIASES: Record<string, string> = {
   "discord-ouvinte": "discord_ouvinte",
@@ -34,6 +34,7 @@ export function generateMetadata({ params }: Props): Metadata {
 export default function CheckoutProductPage({ params }: Props) {
   const product = getPaymentProduct(normalizeProductSlug(params.product));
   if (!product) notFound();
+  const disabledReason = getPaymentProductCheckoutError(product);
 
   return (
     <div className="commercial-page-bg pb-20 pt-8 text-zinc-100 sm:pt-10">
@@ -56,6 +57,7 @@ export default function CheckoutProductPage({ params }: Props) {
             productTitle={product.title}
             productDescription={product.description}
             amount={product.amount}
+            disabledReason={disabledReason}
           />
 
           <div className="mt-6 text-center">

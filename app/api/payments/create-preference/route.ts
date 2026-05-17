@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPaymentProduct } from "@/lib/payments/products";
+import { getPaymentProduct, getPaymentProductCheckoutError } from "@/lib/payments/products";
 import {
   createMercadoPagoPreference,
   createPaymentOrder,
@@ -19,6 +19,10 @@ export async function POST(request: Request) {
 
     if (!product) {
       return NextResponse.json({ ok: false, error: "Produto inválido." }, { status: 400 });
+    }
+    const checkoutError = getPaymentProductCheckoutError(product);
+    if (checkoutError) {
+      return NextResponse.json({ ok: false, error: checkoutError }, { status: 503 });
     }
     if (!email || !email.includes("@")) {
       return NextResponse.json({ ok: false, error: "Informe um email válido." }, { status: 400 });

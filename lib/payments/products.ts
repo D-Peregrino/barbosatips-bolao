@@ -17,13 +17,22 @@ export type PaymentProductConfig = {
   description: string;
   amount: number;
   expiresInDays: number | null;
+  requiredPriceEnv?: string;
 };
 
-function amountFromEnv(name: string, fallback: number): number {
+function parseAmountFromEnv(name: string): number | null {
   const raw = process.env[name]?.trim();
-  if (!raw) return fallback;
+  if (!raw) return null;
   const value = Number(raw.replace(",", "."));
-  return Number.isFinite(value) && value > 0 ? value : fallback;
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function amountFromEnv(name: string, fallback: number): number {
+  return parseAmountFromEnv(name) ?? fallback;
+}
+
+function requiredAmountFromEnv(name: string, fallbackForDisplay: number): number {
+  return parseAmountFromEnv(name) ?? fallbackForDisplay;
 }
 
 const BOLAO_EVENT_EXPIRES_AT = "2026-07-20T03:00:00.000Z";
@@ -40,10 +49,11 @@ export const PAYMENT_PRODUCTS: Record<PaymentProductCode, PaymentProductConfig> 
   bolao_copa: {
     code: "bolao_copa",
     entitlement: "bolao_copa",
-    title: "Bolão Copa",
-    description: "Acesso ao bolão oficial BarbosaTips.",
-    amount: amountFromEnv("MP_PRICE_BOLAO_COPA_BRL", 1),
+    title: "Bolão Copa 2026",
+    description: "Compra única para acesso ao bolão oficial BarbosaTips.",
+    amount: requiredAmountFromEnv("MP_PRICE_BOLAO_COPA_BRL", 50),
     expiresInDays: null,
+    requiredPriceEnv: "MP_PRICE_BOLAO_COPA_BRL",
   },
   discord_ouvinte: {
     code: "discord_ouvinte",
@@ -77,6 +87,12 @@ export function isPaymentProductCode(value: string): value is PaymentProductCode
 
 export function getPaymentProduct(value: string): PaymentProductConfig | null {
   return isPaymentProductCode(value) ? PAYMENT_PRODUCTS[value] : null;
+}
+
+export function getPaymentProductCheckoutError(product: PaymentProductConfig): string | null {
+  if (!product.requiredPriceEnv) return null;
+  if (parseAmountFromEnv(product.requiredPriceEnv)) return null;
+  return `${product.requiredPriceEnv} não configurado.`;
 }
 
 export function getEntitlementExpiration(product: PaymentProductConfig): string | null {

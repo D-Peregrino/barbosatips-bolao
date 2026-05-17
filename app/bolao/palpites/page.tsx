@@ -24,11 +24,7 @@ import {
   copa2026PontuacaoPalpite,
 } from "@/lib/mocks/copa2026-groupstage.mock";
 
-/** Substituir por URL real do checkout Mercado Pago quando estiver pronta. */
-const LINK_PAGAMENTO_BOLAO = "LINK_MERCADO_PAGO_PLACEHOLDER";
-
-const MSG_LINK_PAGAMENTO_EM_CONFIG =
-  "Link de pagamento em configuração. Fale com o Barbosa para confirmar sua inscrição.";
+const CHECKOUT_BOLAO_COPA_HREF = "/checkout/bolao_copa";
 
 const MSG_CONFIRMADOS = "Palpites confirmados com sucesso";
 const MSG_SALVOS_SUPABASE = "Palpites salvos com sucesso.";
@@ -40,19 +36,6 @@ const MSG_AVISO_PAGAMENTO_PALPITES =
   "Pagamento pendente. Finalize sua inscrição para liberar os palpites.";
 
 const BOLAO_PARTICIPANTE_LS = "barbosatips:bolao:participante";
-
-function linkPagamentoBolaoPronto(link: string): boolean {
-  const t = link.trim();
-  if (!t || t === "LINK_MERCADO_PAGO_PLACEHOLDER") return false;
-  try {
-    const u = new URL(t);
-    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-    if (/mercadolivre\./i.test(u.hostname)) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /** Só `true` após linha real em `palpites_bolao` (SELECT / refetch pós-salvar). */
 type CelulaPalpite = {
@@ -626,23 +609,12 @@ export default function BolaoPalpitesPage() {
                       <p className="text-sm font-semibold leading-snug text-amber-100">
                         {MSG_AVISO_PAGAMENTO_PALPITES}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!linkPagamentoBolaoPronto(LINK_PAGAMENTO_BOLAO)) {
-                            window.alert(MSG_LINK_PAGAMENTO_EM_CONFIG);
-                            return;
-                          }
-                          window.open(
-                            LINK_PAGAMENTO_BOLAO.trim(),
-                            "_blank",
-                            "noopener,noreferrer",
-                          );
-                        }}
+                      <a
+                        href={CHECKOUT_BOLAO_COPA_HREF}
                         className="mt-2 inline-flex w-full cursor-pointer items-center justify-center rounded-lg border border-[#C9A227]/60 bg-gradient-to-r from-[#e8c96b]/90 via-[#d4af37]/90 to-[#b8922b]/90 px-4 py-2.5 text-center text-[11px] font-black uppercase tracking-[0.1em] text-black shadow-sm transition hover:brightness-105 sm:text-xs"
                       >
                         Pagar inscrição
-                      </button>
+                      </a>
                     </div>
                   ) : null}
                   <button

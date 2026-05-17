@@ -7,6 +7,7 @@ type Props = {
   productTitle: string;
   productDescription: string;
   amount: number;
+  disabledReason?: string | null;
 };
 
 export function CheckoutPreferenceForm({
@@ -14,6 +15,7 @@ export function CheckoutPreferenceForm({
   productTitle,
   productDescription,
   amount,
+  disabledReason,
 }: Props) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,10 @@ export function CheckoutPreferenceForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (disabledReason) {
+      setError(disabledReason);
+      return;
+    }
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) {
       setError("Informe um email válido.");
@@ -76,10 +82,11 @@ export function CheckoutPreferenceForm({
       </label>
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {disabledReason ? <p className="text-sm text-amber-200">{disabledReason}</p> : null}
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || Boolean(disabledReason)}
         className="inline-flex w-full min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 px-5 text-sm font-bold text-pitch-950 transition hover:brightness-105 disabled:opacity-50"
       >
         {loading ? "Criando checkout..." : "Pagar com Mercado Pago"}
