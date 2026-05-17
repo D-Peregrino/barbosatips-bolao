@@ -45,6 +45,8 @@ export function NovaAnaliseFormSimple() {
   const [timeCasa, setTimeCasa] = useState("");
   const [timeFora, setTimeFora] = useState("");
   const [odd, setOdd] = useState("");
+  const [mercado, setMercado] = useState("");
+  const [dataJogo, setDataJogo] = useState("");
   const [confianca, setConfianca] = useState("");
   const [resumo, setResumo] = useState("");
   const [conteudo, setConteudo] = useState("");
@@ -132,6 +134,7 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="campeonato"
+            name="campeonato"
             className={input}
             autoComplete="off"
             value={campeonato}
@@ -157,6 +160,7 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="tags"
+            name="tag"
             className={input}
             placeholder="futebol, over, correct score, valor"
             autoComplete="off"
@@ -194,6 +198,7 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="odd"
+            name="odd"
             type="text"
             inputMode="decimal"
             className={input}
@@ -204,11 +209,40 @@ export function NovaAnaliseFormSimple() {
           />
         </div>
         <div>
+          <label htmlFor="mercado" className={label}>
+            Mercado
+          </label>
+          <input
+            id="mercado"
+            name="mercado"
+            type="text"
+            className={input}
+            placeholder="ex.: Over 2.5 gols"
+            autoComplete="off"
+            value={mercado}
+            onChange={(e) => setMercado(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="data_jogo" className={label}>
+            Data do jogo
+          </label>
+          <input
+            id="data_jogo"
+            name="data_jogo"
+            type="datetime-local"
+            className={input}
+            value={dataJogo}
+            onChange={(e) => setDataJogo(e.target.value)}
+          />
+        </div>
+        <div>
           <label htmlFor="confianca" className={label}>
             Confiança (0–100)
           </label>
           <input
             id="confianca"
+            name="confianca"
             type="number"
             min={0}
             max={100}
@@ -237,6 +271,51 @@ export function NovaAnaliseFormSimple() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload />
+        <div className="sm:col-span-2 grid gap-3 rounded-xl border border-[#3d3420]/60 bg-[#080706]/80 px-4 py-3 sm:grid-cols-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input type="hidden" name="destaque_principal" value="0" />
+            <input
+              type="checkbox"
+              name="destaque_principal"
+              value="1"
+              className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
+            />
+            <span className="text-sm font-semibold text-[#E8D48B]">Destaque principal</span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input type="hidden" name="destaque_home" value="0" />
+            <input
+              type="checkbox"
+              name="destaque_home"
+              value="1"
+              className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
+            />
+            <span className="text-sm font-semibold text-[#E8D48B]">Destaque home</span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input type="hidden" name="conteudo_premium" value="0" />
+            <input
+              type="checkbox"
+              name="conteudo_premium"
+              value="1"
+              className="mt-1 h-4 w-4 rounded border-[#5c4d28] bg-[#050608] text-[#C9A227] focus:ring-[#C9A227]/50"
+            />
+            <span className="text-sm font-semibold text-[#E8D48B]">Conteúdo premium</span>
+          </label>
+          <div className="sm:col-span-3">
+            <label htmlFor="prioridade" className={label}>
+              Prioridade
+            </label>
+            <input
+              id="prioridade"
+              name="prioridade"
+              type="number"
+              min={0}
+              className={input}
+              defaultValue={0}
+            />
+          </div>
+        </div>
         <div className="sm:col-span-2">
           <label htmlFor="status" className={label}>
             Estado

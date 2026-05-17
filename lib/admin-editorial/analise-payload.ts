@@ -3,8 +3,20 @@ export const ANALISES_ALLOWED_FIELDS = [
   "slug",
   "resumo",
   "conteudo",
+  "campeonato",
+  "tag",
+  "confianca",
   "status",
   "published_at",
+  "imagem_url",
+  "data_jogo",
+  "odd",
+  "mercado",
+  "destaque_principal",
+  "destaque_home",
+  "prioridade",
+  "conteudo_premium",
+  "updated_at",
 ] as const;
 
 type AnaliseAllowedField = (typeof ANALISES_ALLOWED_FIELDS)[number];

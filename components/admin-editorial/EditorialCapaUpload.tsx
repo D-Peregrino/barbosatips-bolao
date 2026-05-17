@@ -113,6 +113,7 @@ export function EditorialCapaUpload({ defaultValue = "" }: Props) {
             </label>
             <input
               id="imagem_url"
+              name="imagem_url"
               type="text"
               className={input}
               placeholder="https://… (opcional)"

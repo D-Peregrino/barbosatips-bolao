@@ -24,19 +24,54 @@ function revalidateSportHubs() {
   }
 }
 
+function parseDecimalForm(formData: FormData, key: string): number | null {
+  const raw = String(formData.get(key) ?? "").trim().replace(",", ".");
+  if (!raw) return null;
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+function parseIntegerForm(formData: FormData, key: string): number | null {
+  const raw = String(formData.get(key) ?? "").trim();
+  if (!raw) return null;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) ? value : null;
+}
+
+function parseDataJogoForm(formData: FormData): string | null {
+  const raw = String(formData.get("data_jogo") ?? "").trim();
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? raw : date.toISOString();
+}
+
 function payloadAnaliseReal(formData: FormData, slug: string, titulo: string) {
   const statusRaw = String(formData.get("status") ?? "").trim();
   const status: AnaliseStatus = statusRaw === "publicado" ? "publicado" : "rascunho";
   const now = new Date().toISOString();
+  const imagemUrl = String(formData.get("imagem_url") ?? "").trim();
 
-  return sanitizeAnalisePayload({
+  const payload: Record<string, unknown> = {
     slug,
     titulo,
     resumo: String(formData.get("resumo") ?? "").trim(),
     conteudo: conteudoEditorialParaGravacao(formData.get("conteudo")),
+    campeonato: String(formData.get("campeonato") ?? "").trim(),
+    tag: String(formData.get("tag") ?? "").trim(),
+    confianca: parseIntegerForm(formData, "confianca"),
     status,
+    data_jogo: parseDataJogoForm(formData),
+    odd: parseDecimalForm(formData, "odd"),
+    mercado: String(formData.get("mercado") ?? "").trim(),
+    destaque_principal: String(formData.get("destaque_principal") ?? "") === "1",
+    destaque_home: String(formData.get("destaque_home") ?? "") === "1",
+    prioridade: parseIntegerForm(formData, "prioridade") ?? 0,
+    conteudo_premium: String(formData.get("conteudo_premium") ?? "") === "1",
+    updated_at: now,
     published_at: status === "publicado" ? now : null,
-  });
+  };
+  if (imagemUrl) payload.imagem_url = imagemUrl;
+  return sanitizeAnalisePayload(payload);
 }
 
 function revalidateAnalisePortal(slug: string, slugAnterior?: string) {

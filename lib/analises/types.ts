@@ -15,12 +15,20 @@ export type AnaliseRow = {
   time_fora: string;
   odd: string | number;
   confianca: number;
+  mercado: string;
+  data_jogo: string | null;
   resumo: string;
   conteudo: string;
   imagem_capa: string;
+  imagem_url: string;
   status: AnaliseStatus;
   is_premium: boolean;
+  conteudo_premium: boolean;
+  destaque_principal: boolean;
+  destaque_home: boolean;
+  prioridade: number;
   created_at: string;
+  updated_at: string | null;
   /** Blocos estatísticos premium (JSONB). */
   stat_blocks: StatBlocksPayload;
 };
