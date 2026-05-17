@@ -123,17 +123,13 @@ export default async function AnalisesPage() {
             <SponsorSlot slot="mobileStrip" />
           </div>
 
-          <header className="commercial-card-elevated mb-12 max-w-3xl border-b border-amber-500/15 p-6 pb-8 sm:p-8">
+          <header className="commercial-card-elevated mb-6 max-w-3xl border-b border-amber-500/15 px-5 py-4 sm:px-6 sm:py-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#C9A227]">
               Editorial · Prognósticos
             </p>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
               Portal de <span className="text-gold">análises</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-              Prognósticos com odd sugerida, nível de confiança e resumo editorial — o
-              mesmo padrão visual premium BarbosaTips em cada confronto.
-            </p>
           </header>
 
           <SponsorSlot slot="feedBetween" className="mb-10" />
