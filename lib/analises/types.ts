@@ -23,8 +23,6 @@ export type AnaliseRow = {
   created_at: string;
   /** Blocos estatísticos premium (JSONB). */
   stat_blocks: StatBlocksPayload;
-  /** Aparece na faixa de destaques secundários da home. */
-  destaque_home: boolean;
   /** Hero principal da home (só um efectivo por prioridade). */
   destaque_principal: boolean;
   /** Ordem editorial na home (maior = mais acima). */

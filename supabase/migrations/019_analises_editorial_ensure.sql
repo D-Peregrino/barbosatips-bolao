@@ -23,7 +23,6 @@ ALTER TABLE public.analises
   ADD COLUMN IF NOT EXISTS is_premium boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS esporte text NOT NULL DEFAULT 'futebol',
   ADD COLUMN IF NOT EXISTS stat_blocks jsonb NOT NULL DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS destaque_home boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS destaque_principal boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS prioridade integer NOT NULL DEFAULT 0;
 

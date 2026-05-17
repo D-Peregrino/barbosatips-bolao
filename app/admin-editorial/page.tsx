@@ -177,10 +177,7 @@ export default async function AdminEditorialPage({ searchParams }: Props) {
                           {row.destaque_principal ? (
                             <span className="block font-semibold text-[#C9A227]">Hero</span>
                           ) : null}
-                          {row.destaque_home && !row.destaque_principal ? (
-                            <span className="block text-zinc-300">Home</span>
-                          ) : null}
-                          {!row.destaque_home && !row.destaque_principal ? "—" : null}
+                          {!row.destaque_principal ? "—" : null}
                           {row.prioridade > 0 ? (
                             <span className="mt-0.5 block text-zinc-600">P{row.prioridade}</span>
                           ) : null}

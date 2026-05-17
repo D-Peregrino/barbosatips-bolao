@@ -266,7 +266,6 @@ export function EditarAnaliseForm({ initial }: Props) {
       <div className="grid gap-5 sm:grid-cols-2">
         <EditorialCapaUpload key={initial.slug} defaultValue={initial.imagem_capa} />
         <EditorialDestaqueFields
-          defaultDestaqueHome={initial.destaque_home}
           defaultDestaquePrincipal={initial.destaque_principal}
           defaultPrioridade={initial.prioridade}
         />

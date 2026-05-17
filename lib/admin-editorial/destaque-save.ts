@@ -21,7 +21,6 @@ export async function garantirUnicoDestaquePrincipal(
 
 export function payloadDestaqueCampos(d: DestaqueFormValues) {
   return {
-    destaque_home: d.destaque_home,
     destaque_principal: d.destaque_principal,
     prioridade: d.prioridade,
   };

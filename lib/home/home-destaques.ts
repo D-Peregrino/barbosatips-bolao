@@ -14,7 +14,7 @@ export type HomeDestaquesResolvidos = {
 };
 
 /**
- * Hero = `destaque_principal` (maior prioridade); secundários = `destaque_home`.
+ * Hero = `destaque_principal` (maior prioridade); secundários = fallback editorial.
  * Fallback do hero: primeira análise recente publicada.
  */
 export function resolverDestaquesHomeEditorial(
@@ -32,7 +32,6 @@ export function resolverDestaquesHomeEditorial(
   const secundarios = ordenados
     .filter(
       (a) =>
-        a.destaque_home &&
         a.slug &&
         a.slug !== principal?.slug &&
         !a.destaque_principal,

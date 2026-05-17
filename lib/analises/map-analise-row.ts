@@ -30,7 +30,6 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
   if (!SPORT_SLUG_SET.has(esporte)) esporte = "futebol";
 
   const destaquePrincipal = parseBoolCol(r.destaque_principal);
-  const destaqueHome = parseBoolCol(r.destaque_home) || destaquePrincipal;
   const tag = String(r.tag ?? r.tags ?? r.categoria ?? "");
 
   return {
@@ -52,7 +51,6 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
     is_premium: isPremium,
     created_at: String(r.created_at ?? ""),
     stat_blocks: parseStatBlocksPayload(r.stat_blocks),
-    destaque_home: destaqueHome,
     destaque_principal: destaquePrincipal,
     prioridade: parsePrioridadeCol(r.prioridade),
   };

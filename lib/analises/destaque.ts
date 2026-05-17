@@ -2,17 +2,13 @@ import type { AnaliseRow } from "@/lib/analises/types";
 import { parseBoolCol, parsePrioridadeCol } from "@/lib/analises/parse-columns";
 
 export type DestaqueFormValues = {
-  destaque_home: boolean;
   destaque_principal: boolean;
   prioridade: number;
 };
 
 export function parseDestaqueForm(formData: FormData): DestaqueFormValues {
   const destaquePrincipal = parseBoolCol(formData.get("destaque_principal"));
-  const destaqueHome =
-    destaquePrincipal || parseBoolCol(formData.get("destaque_home"));
   return {
-    destaque_home: destaqueHome,
     destaque_principal: destaquePrincipal,
     prioridade: parsePrioridadeCol(formData.get("prioridade")),
   };
