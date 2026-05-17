@@ -58,7 +58,6 @@ function PickResultadoCard({ pick }: PickCardProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [placar, setPlacar] = useState(pick.placar_final ?? "");
-  const [obs, setObs] = useState(pick.observacao_resultado ?? "");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pendente = pickPendenteResultado(pick);
@@ -87,7 +86,6 @@ function PickResultadoCard({ pick }: PickCardProps) {
     runAction(marcarResultadoQuickPickAction, (fd) => {
       fd.set("resultado", resultado);
       if (placar.trim()) fd.set("placar_final", placar.trim());
-      if (obs.trim()) fd.set("observacao", obs.trim());
     });
   }
 
@@ -128,17 +126,9 @@ function PickResultadoCard({ pick }: PickCardProps) {
         ) : null}
       </div>
 
-      {(pick.placar_final || pick.observacao_resultado) && !pendente ? (
+      {pick.placar_final && !pendente ? (
         <p className="mt-2 text-xs text-zinc-500">
-          {pick.placar_final ? (
-            <span>
-              Placar: <strong className="text-zinc-300">{pick.placar_final}</strong>
-            </span>
-          ) : null}
-          {pick.placar_final && pick.observacao_resultado ? " · " : null}
-          {pick.observacao_resultado ? (
-            <span className="italic">{pick.observacao_resultado}</span>
-          ) : null}
+          Placar: <strong className="text-zinc-300">{pick.placar_final}</strong>
         </p>
       ) : null}
 
@@ -154,19 +144,6 @@ function PickResultadoCard({ pick }: PickCardProps) {
                 value={placar}
                 onChange={(e) => setPlacar(e.target.value)}
                 placeholder="ex.: 2-1"
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
-                disabled={pending}
-              />
-            </label>
-            <label className="block sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-zinc-600">
-                Observação (opc.)
-              </span>
-              <input
-                type="text"
-                value={obs}
-                onChange={(e) => setObs(e.target.value)}
-                placeholder="Nota rápida"
                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
                 disabled={pending}
               />

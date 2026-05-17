@@ -160,7 +160,6 @@ export async function marcarResultadoQuickPickAction(
   if (!resultadoOp) return { ok: false, error: "Resultado inválido." };
 
   const placar = optionalText(formData, "placar_final");
-  const observacao = optionalText(formData, "observacao");
 
   const admin = createAdminClient();
   const { error } = await admin
@@ -168,7 +167,6 @@ export async function marcarResultadoQuickPickAction(
     .update(
       buildPayloadFechamento(resultadoOp, {
         placar_final: placar,
-        observacao,
       }),
     )
     .eq("id", id);
@@ -211,7 +209,6 @@ export async function guardarEstadoQuickPickAction(
   };
   if (norm.clearMeta) {
     update.placar_final = null;
-    update.observacao_resultado = null;
   }
 
   const admin = createAdminClient();

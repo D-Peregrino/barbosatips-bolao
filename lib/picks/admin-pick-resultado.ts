@@ -19,16 +19,14 @@ export function buildEstadoFechamento(
 
 export function buildPayloadFechamento(
   resultado: ResultadoOperacional,
-  opts?: { placar_final?: string | null; observacao?: string | null },
+  opts?: { placar_final?: string | null },
 ): Record<string, unknown> {
   const placar = opts?.placar_final?.trim() || null;
-  const obs = opts?.observacao?.trim() || null;
   return {
     status: "encerrado",
     resultado,
     resolved_at: new Date().toISOString(),
     placar_final: placar,
-    observacao_resultado: obs,
   };
 }
 
@@ -38,6 +36,5 @@ export function buildPayloadReabrir(): Record<string, unknown> {
     resultado: "pendente",
     resolved_at: null,
     placar_final: null,
-    observacao_resultado: null,
   };
 }

@@ -19,7 +19,6 @@ export interface QuickPickRow {
   /** Preenchido ao marcar green/red/void no admin. */
   resolved_at: string | null;
   placar_final: string | null;
-  observacao_resultado: string | null;
 }
 
 /** Pick ainda sem resultado definitivo (ativa ou encerrada sem G/R/V). */
