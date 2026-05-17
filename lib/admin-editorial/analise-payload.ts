@@ -3,9 +3,6 @@ export const ANALISES_ALLOWED_FIELDS = [
   "slug",
   "resumo",
   "conteudo",
-  "campeonato",
-  "tag",
-  "confianca",
   "status",
   "published_at",
 ] as const;

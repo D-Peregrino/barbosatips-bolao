@@ -132,7 +132,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="campeonato"
-            name="campeonato"
             className={input}
             autoComplete="off"
             value={campeonato}
@@ -158,7 +157,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="tags"
-            name="tag"
             className={input}
             placeholder="futebol, over, correct score, valor"
             autoComplete="off"
@@ -211,7 +209,6 @@ export function NovaAnaliseFormSimple() {
           </label>
           <input
             id="confianca"
-            name="confianca"
             type="number"
             min={0}
             max={100}

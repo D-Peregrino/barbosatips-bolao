@@ -24,16 +24,7 @@ function revalidateSportHubs() {
   }
 }
 
-function parseTagForm(formData: FormData): string {
-  return (
-    String(formData.get("tag") ?? "").trim() ||
-    String(formData.get("tags") ?? "").trim() ||
-    String(formData.get("categoria") ?? "").trim()
-  );
-}
-
 function payloadAnaliseReal(formData: FormData, slug: string, titulo: string) {
-  const { confianca } = parseOddConfianca(formData);
   const statusRaw = String(formData.get("status") ?? "").trim();
   const status: AnaliseStatus = statusRaw === "publicado" ? "publicado" : "rascunho";
   const now = new Date().toISOString();
@@ -44,9 +35,6 @@ function payloadAnaliseReal(formData: FormData, slug: string, titulo: string) {
     resumo: String(formData.get("resumo") ?? "").trim(),
     conteudo: conteudoEditorialParaGravacao(formData.get("conteudo")),
     status,
-    campeonato: String(formData.get("campeonato") ?? "").trim(),
-    tag: parseTagForm(formData),
-    confianca,
     published_at: status === "publicado" ? now : null,
   });
 }
@@ -63,18 +51,6 @@ function revalidateAnalisePortal(slug: string, slugAnterior?: string) {
     revalidatePath(`/analise/${ant}`);
     revalidatePath(`/admin-editorial/editar/${encodeURIComponent(ant)}`);
   }
-}
-
-function parseOddConfianca(formData: FormData): { odd: number; confianca: number } {
-  const oddNum = parseFloat(
-    String(formData.get("odd") ?? "").replace(",", "."),
-  );
-  const odd = Number.isFinite(oddNum) ? oddNum : 0;
-  const confRaw = parseInt(String(formData.get("confianca") ?? "").trim(), 10);
-  const confianca = Number.isFinite(confRaw)
-    ? Math.min(100, Math.max(0, confRaw))
-    : 0;
-  return { odd, confianca };
 }
 
 export async function salvarNovaAnaliseEditorialAction(

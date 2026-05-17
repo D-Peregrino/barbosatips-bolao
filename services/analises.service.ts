@@ -80,13 +80,6 @@ export const analisesService = {
 
     if (error) return null;
 
-    // Incrementa views (fire and forget)
-    supabase
-      .from("analises")
-      .update({ views: (data.views ?? 0) + 1 })
-      .eq("id", data.id)
-      .then(() => {});
-
     return data as AnaliseWithTipster;
   },
 
@@ -109,7 +102,7 @@ export const analisesService = {
       .eq("status", "published")
       .eq("esporte", analise.esporte)
       .neq("id", analise.id)
-      .order("views", { ascending: false })
+      .order("published_at", { ascending: false })
       .limit(limit);
 
     return (data ?? []) as AnaliseWithTipster[];

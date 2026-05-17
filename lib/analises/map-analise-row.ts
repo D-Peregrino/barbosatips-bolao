@@ -18,7 +18,7 @@ function inferEsporteFromCategoria(categoria: string): string {
 }
 
 export const COLUNAS_ANALISE =
-  "id,titulo,slug,resumo,conteudo,status,created_at,published_at,campeonato,tag,confianca" as const;
+  "id,titulo,slug,resumo,conteudo,status,created_at,published_at" as const;
 
 export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
   const isPremium = parseBoolCol(r.is_premium);
@@ -38,11 +38,11 @@ export function mapAnaliseRow(r: Record<string, unknown>): AnaliseRow {
     esporte,
     categoria: String(r.categoria ?? tag),
     tags: tag,
-    campeonato: String(r.campeonato ?? ""),
+    campeonato: "",
     time_casa: String(r.time_casa ?? ""),
     time_fora: String(r.time_fora ?? ""),
     odd: 0,
-    confianca: Number(r.confianca ?? 0),
+    confianca: 0,
     resumo: String(r.resumo ?? ""),
     conteudo: String(r.conteudo ?? ""),
     imagem_capa: "",
