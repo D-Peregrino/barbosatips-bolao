@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { unstable_noStore as noStore } from "next/cache";
 import { Send, Zap } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import SponsorSlot from "@/components/ads/SponsorSlot";
 import { CommercialPageShell } from "@/components/layout/CommercialPageShell";
 import { siteConfig } from "@/config/site";
@@ -15,7 +14,7 @@ import { buildPageMetadata } from "@/lib/seo/build-metadata";
 import { buildKeywordsFromParts } from "@/lib/seo/auto-seo";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
-import { getCurrentUser, isPremiumUser } from "@/lib/access/permissions";
+import { canViewPremiumPicks } from "@/lib/access/permissions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,10 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PicksPage() {
   noStore();
-  const user = await getCurrentUser();
-  if (!user) redirect("/entrar?next=/picks");
-
-  const premiumAllowed = user ? await isPremiumUser(user.id) : false;
+  const premiumAllowed = await canViewPremiumPicks();
   const picks = premiumAllowed ? await listarQuickPicks(false) : [];
   const stats = calcularEstatisticasQuickPicksEncerradas(picks);
 

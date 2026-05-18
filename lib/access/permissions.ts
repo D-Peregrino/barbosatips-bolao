@@ -65,7 +65,14 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
-export async function isAdminUser(): Promise<boolean> {
+export async function isAdminUser(userId?: string): Promise<boolean> {
+  const id = userId?.trim();
+  if (id) {
+    const { role, error } = await fetchAdminProfileRole(id);
+    if (error) return false;
+    return isAdminDbRole(role);
+  }
+
   const user = await getCurrentUser();
   if (!user) return false;
 
@@ -103,6 +110,19 @@ export async function isPremiumUser(userId?: string): Promise<boolean> {
     premiumResult: result,
   });
   return result;
+}
+
+export async function canViewPremiumPicks(userId?: string): Promise<boolean> {
+  const id = userId?.trim();
+  const user = id ? { id } : await getCurrentUser();
+  if (!user?.id) return false;
+
+  const [isPremium, isAdmin] = await Promise.all([
+    userHasActiveEntitlement(user.id, "vip_premium"),
+    isAdminUser(user.id),
+  ]);
+
+  return isPremium || isAdmin;
 }
 
 export async function hasBolaoAccess(): Promise<boolean> {

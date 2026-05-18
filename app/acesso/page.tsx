@@ -11,15 +11,22 @@ export const metadata: Metadata = {
 
 const cards = [
   {
+    icon: UserRound,
+    title: "Sou assinante VIP",
+    description: "Entrada de cliente premium via Supabase Auth/magic link para acessar picks e áreas VIP.",
+    button: "Entrar como cliente VIP",
+    href: "/entrar",
+  },
+  {
     icon: Trophy,
-    title: "Bolão Barbosa",
-    description: "Produto de pagamento único para participar do bolão oficial BarbosaTips.",
-    button: "Entrar no Bolão",
+    title: "Bolão",
+    description: "Acesso separado para participantes do bolão oficial BarbosaTips.",
+    button: "Entrar no bolão",
     href: "/bolao/login",
   },
   {
     icon: Crown,
-    title: "Barbosa VIP Premium",
+    title: "Quero assinar VIP",
     description: "Assinatura que libera Picks Premium, Central EV+ e Football API Insights.",
     button: "Assinar VIP Premium",
     href: "/vip",
@@ -35,9 +42,9 @@ const cards = [
   {
     icon: LockKeyhole,
     title: "Admin",
-    description: "Área restrita da equipe BarbosaTips.",
-    button: "Acessar Admin",
-    href: "/admin",
+    description: "Entrada exclusiva da equipe BarbosaTips. Não usa o login de cliente premium.",
+    button: "Entrar no Admin",
+    href: "/admin/login",
   },
 ];
 
@@ -53,15 +60,15 @@ export default function AcessoPage() {
             Escolha a área correta
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
-            VIP, Bolão, Lojinha e Admin são produtos e permissões separadas. Uma
-            compra não libera automaticamente outra área.
+            VIP, Bolão, Lojinha e Admin são acessos separados. Use a entrada correta
+            para evitar misturar login de cliente com login administrativo.
           </p>
           <Link
-            href="/entrar"
+            href="/vip"
             className="mt-6 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gold-400/35 bg-gold-400/[0.08] px-5 text-sm font-bold text-gold-100 transition hover:border-gold-300/55 hover:bg-gold-400/14"
           >
-            <UserRound className="h-4 w-4" aria-hidden />
-            Já tenho acesso
+            <Crown className="h-4 w-4" aria-hidden />
+            Quero assinar VIP
           </Link>
         </header>
 

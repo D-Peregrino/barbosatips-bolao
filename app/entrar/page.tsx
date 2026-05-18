@@ -4,7 +4,7 @@ import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: `Entrar · ${siteConfig.shortTitle}`,
-  description: "Entre para acessar seus produtos BarbosaTips: VIP, Bolão ou Lojinha.",
+  description: "Entrada de cliente VIP BarbosaTips via magic link.",
 };
 
 export default function EntrarPage() {

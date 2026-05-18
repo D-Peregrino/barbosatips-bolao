@@ -23,7 +23,7 @@ function LoginFormContent() {
         <BrandShield size="md" className="mx-auto" glow="soft" />
         <h1 className="mt-6 font-display text-2xl font-bold text-white">Entrar na BarbosaTips</h1>
         <p className="mt-2 text-sm text-zinc-500">
-          Entre para acessar seus produtos BarbosaTips: VIP, Bolão ou Lojinha.
+          Entrada de cliente VIP. Bolão e Admin usam acessos próprios em /acesso.
         </p>
         {sent ? (
           <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">
@@ -70,7 +70,7 @@ function LoginFormContent() {
           }}
         >
           <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            E-mail da sua compra ou conta
+            E-mail da sua assinatura VIP
           </label>
           <input
             type="email"

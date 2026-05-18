@@ -16,7 +16,7 @@ import {
 import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/meu-feed"];
-const CLIENT_AUTH_ROUTES = ["/picks", "/vip/central-ev", "/vip/football-insights"];
+const CLIENT_AUTH_ROUTES = ["/vip/central-ev", "/vip/football-insights"];
 
 const AUTH_ROUTES = ["/login", "/entrar"];
 
