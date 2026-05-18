@@ -35,6 +35,15 @@ export async function POST(request: Request) {
       amount: product.amount,
     });
     const preference = await createMercadoPagoPreference({ origin, order });
+    console.log("[MP CHECKOUT PREFERENCE]", {
+      productCode: product.code,
+      orderId: order.id,
+      preferenceId: preference.preferenceId,
+      initPointType: preference.initPointType,
+      hasInitPoint: Boolean(preference.initPoint),
+      initPointHost: preference.initPoint ? new URL(preference.initPoint).host : null,
+      nodeEnv: process.env.NODE_ENV ?? "unknown",
+    });
 
     if (!preference.initPoint) {
       return NextResponse.json(

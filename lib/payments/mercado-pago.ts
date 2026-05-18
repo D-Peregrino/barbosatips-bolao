@@ -11,6 +11,7 @@ import {
 type MercadoPagoPreferenceResponse = {
   id: string;
   init_point?: string;
+  sandbox_init_point?: string;
 };
 
 type MercadoPagoPaymentResponse = {
@@ -26,6 +27,15 @@ type MercadoPagoPaymentResponse = {
   };
 };
 
+type MercadoPagoTokenDiagnostics = {
+  configured: boolean;
+  tokenPrefix: string | null;
+  tokenLength: number;
+  usingSandbox: boolean;
+  environment: string;
+  expectedPrefix: "APP_USR-";
+};
+
 export type PaymentOrderRow = {
   id: string;
   user_id: string | null;
@@ -39,11 +49,44 @@ export type PaymentOrderRow = {
   updated_at: string;
 };
 
+function tokenLooksSandbox(token: string | undefined): boolean {
+  const normalized = token?.trim().toUpperCase() ?? "";
+  return normalized.startsWith("TEST-") || normalized.startsWith("TEST_USR");
+}
+
+function safeUrlHost(raw: string | undefined): string | null {
+  if (!raw) return null;
+  try {
+    return new URL(raw).host;
+  } catch {
+    return null;
+  }
+}
+
+export function getMercadoPagoRuntimeDiagnostics(): MercadoPagoTokenDiagnostics {
+  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim();
+  return {
+    configured: Boolean(token),
+    tokenPrefix: token ? token.slice(0, 12) : null,
+    tokenLength: token?.length ?? 0,
+    usingSandbox: tokenLooksSandbox(token),
+    environment: process.env.NODE_ENV ?? "unknown",
+    expectedPrefix: "APP_USR-",
+  };
+}
+
 function mercadoPagoToken(): string {
   const token = process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim();
-  console.log("[MP TOKEN PREFIX]", token?.slice(0, 12));
+  const diagnostics = getMercadoPagoRuntimeDiagnostics();
+  console.log("[MP TOKEN PREFIX]", diagnostics.tokenPrefix);
+  console.log("[MP ENVIRONMENT]", {
+    nodeEnv: diagnostics.environment,
+    usingSandbox: diagnostics.usingSandbox,
+    tokenConfigured: diagnostics.configured,
+    tokenLength: diagnostics.tokenLength,
+  });
   if (!token) throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado.");
-  if (token.startsWith("TEST-")) {
+  if (tokenLooksSandbox(token)) {
     throw new Error("MERCADO_PAGO_ACCESS_TOKEN está usando credencial de teste.");
   }
   if (!token.startsWith("APP_USR-")) {
@@ -124,6 +167,17 @@ export async function createMercadoPagoPreference(params: {
   });
 
   const body = (await response.json()) as MercadoPagoPreferenceResponse & { message?: string };
+  console.log("[MP CREATE PREFERENCE RESPONSE]", {
+    ok: response.ok,
+    status: response.status,
+    preferenceId: body.id ?? null,
+    hasInitPoint: Boolean(body.init_point),
+    hasSandboxInitPoint: Boolean(body.sandbox_init_point),
+    initPointType: body.init_point ? "init_point" : body.sandbox_init_point ? "sandbox_init_point" : "none",
+    initPointHost: safeUrlHost(body.init_point),
+    sandboxInitPointHost: safeUrlHost(body.sandbox_init_point),
+    message: body.message ?? null,
+  });
   if (!response.ok) {
     throw new Error(body.message || "Mercado Pago recusou a criação da preferência.");
   }
@@ -137,6 +191,7 @@ export async function createMercadoPagoPreference(params: {
   return {
     preferenceId: body.id,
     initPoint: body.init_point ?? "",
+    initPointType: body.init_point ? "init_point" : body.sandbox_init_point ? "sandbox_init_point" : "none",
   };
 }
 
