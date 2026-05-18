@@ -10,6 +10,7 @@ import {
   FilePlus,
   LayoutDashboard,
   LineChart,
+  Megaphone,
   Menu,
   PenLine,
   Radio,
@@ -78,6 +79,7 @@ const PRIMARY: NavItem[] = [
 
 const PORTAL: NavItem[] = [
   { href: "/ranking", label: "Ranking", desc: "Bolão público", icon: Trophy, external: true },
+  { href: "/admin/banners", label: "Banners", desc: "Afiliados", icon: Megaphone },
   {
     href: "/performance",
     label: "Performance",

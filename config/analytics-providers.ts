@@ -4,7 +4,7 @@
  */
 export const ANALYTICS_ENV_KEYS = {
   googleAnalytics: [
-    "NEXT_PUBLIC_GA_MEASUREMENT_ID",
+    "NEXT_PUBLIC_GA_ID",
     "NEXT_PUBLIC_GA_DISABLE_PAGE_VIEW", // opcional: "1" para dev
   ],
   googleSearchConsole: ["GSC_SITE_URL", "GSC_SERVICE_ACCOUNT_JSON"], // export API futura

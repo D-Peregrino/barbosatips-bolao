@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import SponsorSlot from "@/components/ads/SponsorSlot";
+import SponsorSlot, { AffiliateBannerSlot } from "@/components/ads/SponsorSlot";
 import { CommunityHubRail } from "@/components/community/CommunityHubRail";
 import { sponsorBannerSlots } from "@/config/sponsor-banners";
 
@@ -30,7 +30,12 @@ export function CommercialPageShell({
   ) : null;
   const left = railLeft ?? defaultLeft;
   const hasLeftColumn = left != null;
-  const right = railRight ?? <CommunityHubRail />;
+  const right = railRight ?? (
+    <>
+      <AffiliateBannerSlot position="sidebar_right" />
+      <CommunityHubRail />
+    </>
+  );
 
   return (
     <div className={cn("relative w-full", className)}>

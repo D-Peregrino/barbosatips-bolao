@@ -4,11 +4,14 @@ import type { SponsorBannerPosition } from "@/config/sponsor-banners";
 
 export type SponsorBannerProps = {
   /** Nome do ficheiro em `public/patrocinadores/` (ex.: `home-horizontal.jpg`) */
-  imageFile: string;
+  imageFile?: string;
+  /** URL absoluta/pública para banners administrados no Supabase Storage. */
+  imageUrl?: string;
   link: string;
   alt: string;
   position: SponsorBannerPosition;
   className?: string;
+  newTab?: boolean;
 };
 
 const labelClass =
@@ -79,11 +82,20 @@ function isNavigableHref(link: string): boolean {
   return /^https?:\/\//i.test(t) || t.startsWith("/") || t.startsWith("#") || t.startsWith("?");
 }
 
-export function SponsorBanner({ imageFile, link, alt, position, className }: SponsorBannerProps) {
+export function SponsorBanner({
+  imageFile,
+  imageUrl,
+  link,
+  alt,
+  position,
+  className,
+  newTab,
+}: SponsorBannerProps) {
   const navigable = isNavigableHref(link);
   const isExternal = /^https?:\/\//i.test(link.trim());
-  const safe = imageFile.replace(/^\/+/, "").replace(/\.\./g, "");
-  const src = `/patrocinadores/${safe}`;
+  const safe = imageFile?.replace(/^\/+/, "").replace(/\.\./g, "");
+  const src = imageFile ? `/patrocinadores/${safe}` : imageUrl?.trim();
+  if (!src) return null;
 
   const mediaStage = (
     <div className={mediaStageClass(position)}>
@@ -110,7 +122,7 @@ export function SponsorBanner({ imageFile, link, alt, position, className }: Spo
     >
       {!navigable ? (
         <div className={interactiveClass}>{inner}</div>
-      ) : isExternal ? (
+      ) : isExternal || newTab ? (
         <a
           href={link.trim()}
           target="_blank"
