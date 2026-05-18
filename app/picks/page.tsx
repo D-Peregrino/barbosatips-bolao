@@ -49,6 +49,13 @@ export default async function PicksPage() {
   noStore();
   const premiumAllowed = await canViewPremiumPicks();
   const picks = premiumAllowed ? await listarQuickPicks(false) : [];
+  console.warn("[PICKS SSR DEBUG]", {
+    canViewPremiumPicks: premiumAllowed,
+    picksReturned: picks.length,
+    premiumPicksReturned: picks.filter((pick) => pick.is_premium).length,
+    firstPickIds: picks.slice(0, 5).map((pick) => pick.id),
+    renderBranch: premiumAllowed ? (picks.length > 0 ? "cards" : "empty_state") : "vip_cta",
+  });
   const stats = calcularEstatisticasQuickPicksEncerradas(picks);
 
   return (

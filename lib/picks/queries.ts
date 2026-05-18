@@ -3,8 +3,10 @@ import { shouldSkipLiveSupabase } from "@/lib/supabase/should-skip-live-supabase
 import type { QuickPickRow, QuickPickResultado, QuickPickStatus } from "@/lib/picks/types";
 import { textoMatchesLiga } from "@/lib/sport-routes";
 
-const COLUNAS =
-  "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,created_at" as const;
+export const QUICK_PICKS_SELECT_COLUMNS =
+  "id,esporte,campeonato,jogo,mercado,odd,confianca,justificativa,horario_jogo,status,resultado,is_premium,created_at" as const;
+
+const COLUNAS = QUICK_PICKS_SELECT_COLUMNS;
 
 const COLUNAS_SITEMAP = "id,horario_jogo,created_at" as const;
 
@@ -89,7 +91,15 @@ export async function listarQuickPicksRecentes(
 
 /** `soGratis`: exclui premium para utilizador logado sem assinatura. */
 export async function listarQuickPicks(soGratis = false): Promise<QuickPickRow[]> {
-  if (shouldSkipLiveSupabase()) return [];
+  if (shouldSkipLiveSupabase()) {
+    console.warn("[PICKS QUERY DEBUG]", {
+      source: "listarQuickPicks",
+      skipped: true,
+      reason: "shouldSkipLiveSupabase",
+      soGratis,
+    });
+    return [];
+  }
   try {
     const admin = createAdminClient();
     const { data, error } = await admin
@@ -99,15 +109,37 @@ export async function listarQuickPicks(soGratis = false): Promise<QuickPickRow[]
       .limit(500);
 
     if (error) {
-      console.error("quick_picks listar", error);
+      console.error("[PICKS QUERY DEBUG]", {
+        source: "listarQuickPicks",
+        table: "quick_picks",
+        select: COLUNAS,
+        filters: { soGratis, order: "horario_jogo desc", limit: 500 },
+        error,
+      });
       return [];
     }
 
     const rows = (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
-    if (!soGratis) return rows;
-    return rows.filter((p) => !p.is_premium);
+    const returned = soGratis ? rows.filter((p) => !p.is_premium) : rows;
+    console.warn("[PICKS QUERY DEBUG]", {
+      source: "listarQuickPicks",
+      table: "quick_picks",
+      select: COLUNAS,
+      filters: { soGratis, order: "horario_jogo desc", limit: 500 },
+      rawCount: rows.length,
+      returnedCount: returned.length,
+      premiumCount: rows.filter((p) => p.is_premium).length,
+      firstIds: returned.slice(0, 5).map((p) => p.id),
+    });
+    return returned;
   } catch (e) {
-    console.error(e);
+    console.error("[PICKS QUERY DEBUG]", {
+      source: "listarQuickPicks",
+      table: "quick_picks",
+      select: COLUNAS,
+      filters: { soGratis, order: "horario_jogo desc", limit: 500 },
+      error: e,
+    });
     return [];
   }
 }
