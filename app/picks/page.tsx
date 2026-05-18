@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_noStore as noStore } from "next/cache";
 import { Send, Zap } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -17,9 +18,12 @@ import { PortalSocialCtaBand } from "@/components/portal/PortalSocialCtaBand";
 import { getCurrentUser, isPremiumUser } from "@/lib/access/permissions";
 
 export const dynamic = "force-dynamic";
-export const revalidate = siteConfig.revalidate.picks;
+export const runtime = "nodejs";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function generateMetadata(): Promise<Metadata> {
+  noStore();
   const recent = await listarQuickPicksRecentes(12, true);
   const title = `Picks rápidas | ${siteConfig.shortTitle}`;
   const sports = Array.from(new Set(recent.map((r) => r.esporte))).filter(Boolean);
@@ -43,6 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PicksPage() {
+  noStore();
   const user = await getCurrentUser();
   if (!user) redirect("/entrar?next=/picks");
 
